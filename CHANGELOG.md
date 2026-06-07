@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 - 2026-06-07
+
+- Added multi-window listing via CLI `windows`, extension action `windows`, and MCP tool `chrome_bridge_windows`.
+- Added human-in-the-loop prompts via CLI `ask`, extension action `askUser`, local `ask.html` page, and MCP tool `chrome_bridge_ask_user`.
+- Added syntax checks for the prompt page script.
+- Documented CAPTCHA/manual-step policy: ask the user; do not bypass automatically.
+
 ## 0.3.0 - 2026-06-07
 
 Initial public project packaging.
@@ -10,4 +17,3 @@ Initial public project packaging.
 - Added `self-test` and `runtime-smoke`.
 - Added macOS LaunchAgent install helpers.
 - Added public documentation.
-

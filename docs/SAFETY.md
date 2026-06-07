@@ -56,9 +56,9 @@ Agents using this bridge should:
 - Avoid unrelated user tabs.
 - Avoid submitting forms unless explicitly asked.
 - Avoid requesting indexing, changing settings, deleting data, uploading files, or sending private data externally unless explicitly asked.
+- Use `ask` / `chrome_bridge_ask_user` for manual confirmations and CAPTCHA coordination; do not implement automatic CAPTCHA bypass.
 - Redact private dashboard content from bug reports and public logs.
 
 ## Network Boundary
 
 The bridge server binds to `127.0.0.1` by default. Do not expose it on a public interface without adding authentication and doing a security review.
-

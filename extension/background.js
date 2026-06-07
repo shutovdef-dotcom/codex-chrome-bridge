@@ -3,8 +3,10 @@ const DEFAULT_GROUP_TITLE = 'Codex Bridge';
 const DEFAULT_GROUP_COLOR = 'purple';
 const DEBUGGER_PROTOCOL_VERSION = '1.3';
 const MAX_TRACE_EVENTS = 500;
+const MAX_USER_PROMPT_CHOICES = 8;
 
 const traceSessions = new Map();
+const pendingUserPrompts = new Map();
 
 function groupOptions(payload = {}) {
   return {
@@ -71,6 +73,27 @@ if (chrome.debugger?.onEvent) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === 'codex-bridge-get-user-prompt') {
+    const prompt = pendingUserPrompts.get(message.requestId);
+    sendResponse({
+      ok: Boolean(prompt),
+      prompt: prompt ? publicUserPrompt(prompt) : null,
+    });
+    return undefined;
+  }
+
+  if (message?.type === 'codex-bridge-user-answer') {
+    completeUserPrompt(message.requestId, {
+      value: message.value,
+      text: message.text,
+      choice: message.choice,
+      canceled: Boolean(message.canceled),
+      reason: message.reason,
+    });
+    sendResponse({ ok: true });
+    return undefined;
+  }
+
   if (message?.type !== 'codex-bridge-command') return undefined;
 
   dispatch(message.action, message.payload || {})
@@ -80,8 +103,21 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return true;
 });
 
+chrome.tabs.onRemoved.addListener((tabId) => {
+  for (const prompt of pendingUserPrompts.values()) {
+    if (prompt.tabId === tabId) {
+      completeUserPrompt(prompt.id, {
+        canceled: true,
+        reason: 'prompt tab closed',
+      });
+    }
+  }
+});
+
 async function dispatch(action, payload) {
   switch (action) {
+    case 'windows':
+      return listWindows(payload);
     case 'tabs':
       return listTabs(payload);
     case 'group':
@@ -142,6 +178,8 @@ async function dispatch(action, payload) {
       return storageSnapshot(payload);
     case 'fetchUrl':
       return fetchUrl(payload);
+    case 'askUser':
+      return askUser(payload);
     case 'evalPage':
       return evalPage(payload);
     case 'reloadExtension':
@@ -175,6 +213,48 @@ async function listTabs(payload = {}) {
     configuredGroup: options,
     groups: scoped ? codexGroups : groups,
     tabs: visibleTabs.map((tab) => tabInfo(tab, { groups })),
+  };
+}
+
+async function listWindows(payload = {}) {
+  const windows = await chrome.windows.getAll({
+    populate: true,
+    windowTypes: ['normal'],
+  });
+  const groups = await listTabGroups();
+  const options = groupOptions(payload);
+  const scoped = !payload.includeAll;
+
+  const windowInfos = windows.map((window) => {
+    const windowGroups = groups.filter((group) => group.windowId === window.id);
+    const codexGroups = windowGroups.filter((group) => group.title === options.title);
+    const visibleGroups = scoped ? codexGroups : windowGroups;
+    const visibleGroupIds = new Set(visibleGroups.map((group) => group.id));
+    const visibleTabs = scoped
+      ? (window.tabs || []).filter((tab) => visibleGroupIds.has(tab.groupId))
+      : (window.tabs || []);
+
+    return {
+      id: window.id,
+      focused: window.focused,
+      top: window.top,
+      left: window.left,
+      width: window.width,
+      height: window.height,
+      state: window.state,
+      type: window.type,
+      groups: visibleGroups.map(groupInfo),
+      tabs: visibleTabs.map((tab) => tabInfo(tab, { groups: visibleGroups })),
+      tabCount: visibleTabs.length,
+    };
+  }).filter((window) => !scoped || window.groups.length || window.tabs.length);
+
+  return {
+    scope: scoped ? 'codex-group' : 'all-windows',
+    configuredGroup: options,
+    windowCount: windowInfos.length,
+    tabCount: windowInfos.reduce((sum, window) => sum + window.tabCount, 0),
+    windows: windowInfos,
   };
 }
 
@@ -1172,6 +1252,160 @@ async function fetchUrl(payload) {
     truncated: text.length > maxChars,
     length: text.length,
   };
+}
+
+function normalizePromptChoices(choices = []) {
+  if (!Array.isArray(choices)) return [];
+  return choices.slice(0, MAX_USER_PROMPT_CHOICES).map((choice, index) => {
+    if (choice && typeof choice === 'object') {
+      const value = choice.value === undefined ? String(index + 1) : String(choice.value);
+      const label = choice.label === undefined ? value : String(choice.label);
+      return { value, label };
+    }
+    return {
+      value: String(choice),
+      label: String(choice),
+    };
+  });
+}
+
+function publicUserPrompt(prompt) {
+  return {
+    id: prompt.id,
+    question: prompt.question,
+    choices: prompt.choices,
+    allowText: prompt.allowText,
+    createdAt: prompt.createdAt,
+  };
+}
+
+async function askUser(payload = {}) {
+  const question = String(payload.question || '').trim();
+  if (!question) throw new Error('askUser requires question');
+
+  const id = crypto.randomUUID();
+  const choices = normalizePromptChoices(payload.choices);
+  const timeoutMs = Math.min(Math.max(Number(payload.timeoutMs || 300_000), 5_000), 1_800_000);
+  const allowText = payload.allowText !== false;
+  const closeOnAnswer = payload.closeOnAnswer !== false;
+  const previous = await storageGet(['codexTabId', 'codexWindowId']);
+  const promptUrl = chrome.runtime.getURL(`ask.html?id=${encodeURIComponent(id)}`);
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      completeUserPrompt(id, {
+        canceled: true,
+        reason: 'timeout',
+      });
+    }, timeoutMs);
+
+    pendingUserPrompts.set(id, {
+      id,
+      question,
+      choices,
+      allowText,
+      closeOnAnswer,
+      createdAt: new Date().toISOString(),
+      timeout,
+      tabId: null,
+      previous,
+      resolve,
+      group: null,
+    });
+
+    createPromptTab(promptUrl, payload, previous)
+      .then(({ tab, group }) => {
+        const prompt = pendingUserPrompts.get(id);
+        if (!prompt) {
+          chrome.tabs.remove(tab.id).catch(() => {});
+          return;
+        }
+        prompt.tabId = tab.id;
+        prompt.group = groupInfo(group);
+      })
+      .catch((error) => {
+        pendingUserPrompts.delete(id);
+        clearTimeout(timeout);
+        restoreStoredCodexTarget(previous).catch(() => {});
+        reject(error);
+      });
+  });
+}
+
+async function createPromptTab(url, payload, previous = {}) {
+  const tabs = await getCodexGroupTabs(payload);
+  let tab;
+
+  if (tabs.length) {
+    const active = tabs.find((candidate) => candidate.active) || tabs[0];
+    tab = await chrome.tabs.create({
+      windowId: active.windowId,
+      index: active.index + 1,
+      url,
+      active: true,
+    });
+  } else {
+    const created = await chrome.windows.create({
+      url,
+      focused: true,
+      width: 720,
+      height: 520,
+      left: 120,
+      top: 120,
+      type: 'normal',
+    });
+    tab = created.tabs?.[0];
+  }
+
+  if (!tab?.id) throw new Error('Failed to create user prompt tab');
+  const group = await ensureCodexGroupForTab(tab, payload);
+  const loaded = await waitForTabComplete(tab.id);
+  await restoreStoredCodexTarget(previous);
+  return { tab: loaded, group };
+}
+
+async function restoreStoredCodexTarget(previous = {}) {
+  if (previous.codexTabId) {
+    await storageSet({
+      codexTabId: previous.codexTabId,
+      codexWindowId: previous.codexWindowId,
+    });
+    return;
+  }
+  await storageRemove(['codexTabId', 'codexWindowId']);
+}
+
+function completeUserPrompt(requestId, answer = {}) {
+  const prompt = pendingUserPrompts.get(requestId);
+  if (!prompt) return false;
+
+  pendingUserPrompts.delete(requestId);
+  clearTimeout(prompt.timeout);
+
+  const respondedAt = new Date().toISOString();
+  const result = {
+    id: prompt.id,
+    question: prompt.question,
+    canceled: Boolean(answer.canceled),
+    reason: answer.reason || null,
+    answer: answer.canceled ? null : {
+      value: answer.value === undefined ? null : String(answer.value),
+      text: answer.text === undefined ? null : String(answer.text),
+      choice: answer.choice || null,
+    },
+    tabId: prompt.tabId,
+    group: prompt.group,
+    createdAt: prompt.createdAt,
+    respondedAt,
+  };
+
+  prompt.resolve(result);
+
+  if (prompt.closeOnAnswer && prompt.tabId) {
+    chrome.tabs.remove(prompt.tabId).catch(() => {});
+  }
+  restoreStoredCodexTarget(prompt.previous).catch(() => {});
+  return true;
 }
 
 function groupInfo(group) {

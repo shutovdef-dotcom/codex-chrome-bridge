@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { startBridgeServer } from '../server/bridge-server.mjs';
 
 const DEFAULT_ENDPOINT = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
-const EXPECTED_EXTENSION_VERSION = '0.3.0';
+const EXPECTED_EXTENSION_VERSION = '0.4.0';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const execFileAsync = promisify(execFile);
@@ -17,6 +17,7 @@ function usage() {
   return `Usage:
   chrome-bridge server [--port 17376]
   chrome-bridge health
+  chrome-bridge windows [--all]
   chrome-bridge group [--tabs]
   chrome-bridge tabs [--all]
   chrome-bridge ensure-tab [url] [--active]
@@ -47,6 +48,7 @@ function usage() {
   chrome-bridge cookies [--url <url> | --domain <domain>] --confirm [--include-values --confirm-sensitive] [--limit 50]
   chrome-bridge storage [--tab <id>] --confirm [--include-values --confirm-sensitive] [--allow-external]
   chrome-bridge request <url> --confirm [--method GET] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000]
+  chrome-bridge ask --question <text> [--choices-json <json>] [--no-text] [--timeout-ms 300000] [--keep-tab]
   chrome-bridge reload-extension
   chrome-bridge self-test
   chrome-bridge runtime-smoke [--keep-tab]
@@ -142,6 +144,7 @@ const EXPECTED_MANIFEST_PERMISSIONS = [
 ];
 
 const EXPECTED_EXTENSION_ACTIONS = [
+  'windows',
   'tabs',
   'group',
   'ensureTab',
@@ -172,11 +175,13 @@ const EXPECTED_EXTENSION_ACTIONS = [
   'cookiesList',
   'storageSnapshot',
   'fetchUrl',
+  'askUser',
   'reloadExtension',
 ];
 
 const EXPECTED_CLI_COMMANDS = [
   'health',
+  'windows',
   'group',
   'tabs',
   'ensure-tab',
@@ -207,6 +212,7 @@ const EXPECTED_CLI_COMMANDS = [
   'cookies',
   'storage',
   'request',
+  'ask',
   'reload-extension',
   'self-test',
   'runtime-smoke',
@@ -218,6 +224,7 @@ const EXPECTED_MCP_TOOLS = [
   'chrome_bridge_reload_extension',
   'chrome_bridge_self_test',
   'chrome_bridge_runtime_smoke',
+  'chrome_bridge_windows',
   'chrome_bridge_tabs',
   'chrome_bridge_group',
   'chrome_bridge_ensure_tab',
@@ -248,6 +255,7 @@ const EXPECTED_MCP_TOOLS = [
   'chrome_bridge_cookies_list',
   'chrome_bridge_storage_snapshot',
   'chrome_bridge_request',
+  'chrome_bridge_ask_user',
 ];
 
 async function tryExec(commandName, args, options = {}) {
@@ -382,6 +390,7 @@ async function selfTest() {
     manifest: path.join(rootDir, 'extension/manifest.json'),
     background: path.join(rootDir, 'extension/background.js'),
     offscreen: path.join(rootDir, 'extension/offscreen.js'),
+    ask: path.join(rootDir, 'extension/ask.js'),
     server: path.join(rootDir, 'server/bridge-server.mjs'),
     cli: path.join(rootDir, 'bin/chrome-bridge.mjs'),
     mcp: path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'),
@@ -393,6 +402,7 @@ async function selfTest() {
     manifestText,
     background,
     offscreen,
+    ask,
     server,
     cli,
     mcp,
@@ -402,6 +412,7 @@ async function selfTest() {
     fs.readFile(paths.manifest, 'utf8'),
     fs.readFile(paths.background, 'utf8'),
     fs.readFile(paths.offscreen, 'utf8'),
+    fs.readFile(paths.ask, 'utf8'),
     fs.readFile(paths.server, 'utf8'),
     fs.readFile(paths.cli, 'utf8'),
     fs.readFile(paths.mcp, 'utf8'),
@@ -416,6 +427,7 @@ async function selfTest() {
   const syntaxChecks = await Promise.all([
     tryExec(process.execPath, ['--check', paths.background]),
     tryExec(process.execPath, ['--check', paths.offscreen]),
+    tryExec(process.execPath, ['--check', paths.ask]),
     tryExec(process.execPath, ['--check', paths.server]),
     tryExec(process.execPath, ['--check', paths.cli]),
     tryExec(process.execPath, ['--check', paths.mcp]),
@@ -430,6 +442,7 @@ async function selfTest() {
   const versionChecks = [
     { label: 'manifest version', item: EXPECTED_EXTENSION_VERSION, ok: manifest.version === EXPECTED_EXTENSION_VERSION },
     { label: 'offscreen version', item: EXPECTED_EXTENSION_VERSION, ok: offscreen.includes(`EXTENSION_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
+    { label: 'ask page script', item: 'codex-bridge-user-answer', ok: ask.includes('codex-bridge-user-answer') },
     { label: 'server version', item: EXPECTED_EXTENSION_VERSION, ok: server.includes(`EXTENSION_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
     { label: 'cli expected version', item: EXPECTED_EXTENSION_VERSION, ok: cli.includes(`EXPECTED_EXTENSION_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
     { label: 'mcp version', item: EXPECTED_EXTENSION_VERSION, ok: mcp.includes(`version: '${EXPECTED_EXTENSION_VERSION}'`) },
@@ -454,7 +467,7 @@ async function selfTest() {
   const checks = [
     ...syntaxChecks.map((result, index) => ({
       label: 'syntax',
-      item: [paths.background, paths.offscreen, paths.server, paths.cli, paths.mcp][index],
+      item: [paths.background, paths.offscreen, paths.ask, paths.server, paths.cli, paths.mcp][index],
       ok: result.ok,
       error: result.ok ? undefined : result.error || result.stderr,
     })),
@@ -959,6 +972,13 @@ tool_timeout_sec = 60
     return;
   }
 
+  if (cmd === 'windows') {
+    printJson(await command('windows', {
+      includeAll: Boolean(args.all),
+    }));
+    return;
+  }
+
   if (cmd === 'group') {
     printJson(await command('group', {
       includeTabs: Boolean(args.tabs),
@@ -1234,6 +1254,19 @@ tool_timeout_sec = 60
       credentials: args.credentials,
       maxChars: args['max-chars'] ? Number(args['max-chars']) : undefined,
     }, 60_000));
+    return;
+  }
+
+  if (cmd === 'ask') {
+    const question = args.question || first;
+    if (!question) throw new Error('ask requires --question <text>');
+    printJson(await command('askUser', {
+      question,
+      choices: parseJsonOption(args['choices-json'], '--choices-json'),
+      allowText: !args['no-text'],
+      closeOnAnswer: !args['keep-tab'],
+      timeoutMs: args['timeout-ms'] ? Number(args['timeout-ms']) : undefined,
+    }, args['timeout-ms'] ? Number(args['timeout-ms']) + 5_000 : 305_000));
     return;
   }
 

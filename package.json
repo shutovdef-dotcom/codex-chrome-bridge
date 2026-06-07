@@ -1,6 +1,6 @@
 {
   "name": "codex-chrome-bridge",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Local Chrome extension, CLI, and MCP server for read-mostly control of a real Chrome profile from Codex-style agents.",
   "private": false,
   "type": "module",
@@ -44,7 +44,7 @@
     "self-test": "node ./bin/chrome-bridge.mjs self-test",
     "runtime-smoke": "node ./bin/chrome-bridge.mjs runtime-smoke",
     "doctor": "node ./bin/chrome-bridge.mjs doctor",
-    "check": "node --check ./server/bridge-server.mjs && node --check ./bin/chrome-bridge.mjs && node --check ./mcp/chrome-bridge-mcp.mjs && node --check ./extension/background.js && node --check ./extension/offscreen.js && node --check ./scripts/install-launch-agent.mjs && node --check ./scripts/uninstall-launch-agent.mjs && npm run self-test",
+    "check": "node --check ./server/bridge-server.mjs && node --check ./bin/chrome-bridge.mjs && node --check ./mcp/chrome-bridge-mcp.mjs && node --check ./extension/background.js && node --check ./extension/offscreen.js && node --check ./extension/ask.js && node --check ./scripts/install-launch-agent.mjs && node --check ./scripts/uninstall-launch-agent.mjs && npm run self-test",
     "install:launch-agent": "node ./scripts/install-launch-agent.mjs",
     "uninstall:launch-agent": "node ./scripts/uninstall-launch-agent.mjs"
   },

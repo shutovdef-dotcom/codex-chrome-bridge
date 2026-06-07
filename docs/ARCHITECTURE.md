@@ -9,6 +9,7 @@ The `extension/` directory contains a Manifest V3 extension:
 - `manifest.json` declares permissions.
 - `background.js` executes browser commands.
 - `offscreen.html` and `offscreen.js` keep a WebSocket connection to the local bridge server.
+- `ask.html` and `ask.js` provide a local human-in-the-loop prompt page.
 
 The extension is the only component that talks directly to Chrome extension APIs.
 
@@ -34,6 +35,7 @@ It also contains:
 - `self-test`, a static project parity check.
 - `runtime-smoke`, a safe real-browser smoke test using a temporary `127.0.0.1` fixture page.
 - `doctor`, diagnostics for extension setup.
+- `ask`, a local prompt for user answers without leaving the scoped Chrome group.
 
 ## MCP Server
 
@@ -60,4 +62,3 @@ MCP client or CLI
 The important boundary is the user's real Chrome profile. Anything visible to Chrome may be private.
 
 Use [SAFETY.md](SAFETY.md) as the source of truth for confirmation gates and private-data handling.
-

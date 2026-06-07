@@ -34,6 +34,10 @@ node ./bin/chrome-bridge.mjs reload-extension
 
 Permission changes still require a manual Chrome extension reload.
 
+## Human Prompt Page
+
+`ask.html` is a local extension page used by the `ask` CLI command and `chrome_bridge_ask_user` MCP tool. It opens inside the `Codex Bridge` tab group and sends the user's answer back to the extension background script.
+
 ## Permissions
 
 The extension currently requests:
@@ -52,4 +56,3 @@ The extension currently requests:
 - `<all_urls>` host permissions
 
 These permissions are broad because the tool works with real Chrome tabs. Use this only with a local bridge server you control.
-

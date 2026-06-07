@@ -17,6 +17,7 @@ chrome-bridge <command>
 ```bash
 chrome-bridge server [--port 17376]
 chrome-bridge health
+chrome-bridge windows [--all]
 chrome-bridge doctor [--copy-path] [--open-extensions]
 chrome-bridge extension-path
 chrome-bridge codex-config
@@ -91,3 +92,16 @@ chrome-bridge request <url> --confirm [--method GET] [--headers-json <json>] [--
 
 Cookie values, whole-cookie-jar queries, storage values, and credentialed requests require `--confirm-sensitive`.
 
+## Human-in-the-Loop
+
+```bash
+chrome-bridge ask --question <text> [--choices-json <json>] [--no-text] [--timeout-ms 300000] [--keep-tab]
+```
+
+The command opens a local extension page inside the `Codex Bridge` group and waits for the user to respond.
+
+`--choices-json` accepts either strings or `{ "value": "...", "label": "..." }` objects:
+
+```bash
+chrome-bridge ask --question "Continue?" --choices-json '["Yes","No"]' --no-text
+```

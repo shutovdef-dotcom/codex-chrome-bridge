@@ -8,8 +8,10 @@ It is designed for workflows where a browser automation agent needs the user's a
 
 - Uses the user's real Chrome profile instead of a fresh automation browser.
 - Keeps agent work inside a `Codex Bridge` Chrome tab group by default.
+- Lists scoped Chrome windows and grouped tabs for multi-window workflows.
 - Exposes a command-line interface for browser reads, screenshots, tabs, waits, and controlled interactions.
 - Exposes the same surface as an MCP server for Codex or other MCP clients.
+- Opens a local human-in-the-loop prompt tab when an agent needs user input.
 - Captures bounded console and network metadata through Chrome Debugger/CDP.
 - Provides guarded access to history, bookmarks, cookies, page storage, and extension-context fetches.
 - Ships with local self-tests and a runtime smoke test.
@@ -95,6 +97,7 @@ Then restart or reload your MCP client.
 ```bash
 node ./bin/chrome-bridge.mjs ensure-tab
 node ./bin/chrome-bridge.mjs open "https://example.com"
+node ./bin/chrome-bridge.mjs windows
 node ./bin/chrome-bridge.mjs tabs
 node ./bin/chrome-bridge.mjs snapshot --max-chars 60000
 node ./bin/chrome-bridge.mjs screenshot --out /tmp/chrome-bridge.png
@@ -115,6 +118,12 @@ node ./bin/chrome-bridge.mjs cookies --url "https://example.com" --confirm
 node ./bin/chrome-bridge.mjs cookies --url "https://example.com" --include-values --confirm --confirm-sensitive
 ```
 
+Human-in-the-loop prompt example:
+
+```bash
+node ./bin/chrome-bridge.mjs ask --question "Which account should I inspect?" --choices-json '["Production","Staging"]'
+```
+
 Full CLI reference: [docs/CLI.md](docs/CLI.md).
 
 ## MCP Tools
@@ -122,6 +131,7 @@ Full CLI reference: [docs/CLI.md](docs/CLI.md).
 The MCP server exposes tools such as:
 
 - `chrome_bridge_health`
+- `chrome_bridge_windows`
 - `chrome_bridge_tabs`
 - `chrome_bridge_open`
 - `chrome_bridge_snapshot`
@@ -131,6 +141,7 @@ The MCP server exposes tools such as:
 - `chrome_bridge_trace_start`
 - `chrome_bridge_cookies_list`
 - `chrome_bridge_storage_snapshot`
+- `chrome_bridge_ask_user`
 - `chrome_bridge_runtime_smoke`
 
 Full MCP reference: [docs/MCP.md](docs/MCP.md).

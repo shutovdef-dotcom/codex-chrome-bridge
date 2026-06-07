@@ -53,10 +53,19 @@ node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" runtime-smoke
 ```bash
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" ensure-tab
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" open "https://example.com"
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" windows
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" snapshot --max-chars 60000
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" text --max-chars 60000
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" screenshot --out /tmp/chrome-bridge.png
 ```
+
+## Human-in-the-Loop
+
+```bash
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" ask --question "What should I do next?" --choices-json '["Continue","Stop"]'
+```
+
+Use this for account selection, ambiguous dashboard steps, manual CAPTCHA coordination, or user confirmations. Do not bypass CAPTCHA automatically.
 
 ## Safety
 
@@ -66,4 +75,3 @@ node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" screenshot --out /tmp/chrome-br
 - Mutating and sensitive commands require `--confirm`.
 - Cookie values, whole-cookie-jar listing, storage values, and credentialed requests require `--confirm-sensitive`.
 - Stay inside the `Codex Bridge` tab group unless the user explicitly approves an external tab.
-

@@ -4,7 +4,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 17376;
-const EXTENSION_VERSION = '0.3.0';
+const EXTENSION_VERSION = '0.4.0';
 const EXTENSION_TTL_MS = 45_000;
 const LONG_POLL_MS = 25_000;
 

@@ -85,7 +85,7 @@ async function localRuntimeSmoke(args = {}) {
 
 const server = new McpServer({
   name: 'codex-chrome-bridge',
-  version: '0.3.0',
+  version: '0.4.0',
 });
 
 server.tool(
@@ -111,11 +111,20 @@ server.tool(
 
 server.tool(
   'chrome_bridge_runtime_smoke',
-  'Run a safe local runtime smoke test in real Chrome after extension v0.3.0 is loaded. Opens a temporary 127.0.0.1 fixture tab in the Codex Bridge group and verifies read/actions/screenshots/trace/browser-data safety gates.',
+  'Run a safe local runtime smoke test in real Chrome after extension v0.4.0 is loaded. Opens a temporary 127.0.0.1 fixture tab in the Codex Bridge group and verifies read/actions/screenshots/trace/browser-data safety gates.',
   {
     keepTab: z.boolean().optional(),
   },
   async (args) => textResult(await localRuntimeSmoke(args)),
+);
+
+server.tool(
+  'chrome_bridge_windows',
+  'List Chrome windows with grouped tabs. By default this is scoped to windows containing the Codex Bridge tab group; pass includeAll only for explicitly approved diagnostics.',
+  {
+    includeAll: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('windows', args)),
 );
 
 server.tool(
@@ -501,6 +510,25 @@ server.tool(
     confirmSensitive: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('fetchUrl', args, 60_000)),
+);
+
+server.tool(
+  'chrome_bridge_ask_user',
+  'Open a local Codex Bridge prompt tab and wait for the user to answer. Use when the agent needs human-in-the-loop confirmation, clarification, or CAPTCHA/manual-step coordination.',
+  {
+    question: z.string(),
+    choices: z.array(z.union([
+      z.string(),
+      z.object({
+        value: z.string(),
+        label: z.string(),
+      }),
+    ])).max(8).optional(),
+    allowText: z.boolean().optional(),
+    closeOnAnswer: z.boolean().optional(),
+    timeoutMs: z.number().min(5000).max(1800000).optional(),
+  },
+  async (args) => textResult(await bridgeCommand('askUser', args, args.timeoutMs ? args.timeoutMs + 5_000 : 305_000)),
 );
 
 await server.connect(new StdioServerTransport());

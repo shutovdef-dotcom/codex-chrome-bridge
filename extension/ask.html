@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Codex Bridge Prompt</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: Canvas;
+        color: CanvasText;
+      }
+
+      main {
+        width: min(680px, calc(100vw - 32px));
+        padding: 24px;
+        border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+        border-radius: 8px;
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        font-size: 20px;
+        line-height: 1.25;
+      }
+
+      #question {
+        margin: 0 0 20px;
+        white-space: pre-wrap;
+        line-height: 1.45;
+      }
+
+      #choices {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      button,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        min-height: 40px;
+        border-radius: 6px;
+        border: 1px solid color-mix(in srgb, CanvasText 24%, transparent);
+        background: ButtonFace;
+        color: ButtonText;
+        cursor: pointer;
+      }
+
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 96px;
+        padding: 10px;
+        resize: vertical;
+        border-radius: 6px;
+        border: 1px solid color-mix(in srgb, CanvasText 24%, transparent);
+        background: Field;
+        color: FieldText;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .muted {
+        color: color-mix(in srgb, CanvasText 62%, transparent);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Codex Bridge Prompt</h1>
+      <p id="question" class="muted">Loading prompt...</p>
+      <div id="choices"></div>
+      <textarea id="answer" placeholder="Type an answer"></textarea>
+      <div class="actions">
+        <button id="cancel" type="button">Cancel</button>
+        <button id="submit" type="button">Submit</button>
+      </div>
+    </main>
+    <script src="ask.js"></script>
+  </body>
+</html>
+
