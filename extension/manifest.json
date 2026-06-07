@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Codex Chrome Bridge",
+  "version": "0.3.0",
+  "description": "Local read-mostly bridge for Codex to inspect a dedicated Chrome tab.",
+  "permissions": [
+    "activeTab",
+    "alarms",
+    "bookmarks",
+    "cookies",
+    "debugger",
+    "history",
+    "offscreen",
+    "scripting",
+    "storage",
+    "tabGroups",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Codex Chrome Bridge"
+  }
+}

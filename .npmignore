@@ -1,0 +1,9 @@
+.github/
+codex/
+screenshots/
+tmp/
+*.log
+.DS_Store
+.env
+.env.*
+

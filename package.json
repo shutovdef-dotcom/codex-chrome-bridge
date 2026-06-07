@@ -1,0 +1,59 @@
+{
+  "name": "codex-chrome-bridge",
+  "version": "0.3.0",
+  "description": "Local Chrome extension, CLI, and MCP server for read-mostly control of a real Chrome profile from Codex-style agents.",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "author": "",
+  "homepage": "https://github.com/shutovdef-dotcom/codex-chrome-bridge#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shutovdef-dotcom/codex-chrome-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shutovdef-dotcom/codex-chrome-bridge/issues"
+  },
+  "keywords": [
+    "chrome",
+    "mcp",
+    "codex",
+    "browser-automation",
+    "chrome-extension",
+    "agent-tools"
+  ],
+  "bin": {
+    "chrome-bridge": "./bin/chrome-bridge.mjs",
+    "chrome-bridge-mcp": "./mcp/chrome-bridge-mcp.mjs"
+  },
+  "files": [
+    "bin/",
+    "docs/",
+    "extension/",
+    "mcp/",
+    "scripts/",
+    "server/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "server": "node ./bin/chrome-bridge.mjs server",
+    "health": "node ./bin/chrome-bridge.mjs health",
+    "mcp": "node ./mcp/chrome-bridge-mcp.mjs",
+    "self-test": "node ./bin/chrome-bridge.mjs self-test",
+    "runtime-smoke": "node ./bin/chrome-bridge.mjs runtime-smoke",
+    "doctor": "node ./bin/chrome-bridge.mjs doctor",
+    "check": "node --check ./server/bridge-server.mjs && node --check ./bin/chrome-bridge.mjs && node --check ./mcp/chrome-bridge-mcp.mjs && node --check ./extension/background.js && node --check ./extension/offscreen.js && node --check ./scripts/install-launch-agent.mjs && node --check ./scripts/uninstall-launch-agent.mjs && npm run self-test",
+    "install:launch-agent": "node ./scripts/install-launch-agent.mjs",
+    "uninstall:launch-agent": "node ./scripts/uninstall-launch-agent.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.21.1",
+    "ws": "^8.18.3",
+    "zod": "^3.25.76"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
