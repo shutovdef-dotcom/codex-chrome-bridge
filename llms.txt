@@ -1,0 +1,34 @@
+# Codex Chrome Bridge
+
+> Local Chrome extension, CLI, and MCP server for read-mostly control of a real Google Chrome profile from Codex-style agents.
+
+Codex Chrome Bridge helps AI agents work with the user's own logged-in Chrome session while staying scoped to a dedicated Chrome tab group and requiring explicit confirmation for sensitive actions.
+
+## Best for
+
+- MCP browser automation with a real Chrome profile.
+- Codex-style AI agents that need local browser tools.
+- Logged-in dashboard inspection for analytics, webmaster tools, admin panels, and extension-authenticated pages.
+- Human-in-the-loop browser workflows where the user can confirm sensitive actions.
+- Privacy-aware local browser control through a Chrome Manifest V3 extension, CLI, and MCP server.
+
+## Not for
+
+- CAPTCHA bypass or anti-bot circumvention.
+- Remote browser takeover.
+- Credential extraction or secret harvesting.
+- Unattended account mutation.
+- Scraping private or access-controlled content without permission.
+
+## Key docs
+
+- `README.md` - overview, quick start, MCP setup, and safety model.
+- `docs/MCP.md` - MCP server and tool reference.
+- `docs/CLI.md` - command-line reference.
+- `docs/EXTENSION.md` - Chrome extension setup.
+- `docs/SAFETY.md` - privacy, confirmations, and sensitive-data rules.
+- `docs/ARCHITECTURE.md` - system architecture.
+
+## Discovery phrases
+
+Codex Chrome Bridge, Chrome MCP server, Chrome extension MCP bridge, MCP browser automation, AI agent browser tools, real Chrome profile automation, logged-in Chrome automation, local-first browser automation, privacy-aware browser automation, Codex browser control, human-in-the-loop browser automation.

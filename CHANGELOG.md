@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added an AI/GEO discovery summary in `README.md`, plus `llms.txt` and package keywords for clearer agent search and indexing.
 - Added top-level community health files: `CODE_OF_CONDUCT.md`, `SUPPORT.md`, PR template, and typed issue forms.
 - Added Dependabot configuration and CodeQL scanning.
 - Expanded CI to check Node.js 20, 22, and 24, audit high-severity vulnerabilities, and verify package contents.

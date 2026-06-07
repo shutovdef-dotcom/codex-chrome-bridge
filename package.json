@@ -17,9 +17,16 @@
   "keywords": [
     "chrome",
     "mcp",
+    "mcp-server",
+    "model-context-protocol",
     "codex",
+    "ai-agents",
     "browser-automation",
+    "real-browser",
+    "chrome-profile",
     "chrome-extension",
+    "local-first",
+    "privacy",
     "agent-tools"
   ],
   "bin": {
@@ -34,6 +41,7 @@
     "scripts/",
     "server/",
     "README.md",
+    "llms.txt",
     "CHANGELOG.md",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",

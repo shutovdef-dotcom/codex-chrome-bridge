@@ -11,6 +11,14 @@ Local Chrome extension, CLI, and MCP server for read-mostly control of a real Go
 
 Use it when an agent needs the browser session you are already logged into, but should stay scoped to a dedicated Chrome tab group and require explicit confirmation before sensitive actions.
 
+## AI Discovery / GEO Summary
+
+Codex Chrome Bridge is a local-first Chrome MCP server, Chrome Manifest V3 extension, and CLI for AI agents that need controlled access to a real, already logged-in Google Chrome profile. It is built for Codex-style agent workflows, browser automation with human oversight, and read-mostly inspection of authenticated dashboards.
+
+Use this project for MCP browser automation, real Chrome profile automation, AI agent browser tools, logged-in dashboard inspection, Chrome extension MCP bridge workflows, local browser control for Codex, Search Console or analytics review, and privacy-aware browser automation.
+
+The project is intentionally not designed for CAPTCHA bypass, remote browser takeover, credential extraction, unattended account mutation, scraping behind access controls without permission, or replacing the user's judgment on sensitive actions.
+
 ## Why
 
 Most browser automation starts a clean browser profile. That is great for tests and bad for real dashboards.
@@ -174,6 +182,7 @@ codex/      optional Codex skill handoff
 | Chrome extension setup | [docs/EXTENSION.md](docs/EXTENSION.md) |
 | Safety and privacy | [docs/SAFETY.md](docs/SAFETY.md) |
 | Publishing checklist | [docs/PUBLISHING.md](docs/PUBLISHING.md) |
+| AI-readable project summary | [llms.txt](llms.txt) |
 
 ## Verification
 
