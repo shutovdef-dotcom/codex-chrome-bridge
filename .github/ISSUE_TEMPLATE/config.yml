@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/shutovdef-dotcom/codex-chrome-bridge/security/advisories/new
+    about: Report vulnerabilities privately. Do not open public issues for secrets or private browser data.
+  - name: Support guide
+    url: https://github.com/shutovdef-dotcom/codex-chrome-bridge/blob/main/SUPPORT.md
+    about: Read this before opening an issue.
+

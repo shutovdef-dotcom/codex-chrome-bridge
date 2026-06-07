@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an improvement or new bridge capability.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or agent workflow would this improve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should the bridge do?
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Browser data risk
+      options:
+        - Read-only page data
+        - Mutates page/browser state
+        - Reads private browser data
+        - Reads high-risk values such as cookies, storage values, or credentialed responses
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety considerations
+      description: Should this require `confirmed` or `confirmSensitive`?
+    validations:
+      required: true
+

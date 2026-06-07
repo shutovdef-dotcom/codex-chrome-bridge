@@ -2,11 +2,15 @@
 
 ## Supported Versions
 
-The current public package line is `0.3.x`.
+The current public package line is `0.4.x`.
 
 ## Reporting a Vulnerability
 
-Please open a private security advisory on GitHub if available, or contact the repository maintainer privately.
+Please open a private security advisory on GitHub if available:
+
+https://github.com/shutovdef-dotcom/codex-chrome-bridge/security/advisories/new
+
+If private advisories are unavailable, contact the repository maintainer privately before disclosing details.
 
 Do not include private browser data, cookies, tokens, dashboard screenshots, or account identifiers in public issues.
 
@@ -24,6 +28,6 @@ The extension has broad Chrome permissions because it is meant to inspect real b
 - Mutating and sensitive commands require confirmation.
 - High-risk values require a second sensitive confirmation.
 - The bridge server is local-only by default.
+- Automatic CAPTCHA bypass is intentionally out of scope.
 
 See [docs/SAFETY.md](docs/SAFETY.md) for operational guidance.
-

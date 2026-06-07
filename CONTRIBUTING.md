@@ -7,6 +7,8 @@ Thanks for helping improve Codex Chrome Bridge.
 ```bash
 npm install
 npm run check
+npm run check:audit
+npm run check:pack
 ```
 
 For runtime verification:
@@ -23,6 +25,8 @@ node ./bin/chrome-bridge.mjs runtime-smoke
 - Preserve the `Codex Bridge` tab-group scope.
 - Add or update `self-test` checks for new CLI, MCP, or extension actions.
 - Run `npm run check`.
+- Run `npm run check:audit`.
+- Run `npm run check:pack`.
 - Run `npm run runtime-smoke` when changing browser behavior.
 - Update docs for user-visible behavior.
 
@@ -31,4 +35,4 @@ node ./bin/chrome-bridge.mjs runtime-smoke
 - Do not add automatic form submission, account mutation, or credentialed network behavior without explicit confirmation gates.
 - Do not log cookie values, storage values, page bodies, headers, or private dashboard content by default.
 - Keep local servers bound to loopback addresses unless a security review justifies otherwise.
-
+- Do not implement automatic CAPTCHA bypass. Use human-in-the-loop prompts for manual coordination.

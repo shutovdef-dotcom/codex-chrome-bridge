@@ -1,0 +1,80 @@
+name: Bug report
+description: Report a reproducible problem with the bridge, extension, CLI, or MCP server.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not paste cookies, tokens, private URLs, dashboard data, or screenshots containing private account information.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Chrome extension
+        - CLI
+        - MCP server
+        - Bridge server
+        - Documentation
+        - Unsure
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: macOS 15, Ubuntu 24.04, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: "node --version"
+  - type: input
+    id: chrome
+    attributes:
+      label: Chrome version
+      placeholder: "chrome://version"
+  - type: input
+    id: bridge
+    attributes:
+      label: Chrome Bridge version
+      placeholder: "node ./bin/chrome-bridge.mjs health"
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the server with ...
+        2. Load the extension from ...
+        3. Run ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs
+      render: shell
+

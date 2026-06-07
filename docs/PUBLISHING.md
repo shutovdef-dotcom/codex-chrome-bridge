@@ -7,6 +7,8 @@ Use this checklist before making the repository public.
 ```bash
 npm ci
 npm run check
+npm run check:audit
+npm run check:pack
 npm run server
 node ./bin/chrome-bridge.mjs health
 node ./bin/chrome-bridge.mjs runtime-smoke
@@ -19,6 +21,8 @@ node ./bin/chrome-bridge.mjs runtime-smoke
 - Confirm the license. The repository currently uses MIT.
 - Review `SECURITY.md`.
 - Review issue templates.
+- Confirm `CODE_OF_CONDUCT.md`, `SUPPORT.md`, and `.github/PULL_REQUEST_TEMPLATE.md` match the maintainer policy.
+- Confirm Dependabot and CodeQL workflows are enabled after push.
 
 ## Privacy Review
 

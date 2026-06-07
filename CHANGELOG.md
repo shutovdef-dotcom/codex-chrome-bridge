@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Added top-level community health files: `CODE_OF_CONDUCT.md`, `SUPPORT.md`, PR template, and typed issue forms.
+- Added Dependabot configuration and CodeQL scanning.
+- Expanded CI to check Node.js 20, 22, and 24, audit high-severity vulnerabilities, and verify package contents.
+- Reworked README with badges, clearer positioning, quick links, safety guidance, and contributor entry points.
+
 ## 0.4.0 - 2026-06-07
 
 - Added multi-window listing via CLI `windows`, extension action `windows`, and MCP tool `chrome_bridge_windows`.
