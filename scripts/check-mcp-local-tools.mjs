@@ -349,6 +349,7 @@ let privateSensitiveChecks = 0;
 let unsafeUrlMethodChecks = 0;
 let selectTargetChecks = 0;
 let timeoutBoundsChecks = 0;
+let historyTimeChecks = 0;
 let groupScopePayloadChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const groupTitle = 'Codex Bridge MCP Group Scope';
@@ -546,6 +547,39 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
     check(waitZeroPayload?.timeoutMs === 0, 'MCP wait timeout 0 must forward timeoutMs 0');
     timeoutBoundsChecks += 1;
 
+    const beforeInvalidHistoryTime = receivedCommands.length;
+    try {
+      const rejected = await client.callTool({
+        name: 'chrome_bridge_history_search',
+        arguments: { startTime: -1, confirmed: true },
+      });
+      const rejectedText = rejected?.content?.find((item) => item?.type === 'text')?.text || '';
+      check(rejected?.isError === true, 'MCP history negative startTime must return a tool error');
+      check(
+        ['startTime', 'greater than or equal to 0'].some((needle) => rejectedText.includes(needle)),
+        'MCP history negative startTime tool error must explain startTime bounds',
+      );
+    } catch (error) {
+      check(
+        ['startTime', 'greater than or equal to 0'].some((needle) => String(error?.message || error).includes(needle)),
+        'MCP history negative startTime rejection must explain startTime bounds',
+      );
+    }
+    check(receivedCommands.length === beforeInvalidHistoryTime, 'MCP history negative startTime must not be accepted by fake bridge');
+    historyTimeChecks += 1;
+
+    const beforeValidHistoryTime = receivedCommands.length;
+    const historyTimeParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_history_search',
+      arguments: { startTime: 0, endTime: 1, confirmed: true },
+    }), 'MCP history time filter fake command bridge');
+    const historyTimePayload = receivedCommands[beforeValidHistoryTime]?.payload || historyTimeParsed?.payload;
+    check(receivedCommands[beforeValidHistoryTime]?.action === 'historySearch', 'MCP history time filter must dispatch historySearch');
+    check(historyTimePayload?.startTime === 0, 'MCP history time filter must forward startTime 0');
+    check(historyTimePayload?.endTime === 1, 'MCP history time filter must forward endTime 1');
+    check(historyTimePayload?.confirmed === true, 'MCP history time filter must forward confirmed');
+    historyTimeChecks += 1;
+
     check(COMMAND_PAYLOAD_SCHEMAS.select?.includes('index'), 'select schema must allow index before MCP behavior checks');
     const beforeMissingSelectTarget = receivedCommands.length;
     try {
@@ -623,5 +657,6 @@ process.stdout.write(`${JSON.stringify({
   unsafeUrlMethodChecks,
   selectTargetChecks,
   timeoutBoundsChecks,
+  historyTimeChecks,
   groupScopePayloadChecks,
 }, null, 2)}\n`);

@@ -507,6 +507,9 @@ expectPayload('traceSummary', { allowExternal: true }, true, 'traceSummary allow
 expectPayload('traceEvents', { limit: 2_000 }, true, 'traceEvents limit payload');
 expectPayload('traceStop', { limit: 2_001 }, false, 'traceStop invalid limit payload');
 expectPayload('historySearch', { limit: 200, confirmed: true }, true, 'historySearch limit payload');
+expectPayload('historySearch', { startTime: 0, endTime: 1, confirmed: true }, true, 'historySearch time filter payload');
+expectPayload('historySearch', { startTime: -1, confirmed: true }, false, 'historySearch invalid startTime payload');
+expectPayload('historySearch', { endTime: -1, confirmed: true }, false, 'historySearch invalid endTime payload');
 expectPayload('bookmarksSearch', { limit: 201, confirmed: true }, false, 'bookmarksSearch invalid limit payload');
 expectPayload('cookiesList', { url: 'https://example.com', limit: 500, confirmed: true }, true, 'cookiesList limit payload');
 expectPayload('cookiesList', { url: 'https://example.com', limit: 501, confirmed: true }, false, 'cookiesList invalid limit payload');
