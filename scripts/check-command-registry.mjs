@@ -596,6 +596,8 @@ check(pullRequestTemplateText.includes('npm run check:mcp-local-tools'), 'pull r
 check(pullRequestTemplateText.includes('npm run check:tab-group-persistence'), 'pull request template must include tab-group persistence behavior check');
 check(pullRequestTemplateText.includes('npm run check:privacy'), 'pull request template must include privacy scan check');
 check(pullRequestTemplateText.includes('npm run check:audit'), 'pull request template must include canonical audit check script');
+check(pullRequestTemplateText.includes('npm run runtime-smoke'), 'pull request template must use the canonical runtime-smoke script');
+check(!pullRequestTemplateText.includes('node ./bin/chrome-bridge.mjs runtime-smoke'), 'pull request template must not use raw node runtime-smoke command');
 check(pullRequestTemplateText.includes('verification.status: "passed"'), 'pull request template must document live runtime smoke success criteria');
 check(contributingText.includes('npm run check:runtime-smoke-plan'), 'contributing guide must include offline runtime smoke plan check');
 check(contributingText.includes('npm run check:roadmap'), 'contributing guide must include roadmap coverage check');
