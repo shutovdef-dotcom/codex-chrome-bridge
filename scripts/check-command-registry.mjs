@@ -38,6 +38,7 @@ const [
   keyboardEventsText,
   offscreenLifecycleText,
   pageExecutionText,
+  pageReadActionsText,
   pageScriptsText,
   safetyGatesText,
   tabCleanupText,
@@ -61,6 +62,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/keyboard-events.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-execution.js'), 'utf8').catch(() => ''),
+  fs.readFile(path.join(rootDir, 'extension/page-read-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
@@ -172,6 +174,7 @@ for (const requiredPackageFile of [
   'extension/page-scripts.js',
   'extension/offscreen-lifecycle.js',
   'extension/page-execution.js',
+  'extension/page-read-actions.js',
   'extension/tab-cleanup.js',
   'extension/safety-gates.js',
   'extension/workspace-policy.js',
@@ -638,6 +641,16 @@ check(!functionBlock(backgroundText, 'execute'), 'extension background must not 
 check(pageExecutionText.includes('export async function execute'), 'extension page execution module must export execute');
 check(functionBlock(pageExecutionText, 'execute').includes('chrome.scripting.executeScript'), 'extension page execution module must own chrome.scripting execution');
 check(functionBlock(pageExecutionText, 'execute').includes("world: options.world || 'ISOLATED'"), 'extension page execution module must preserve isolated-world default');
+check(backgroundText.includes("from './page-read-actions.js';"), 'extension background must import page read actions from extension/page-read-actions.js');
+for (const helperName of ['waitForSelector', 'observe', 'findElements', 'elementFilters', 'extractPage', 'snapshot', 'pageText', 'pageHTML', 'listSelectOptions', 'storageSnapshot']) {
+  check(!functionBlock(backgroundText, helperName), `extension background must not own page read action internals: ${helperName}`);
+}
+for (const helperName of ['waitForSelector', 'observe', 'findElements', 'extractPage', 'snapshot', 'pageText', 'pageHTML', 'listSelectOptions', 'storageSnapshot']) {
+  check(pageReadActionsText.includes(`export async function ${helperName}`), `extension page read actions module must export ${helperName}`);
+}
+check(functionBlock(pageReadActionsText, 'observe').includes('collectObserve'), 'extension page read actions module must use page observation scripts');
+check(functionBlock(pageReadActionsText, 'findElements').includes('elementFilters'), 'extension page read actions module must preserve element filter echo');
+check(functionBlock(pageReadActionsText, 'storageSnapshot').includes("requireSensitiveConfirmed(payload, 'storageSnapshot includeValues')"), 'extension page read actions storage snapshot must require sensitive confirmation for values');
 check(backgroundText.includes("import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';"), 'extension background must import tab cleanup helper from extension/tab-cleanup.js');
 check(!backgroundText.includes('function tabIdForClose'), 'extension background must not own tab cleanup helper internals');
 check(!backgroundText.includes('async function closeTabsWithGroupPersistenceMitigation'), 'extension background must not own tab cleanup helper internals');
