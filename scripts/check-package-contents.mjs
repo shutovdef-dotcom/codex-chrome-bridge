@@ -20,6 +20,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'extension/tab-cleanup.js',
   'extension/tab-info.js',
   'extension/workspace-policy.js',
+  'extension/workspace-tabs.js',
   'extension/ask.html',
   'extension/ask.js',
   'docs/ARCHITECTURE.md',

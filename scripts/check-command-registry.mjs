@@ -39,6 +39,7 @@ const [
   safetyGatesText,
   tabCleanupText,
   tabInfoText,
+  workspaceTabsText,
   packageContentsCheckerText,
   privacyScannerText,
   checkWorkflowText,
@@ -56,6 +57,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-info.js'), 'utf8').catch(() => ''),
+  fs.readFile(path.join(rootDir, 'extension/workspace-tabs.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, '.github/workflows/check.yml'), 'utf8'),
@@ -561,6 +563,15 @@ check(!backgroundText.includes('function groupInfo'), 'extension background must
 check(!backgroundText.includes('function tabInfo'), 'extension background must not own tab/group serializer internals');
 check(functionBlock(tabInfoText, 'groupInfo').includes('collapsed'), 'extension tab info module must serialize tab group metadata');
 check(functionBlock(tabInfoText, 'tabInfo').includes('groupInfo(group)') && functionBlock(tabInfoText, 'tabInfo').includes('status'), 'extension tab info module must serialize tab metadata with group info');
+check(backgroundText.includes("from './workspace-tabs.js';"), 'extension background must import workspace tab helpers from extension/workspace-tabs.js');
+for (const helperName of ['storageGet', 'storageSet', 'storageRemove', 'getTargetTab', 'getStoredCodexGroup', 'getCodexGroupTabs', 'ensureCodexGroupForTab', 'assertCodexScopedTab']) {
+  check(!functionBlock(backgroundText, helperName), `extension background must not own workspace tab helper internals: ${helperName}`);
+}
+check(workspaceTabsText.includes('export async function getTargetTab'), 'extension workspace tabs module must export getTargetTab');
+check(workspaceTabsText.includes('export async function ensureCodexGroupForTab'), 'extension workspace tabs module must export ensureCodexGroupForTab');
+check(functionBlock(workspaceTabsText, 'getTargetTab').includes("policyMode === 'strict'"), 'extension workspace tabs module must enforce strict outside-tab policy');
+check(functionBlock(workspaceTabsText, 'ensureCodexGroupForTab').includes('chrome.tabs.group'), 'extension workspace tabs module must own tab grouping');
+check(functionBlock(workspaceTabsText, 'storageSet').includes('chrome.storage.local.set'), 'extension workspace tabs module must own workspace storage writes');
 check(backgroundText.includes("import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js';"), 'extension background must import error classification helpers from extension/extension-errors.js');
 check(!backgroundText.includes('function extensionErrorCode'), 'extension background must not own extension error helper internals');
 check(!backgroundText.includes('function extensionErrorDetails'), 'extension background must not own extension error helper internals');
