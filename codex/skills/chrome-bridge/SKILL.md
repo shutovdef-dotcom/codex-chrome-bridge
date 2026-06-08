@@ -58,7 +58,7 @@ npm run check:privacy
 npm run runtime-smoke:plan
 ```
 
-`runtime-smoke --coverage-plan` and `npm run runtime-smoke:plan` are offline and safe while another session is using the bridge.
+`runtime-smoke --coverage-plan` and `npm run runtime-smoke:plan` are offline and safe while another session is using the bridge. `npm run check:roadmap` also exposes a machine-readable `deferredLiveVerification` runbook with the pending live gate, final CLI commands, final MCP calls, success criteria, and required live coverage items.
 
 Live check, only when the bridge is free:
 
