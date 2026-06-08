@@ -27,7 +27,8 @@ import {
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const failures = [];
 
-const [cliText, mcpText] = await Promise.all([
+const [readmeText, cliText, mcpText] = await Promise.all([
+  fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/CLI.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/MCP.md'), 'utf8'),
 ]);
@@ -149,6 +150,27 @@ check(
 
 check(cliText.includes('COMMAND-CATALOG.md'), 'docs/CLI.md must link to generated command catalog');
 check(mcpText.includes('COMMAND-CATALOG.md'), 'docs/MCP.md must link to generated command catalog');
+check(readmeText.includes('## Existing-Tab Workflow'), 'README.md must document the existing-tab workflow');
+check(
+  readmeText.includes('node ./bin/chrome-bridge.mjs adopt-tab --confirm')
+    && readmeText.includes('node ./bin/chrome-bridge.mjs observe --limit 30')
+    && readmeText.includes('node ./bin/chrome-bridge.mjs extract --kind forms'),
+  'README.md existing-tab workflow must cover adopt, observe, and extract commands',
+);
+check(cliText.includes('## Existing-Tab Workflow'), 'docs/CLI.md must document the existing-tab workflow');
+check(
+  cliText.includes('chrome-bridge tabs --all --confirm')
+    && cliText.includes('chrome-bridge adopt-tab --tab <id> --confirm')
+    && cliText.includes('chrome-bridge debug-bundle --out <dir>'),
+  'docs/CLI.md existing-tab workflow must cover tab discovery, adoption, and debug-bundle handoff',
+);
+check(
+  mcpText.includes('If the user already has the target tab open')
+    && mcpText.includes('`chrome_bridge_adopt_tab`')
+    && mcpText.includes('`chrome_bridge_observe`')
+    && mcpText.includes('`chrome_bridge_extract`'),
+  'docs/MCP.md recommended workflow must explain existing-tab adoption before read-only discovery',
+);
 
 if (failures.length) {
   process.stderr.write(`${failures.map((failure) => `- ${failure}`).join('\n')}\n`);
