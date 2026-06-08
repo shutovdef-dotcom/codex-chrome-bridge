@@ -771,6 +771,7 @@ if (isRepositoryCheckout || codexChromeBridgeSkillText) {
   check(codexChromeBridgeSkillText.includes('verification.status: "passed"'), 'bundled Codex chrome-bridge skill must document live runtime smoke success criteria');
   check(codexChromeBridgeSkillText.includes('verification.nextCommand') && codexChromeBridgeSkillText.includes('verification.nextAction'), 'bundled Codex chrome-bridge skill must document runtime smoke recovery hints');
   check(codexChromeBridgeSkillText.includes('top-level `nextCommand` / `nextAction`'), 'bundled Codex chrome-bridge skill must document top-level runtime smoke recovery hints');
+  check(codexChromeBridgeSkillText.includes('deferredLiveVerification'), 'bundled Codex chrome-bridge skill must document check:roadmap deferred live gate output');
 }
 check(llmsText.includes('runtime-smoke:plan'), 'llms metadata must mention offline runtime smoke plan');
 check(llmsText.includes('check:tab-group-persistence'), 'llms metadata must mention tab-group persistence behavior check');
@@ -780,6 +781,7 @@ check(llmsText.includes('doctor --live-checks'), 'llms metadata must mention liv
 check(llmsText.includes('verification.status: "passed"'), 'llms metadata must mention live runtime smoke success criteria');
 check(llmsText.includes('verification.nextCommand') && llmsText.includes('verification.nextAction'), 'llms metadata must mention runtime smoke recovery hints');
 check(llmsText.includes('top-level `nextCommand` / `nextAction`'), 'llms metadata must mention top-level runtime smoke recovery hints');
+check(llmsText.includes('deferredLiveVerification'), 'llms metadata must mention check:roadmap deferred live gate output');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(LOCAL_COMMAND_METADATA.doctor?.mcp?.includes('chrome_bridge_doctor'), 'registry local doctor command must expose an MCP tool');
 check(LOCAL_COMMAND_METADATA['extension-path']?.mcp?.includes('chrome_bridge_extension_path'), 'registry local extension-path command must expose an MCP tool');
