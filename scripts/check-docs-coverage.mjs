@@ -75,6 +75,18 @@ check(
   actualMcpToolBlock === expectedMcpToolBlock,
   'docs/MCP.md generated MCP tool block must exactly match registry MCP_TOOLS',
 );
+check(
+  actualMcpToolBlock?.includes('| Tool | Contract | Risk | Default Timeout | Confirm | Live Bridge | Summary |'),
+  'docs/MCP.md generated MCP tool block must expose registry risk, timeout, confirmation, live-bridge, and summary metadata',
+);
+check(
+  actualMcpToolBlock?.includes('| `chrome_bridge_runtime_smoke` | `runtime-smoke` | interaction | 180000 ms | no | yes |'),
+  'docs/MCP.md generated MCP tool block must expose local live-bridge metadata for runtime smoke',
+);
+check(
+  actualMcpToolBlock?.includes('| `chrome_bridge_cookies_list` | `cookiesList` | private-read | 30000 ms | sensitive | yes |'),
+  'docs/MCP.md generated MCP tool block must expose sensitive confirmation metadata for private browser data tools',
+);
 
 check(cliText.includes('COMMAND-CATALOG.md'), 'docs/CLI.md must link to generated command catalog');
 check(mcpText.includes('COMMAND-CATALOG.md'), 'docs/MCP.md must link to generated command catalog');
