@@ -13,6 +13,7 @@ npm run check:cli-local-tools
 npm run check:mcp-runtime-smoke
 npm run check:mcp-local-tools
 npm run check:tab-group-persistence
+npm run check:privacy
 npm run check:audit
 npm run check:pack
 ```
@@ -40,6 +41,7 @@ The live smoke is complete only when it reports `ok: true`, `coverage.ok: true`,
 - Run `npm run check:mcp-runtime-smoke`.
 - Run `npm run check:mcp-local-tools`.
 - Run `npm run check:tab-group-persistence`.
+- Run `npm run check:privacy`.
 - Run `npm run check:audit`.
 - Run `npm run check:pack`.
 - Run `npm run runtime-smoke` when changing browser behavior and no other session is using the bridge; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
