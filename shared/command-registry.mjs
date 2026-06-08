@@ -113,6 +113,8 @@ export const HTTP_METHODS = Object.freeze([
 ]);
 
 const HTTP_METHOD_SET = new Set(HTTP_METHODS);
+const PAYLOAD_TIMEOUT_MIN_MS = 0;
+const PAYLOAD_TIMEOUT_MAX_MS = 300_000;
 
 const INTERACTION_ACTIONS = new Set([
   'adoptTab',
@@ -1367,6 +1369,9 @@ export function validateCommandPayload(action, payload = {}) {
     ensureUrlProtocol(normalizedPayload, 'url', action, ['http:', 'https:']);
   }
 
+  if (['goBack', 'goForward', 'reloadTab', 'waitForSelector'].includes(action)) {
+    ensureNumberRange(normalizedPayload, 'timeoutMs', action, PAYLOAD_TIMEOUT_MIN_MS, PAYLOAD_TIMEOUT_MAX_MS);
+  }
   if (['observe', 'findElements'].includes(action)) {
     ensureNumberRange(normalizedPayload, 'limit', action, 1, 300);
     ensureNumberRange(normalizedPayload, 'maxTextChars', action, 20, 1_000);

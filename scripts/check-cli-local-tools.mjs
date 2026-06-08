@@ -825,7 +825,7 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
     {
       label: 'wait invalid timeout-ms',
       args: ['wait', '--selector', 'main', '--timeout-ms', 'nope'],
-      message: '--timeout-ms must be numeric',
+      message: '--timeout-ms must be between 0 and 300000',
     },
     {
       label: 'wait negative timeout-ms',

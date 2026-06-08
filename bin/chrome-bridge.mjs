@@ -2014,7 +2014,7 @@ tool_timeout_sec = 60
     printJson(await command('waitForSelector', {
       ...targetPayload(args),
       selector: args.selector,
-      timeoutMs: parseFiniteNumberArg(args['timeout-ms'], '--timeout-ms'),
+      timeoutMs: parseNumberRangeArg(args['timeout-ms'], '--timeout-ms', 0, 300_000),
       visible: !args['hidden-ok'],
     }, 30_000));
     return;

@@ -40,6 +40,7 @@ const webUrlSchema = z.string().refine(
 );
 
 const chromeIdSchema = z.number().int().nonnegative();
+const payloadTimeoutSchema = z.number().min(0).max(300000);
 const selectIndexSchema = z.number().int().nonnegative();
 
 async function bridgeFetch(pathname, options = {}) {
@@ -565,7 +566,7 @@ server.tool(
   {
     tabId: chromeIdSchema.optional(),
     allowExternal: z.boolean().optional(),
-    timeoutMs: z.number().optional(),
+    timeoutMs: payloadTimeoutSchema.optional(),
   },
   async (args) => textResult(await bridgeCommand('goBack', args, 30_000)),
 );
@@ -576,7 +577,7 @@ server.tool(
   {
     tabId: chromeIdSchema.optional(),
     allowExternal: z.boolean().optional(),
-    timeoutMs: z.number().optional(),
+    timeoutMs: payloadTimeoutSchema.optional(),
   },
   async (args) => textResult(await bridgeCommand('goForward', args, 30_000)),
 );
@@ -588,7 +589,7 @@ server.tool(
     tabId: chromeIdSchema.optional(),
     bypassCache: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
-    timeoutMs: z.number().optional(),
+    timeoutMs: payloadTimeoutSchema.optional(),
   },
   async (args) => textResult(await bridgeCommand('reloadTab', args, 30_000)),
 );
@@ -599,7 +600,7 @@ server.tool(
   {
     selector: z.string(),
     tabId: chromeIdSchema.optional(),
-    timeoutMs: z.number().optional(),
+    timeoutMs: payloadTimeoutSchema.optional(),
     visible: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
   },
