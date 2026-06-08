@@ -126,8 +126,8 @@ Use `chrome_bridge_trace_summary` when an agent needs trace state and event coun
 1. Run `chrome_bridge_health`.
 2. Run `chrome_bridge_command_catalog` if the agent needs the local risk/timeout/confirmation contract.
 3. Run `chrome_bridge_workspace` to inspect the active group/policy defaults.
-4. Run `chrome_bridge_ensure_tab`.
-5. Use `chrome_bridge_open` for the target URL.
+4. If the user already has the target tab open, ask for confirmation and use `chrome_bridge_adopt_tab` to bring it into the scoped group.
+5. If no suitable tab is open, run `chrome_bridge_ensure_tab` and use `chrome_bridge_open` for the target URL.
 6. Prefer `chrome_bridge_snapshot`, `chrome_bridge_text`, and `chrome_bridge_screenshot`.
 7. Use `chrome_bridge_observe` when an agent needs ranked actionable elements before choosing a selector.
 8. Use `chrome_bridge_find_elements` and `chrome_bridge_extract` for targeted read-only discovery before interacting.

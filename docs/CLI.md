@@ -144,6 +144,21 @@ By default, tab operations stay inside the configured workspace tab group, initi
 
 Navigation commands accept `http:`, `https:`, and `about:blank` URLs. Extension-context requests and cookie URL filters accept `http:` and `https:` URLs. Unsafe script/data/file-style URL schemes are rejected before a command reaches the extension.
 
+## Existing-Tab Workflow
+
+When the user already has the target page open in Chrome, adopt it first instead of opening a duplicate tab:
+
+```bash
+chrome-bridge tabs --all --confirm
+chrome-bridge adopt-tab --tab <id> --confirm
+chrome-bridge workspace --tabs
+chrome-bridge observe --limit 30
+chrome-bridge extract --kind forms
+chrome-bridge debug-bundle --out <dir>
+```
+
+If the target page is the last focused Chrome tab, omit `--tab <id>` and run `chrome-bridge adopt-tab --confirm`. After adoption, normal scoped commands operate inside the configured workspace group, so use read-only discovery (`observe`, `find-elements`, `extract`, `snapshot`, `text`, screenshots, or PDF export) before any confirmed interaction.
+
 ## Page Reads
 
 <!-- BEGIN GENERATED CLI USAGE: page-reads -->

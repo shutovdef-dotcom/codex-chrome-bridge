@@ -144,6 +144,26 @@ node ./bin/chrome-bridge.mjs ask --question "Which account should I inspect?" --
 
 Full reference: [CLI](docs/CLI.md).
 
+## Existing-Tab Workflow
+
+Use this path when you already opened the right logged-in dashboard, report, or admin page in Chrome:
+
+```bash
+# Adopt the last focused Chrome tab into the scoped bridge group.
+node ./bin/chrome-bridge.mjs adopt-tab --confirm
+
+# Read first, before choosing any interaction.
+node ./bin/chrome-bridge.mjs observe --limit 30
+node ./bin/chrome-bridge.mjs find-elements --near-text "Billing address" --action type
+node ./bin/chrome-bridge.mjs extract --kind forms
+
+# Export or debug locally when needed.
+node ./bin/chrome-bridge.mjs pdf --out /tmp/chrome-bridge.pdf
+node ./bin/chrome-bridge.mjs debug-bundle --out /tmp/chrome-bridge-debug
+```
+
+If the target tab is not the last focused tab, run `node ./bin/chrome-bridge.mjs tabs --all --confirm` first, choose the tab ID explicitly, then run `node ./bin/chrome-bridge.mjs adopt-tab --tab <id> --confirm`.
+
 ## MCP Setup
 
 Add this to `~/.codex/config.toml` or your MCP client's equivalent config:
