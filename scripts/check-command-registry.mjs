@@ -505,10 +505,12 @@ check(CLI_USAGE_LINES.includes('chrome-bridge runtime-smoke [--keep-tab] [--cove
 check(packageJson.scripts?.['runtime-smoke:plan'] === 'node ./bin/chrome-bridge.mjs runtime-smoke --coverage-plan', 'package scripts must expose offline runtime smoke coverage plan');
 check(packageJson.scripts?.['check:runtime-smoke-plan'] === 'node ./scripts/check-runtime-smoke-plan.mjs', 'package scripts must expose runtime smoke plan contract check');
 check(packageJson.scripts?.check?.includes('npm run check:runtime-smoke-plan'), 'npm run check must include runtime smoke plan contract check');
+check(packageJson.scripts?.['check:runtime-smoke-plan'] && packageText.includes('check:runtime-smoke-plan'), 'package metadata must keep runtime smoke plan checker discoverable');
 check(readmeText.includes('npm run runtime-smoke:plan') && readmeText.includes('runtime-smoke --coverage-plan'), 'README must document offline runtime smoke coverage plan');
 check(publishingText.includes('npm run runtime-smoke:plan'), 'publishing checklist must use the canonical offline runtime smoke plan script');
 check(roadmapText.includes('npm run runtime-smoke:plan'), 'deferred runtime roadmap must use the canonical offline runtime smoke plan script');
 check(packageContentsCheckerText.includes("'scripts/check-runtime-smoke-plan.mjs'"), 'package contents must include runtime smoke plan checker');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-runtime-smoke-plan.mjs'), 'utf8')).includes('stale-extension'), 'runtime smoke plan checker must cover stale-extension skip verification metadata');
 check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
 check(pullRequestTemplateText.includes('verification.status: "passed"'), 'pull request template must document live runtime smoke success criteria');
 check(contributingText.includes('npm run check:runtime-smoke-plan'), 'contributing guide must include offline runtime smoke plan check');
