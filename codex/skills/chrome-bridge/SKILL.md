@@ -63,10 +63,12 @@ npm run runtime-smoke:plan
 Live check, only when the bridge is free:
 
 ```bash
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" reload-extension --confirm
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" doctor --live-checks
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" runtime-smoke
 ```
 
-Run the live `runtime-smoke` only when the bridge is free, and treat it as complete only when it reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
+Run the live reload, `doctor --live-checks`, and `runtime-smoke` sequence only when the bridge is free. Treat verification as complete only when live `runtime-smoke` reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 
 ## Read-Only Workflow
 
