@@ -18,6 +18,7 @@ import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js
 import { startBridge } from './offscreen-lifecycle.js';
 import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';
 import { groupInfo, tabInfo } from './tab-info.js';
+import { waitForTabComplete } from './tab-loading.js';
 import {
   recordDebuggerDetach,
   recordDebuggerEvent,
@@ -318,20 +319,6 @@ async function adoptTab(payload = {}) {
     adopted: true,
     tab: tabInfo(latest, { group }),
   };
-}
-
-async function waitForTabComplete(tabId, timeoutMs = 25_000) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    const tab = await chrome.tabs.get(tabId);
-    if (tab.status === 'complete') return tab;
-    await delay(200);
-  }
-  return chrome.tabs.get(tabId);
-}
-
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function openTab(payload) {

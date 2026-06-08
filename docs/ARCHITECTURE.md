@@ -16,6 +16,7 @@ The `extension/` directory contains a Manifest V3 extension:
 - `safety-gates.js` owns confirmation and sensitive-confirmation runtime guards.
 - `tab-cleanup.js` owns tab close cleanup, including ungroup-before-close mitigation for saved closed tab groups.
 - `tab-info.js` owns tab and tab-group response serialization.
+- `tab-loading.js` owns tab-load completion polling helpers.
 - `workspace-policy.js` owns local workspace defaults and scoped policy normalization.
 - `workspace-tabs.js` owns scoped workspace tab/group targeting and extension-local workspace storage state.
 - `offscreen.html` and `offscreen.js` keep a WebSocket connection to the local bridge server.

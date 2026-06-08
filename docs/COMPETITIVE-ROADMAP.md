@@ -281,7 +281,7 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - derive the server allowlist and direct `/command` payload validation from that registry
   - add explicit local workspace policy commands while preserving scoped, explicit-only outside-tab access
   - add `strict` workspace policy mode to block outside tabs even when external-tab override is passed
-  - split the extension service worker into focused modules for debugger sessions, error classification, keyboard event mapping, offscreen lifecycle, injected page scripts, safety gates, tab cleanup, tab/group response serialization, workspace policy normalization, and workspace tab targeting
+  - split the extension service worker into focused modules for debugger sessions, error classification, keyboard event mapping, offscreen lifecycle, injected page scripts, safety gates, tab cleanup, tab/group response serialization, tab-load polling, workspace policy normalization, and workspace tab targeting
 
 ## Next Recommended Slice
 
