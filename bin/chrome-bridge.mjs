@@ -1032,7 +1032,7 @@ function runtimeSmokeCoveragePlan(startedAt) {
     finishedAt: new Date().toISOString(),
     expectedVersion: EXPECTED_EXTENSION_VERSION,
     reason: 'Coverage plan only; no bridge or Chrome checks were run.',
-    nextCommand: 'chrome-bridge runtime-smoke',
+    nextCommand: 'chrome-bridge reload-extension --confirm',
     verification: {
       status: 'not-run',
       liveVerificationRequired: true,
