@@ -274,6 +274,7 @@ let unsafeUrlMethodChecks = 0;
 let selectTargetChecks = 0;
 let selectIndexChecks = 0;
 let tabIdChecks = 0;
+let clickAtCoordinateChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -453,6 +454,40 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
   check(zeroTabPayload?.tabId === 0, 'CLI snapshot --tab 0 must forward numeric tabId 0');
   tabIdChecks += 1;
 
+  const clickAtInvalidCases = [
+    { label: 'missing x', args: ['click-at', '--y', '5', '--confirm'] },
+    { label: 'missing y', args: ['click-at', '--x', '5', '--confirm'] },
+    { label: 'invalid x', args: ['click-at', '--x', 'nope', '--y', '5', '--confirm'] },
+    { label: 'invalid y', args: ['click-at', '--x', '5', '--y', 'nope', '--confirm'] },
+  ];
+  for (const testCase of clickAtInvalidCases) {
+    const beforeInvalidClickAt = receivedCommands.length;
+    const beforeInvalidClickAtRejects = invalidPayloadRequests.length;
+    const rejected = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI click-at ${testCase.label} must fail`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes('click-at requires numeric --x and --y'),
+      `CLI click-at ${testCase.label} rejection must explain numeric --x and --y`,
+    );
+    check(receivedCommands.length === beforeInvalidClickAt, `CLI click-at ${testCase.label} must not be accepted by fake command bridge`);
+    check(
+      invalidPayloadRequests.length === beforeInvalidClickAtRejects,
+      `CLI click-at ${testCase.label} must fail fast before contacting fake command bridge`,
+    );
+    clickAtCoordinateChecks += 1;
+  }
+
+  const beforeClickAtZero = receivedCommands.length;
+  const clickAtZero = await runCli(['click-at', '--x', '0', '--y', '0', '--confirm'], { CHROME_BRIDGE_URL: bridgeUrl });
+  check(clickAtZero.ok, 'CLI click-at 0,0 must succeed against fake command bridge');
+  const clickAtZeroParsed = parseJsonOutput(clickAtZero, 'CLI click-at 0,0 fake command bridge');
+  const clickAtZeroPayload = receivedCommands[beforeClickAtZero]?.payload || clickAtZeroParsed?.payload;
+  check(receivedCommands[beforeClickAtZero]?.action === 'clickAt', 'CLI click-at 0,0 must dispatch clickAt');
+  check(clickAtZeroPayload?.x === 0, 'CLI click-at 0,0 must forward numeric x 0');
+  check(clickAtZeroPayload?.y === 0, 'CLI click-at 0,0 must forward numeric y 0');
+  check(clickAtZeroPayload?.confirmed === true, 'CLI click-at 0,0 must forward confirmed');
+  clickAtCoordinateChecks += 1;
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -524,6 +559,7 @@ process.stdout.write(`${JSON.stringify({
   selectTargetChecks,
   selectIndexChecks,
   tabIdChecks,
+  clickAtCoordinateChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
