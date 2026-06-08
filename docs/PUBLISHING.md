@@ -12,6 +12,7 @@ npm run check:registry
 npm run check:docs
 npm run check:bridge-contract
 npm run check:runtime-smoke-plan
+npm run check:mcp-runtime-smoke
 npm run check:privacy
 npm run check:audit
 npm run check:pack
@@ -32,6 +33,8 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 `check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
 
 `check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL, verifies stale-extension skip metadata against a fake `/health` server, and fails if `--coverage-plan` starts contacting the live bridge.
+
+`check:mcp-runtime-smoke` starts the MCP server over stdio against fake bridge URLs, calls `chrome_bridge_runtime_smoke`, and verifies coverage-plan plus stale-extension metadata stays structured for MCP clients without touching Chrome.
 
 `check:registry` also verifies that the GitHub Check workflow keeps the Node.js 20/22/24 matrix and runs `npm ci`, `npm run check`, `npm run check:audit`, and `npm run check:pack` without adding live `runtime-smoke` to CI.
 

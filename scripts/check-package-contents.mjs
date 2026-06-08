@@ -47,6 +47,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'scripts/check-bridge-contract.mjs',
   'scripts/check-docs-coverage.mjs',
   'scripts/check-runtime-smoke-plan.mjs',
+  'scripts/check-mcp-runtime-smoke.mjs',
   'scripts/check-package-contents.mjs',
   'scripts/check-privacy-scan.mjs',
   'README.md',

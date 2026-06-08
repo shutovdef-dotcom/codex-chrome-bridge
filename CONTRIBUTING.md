@@ -8,6 +8,7 @@ Thanks for helping improve Codex Chrome Bridge.
 npm install
 npm run check
 npm run check:runtime-smoke-plan
+npm run check:mcp-runtime-smoke
 npm run check:audit
 npm run check:pack
 ```
@@ -30,6 +31,7 @@ The live smoke is complete only when it reports `ok: true`, `coverage.ok: true`,
 - Add or update `self-test` checks for new CLI, MCP, or extension actions.
 - Run `npm run check`.
 - Run `npm run check:runtime-smoke-plan`.
+- Run `npm run check:mcp-runtime-smoke`.
 - Run `npm run check:audit`.
 - Run `npm run check:pack`.
 - Run `npm run runtime-smoke` when changing browser behavior and no other session is using the bridge; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
