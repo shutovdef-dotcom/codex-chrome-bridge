@@ -6,9 +6,12 @@ import {
   CLI_COMMANDS,
   CLI_USAGE_GROUPS,
   CLI_USAGE_LINES,
+  GENERATED_CLI_REFERENCE_BEGIN,
+  GENERATED_CLI_REFERENCE_END,
   GENERATED_MCP_TOOLS_BEGIN,
   GENERATED_MCP_TOOLS_END,
   MCP_TOOLS,
+  cliCommandReferenceMarkdown,
   generatedCliUsageBlock,
   generatedCliUsageBegin,
   generatedCliUsageEnd,
@@ -63,6 +66,26 @@ for (const group of CLI_USAGE_GROUPS) {
     `docs/CLI.md generated CLI usage block must match registry group: ${group.id}`,
   );
 }
+
+const expectedCliReferenceBlock = cliCommandReferenceMarkdown();
+const actualCliReferenceBlock = generatedBlock(cliText, GENERATED_CLI_REFERENCE_BEGIN, GENERATED_CLI_REFERENCE_END);
+check(actualCliReferenceBlock !== null, 'docs/CLI.md must include generated CLI reference block markers');
+check(
+  actualCliReferenceBlock === expectedCliReferenceBlock,
+  'docs/CLI.md generated CLI reference block must exactly match registry CLI command metadata',
+);
+check(
+  actualCliReferenceBlock?.includes('| Command | Contract | Risk | Default Timeout | Confirm | Live Bridge | Summary |'),
+  'docs/CLI.md generated CLI reference block must expose registry risk, timeout, confirmation, live-bridge, and summary metadata',
+);
+check(
+  actualCliReferenceBlock?.includes('| `runtime-smoke` | `runtime-smoke` | interaction | 180000 ms | no | yes |'),
+  'docs/CLI.md generated CLI reference block must expose local live-bridge metadata for runtime smoke',
+);
+check(
+  actualCliReferenceBlock?.includes('| `cookies` | `cookiesList` | private-read | 30000 ms | sensitive | yes |'),
+  'docs/CLI.md generated CLI reference block must expose sensitive confirmation metadata for private browser data commands',
+);
 
 for (const tool of MCP_TOOLS) {
   check(mcpText.includes(tool), `docs/MCP.md does not mention MCP tool: ${tool}`);
