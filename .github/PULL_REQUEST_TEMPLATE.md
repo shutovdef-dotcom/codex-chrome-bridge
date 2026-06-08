@@ -22,6 +22,6 @@
 - [ ] `npm run check:privacy`
 - [ ] `npm run check:audit`
 - [ ] `npm run check:pack`
-- [ ] `npm run runtime-smoke` if browser behavior changed and no other session is using the bridge; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`
+- [ ] Live upgrade/smoke, only if browser behavior changed and no other session is using the bridge: `chrome-bridge reload-extension --confirm`, `chrome-bridge doctor --live-checks`, then `npm run runtime-smoke`; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`
 
 ## Notes

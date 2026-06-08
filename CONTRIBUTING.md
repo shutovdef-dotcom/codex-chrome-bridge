@@ -23,11 +23,12 @@ For runtime verification, start with the offline plan. Run the live smoke only w
 ```bash
 npm run runtime-smoke:plan
 npm run server
-node ./bin/chrome-bridge.mjs doctor --open-extensions
-node ./bin/chrome-bridge.mjs runtime-smoke
+node ./bin/chrome-bridge.mjs reload-extension --confirm
+node ./bin/chrome-bridge.mjs doctor --live-checks
+npm run runtime-smoke
 ```
 
-The live smoke is complete only when it reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
+The live reload, doctor, and smoke sequence is complete only when `runtime-smoke` reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 
 ## Pull Request Checklist
 
@@ -44,7 +45,7 @@ The live smoke is complete only when it reports `ok: true`, `coverage.ok: true`,
 - Run `npm run check:privacy`.
 - Run `npm run check:audit`.
 - Run `npm run check:pack`.
-- Run `npm run runtime-smoke` when changing browser behavior and no other session is using the bridge; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
+- Run the live upgrade/smoke sequence when changing browser behavior and no other session is using the bridge: `reload-extension --confirm`, `doctor --live-checks`, then `npm run runtime-smoke`; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 - Update docs for user-visible behavior.
 
 ## Safety Rules

@@ -22,11 +22,12 @@ npm run check:audit
 npm run check:pack
 npm run runtime-smoke:plan
 npm run server
-node ./bin/chrome-bridge.mjs health
+node ./bin/chrome-bridge.mjs reload-extension --confirm
+node ./bin/chrome-bridge.mjs doctor --live-checks
 node ./bin/chrome-bridge.mjs runtime-smoke
 ```
 
-Run the live `health`, `doctor --live-checks`, and `runtime-smoke` checks only when no other Codex session is actively using the bridge.
+Run the live `reload-extension --confirm`, `doctor --live-checks`, and `runtime-smoke` checks only when no other Codex session is actively using the bridge.
 
 `npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan`. It is offline and can be run while another session is using the bridge. It prints the required coverage checklist without calling `/health`, opening Chrome tabs, or reloading the extension, and its `verification.finalCommands` plus `verification.finalMcpCalls` fields record the live CLI/MCP sequence: `reload-extension --confirm`, `doctor --live-checks`, then `runtime-smoke`.
 
