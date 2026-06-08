@@ -471,7 +471,7 @@ check(
   'generated command catalog must expose conditional confirmation metadata',
 );
 check(
-  commandCatalogMarkdown().includes('| doctor | diagnostic | read | 10000 ms | doctor | - | optional |'),
+  commandCatalogMarkdown().includes('| doctor | diagnostic | read | 10000 ms | doctor | chrome_bridge_doctor | optional |'),
   'generated command catalog must expose optional live bridge metadata for doctor',
 );
 check(serverText.includes('commandDefaultTimeoutMs'), 'server must import/use commandDefaultTimeoutMs');

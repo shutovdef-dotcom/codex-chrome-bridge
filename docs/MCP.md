@@ -37,6 +37,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_reload_extension` | `reloadExtension` | system | 5000 ms | yes | yes | Ask the unpacked extension to reload itself after local file edits; requires confirmation. |
 | `chrome_bridge_self_test` | `self-test` | read | 10000 ms | no | no | Run static project parity checks without touching Chrome. |
 | `chrome_bridge_runtime_smoke` | `runtime-smoke` | interaction | 180000 ms | no | yes | Run the real-browser fixture smoke test against the live bridge. |
+| `chrome_bridge_doctor` | `doctor` | read | 10000 ms | no | optional | Inspect local installation paths offline; pass --live-checks to probe bridge health and Chrome settings. |
 | `chrome_bridge_windows` | `windows` | read | 10000 ms | conditional | yes | List Chrome windows, scoped to the configured bridge group by default; includeAll requires confirmation. |
 | `chrome_bridge_tabs` | `tabs` | read | 10000 ms | conditional | yes | List Chrome tabs, scoped to the configured bridge group by default; includeAll requires confirmation. |
 | `chrome_bridge_group` | `group` | read | 10000 ms | no | yes | Show the current scoped Chrome tab group and its tabs. |

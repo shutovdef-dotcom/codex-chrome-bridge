@@ -62,7 +62,7 @@ Version: 0.4.0
 | command-catalog | diagnostic | read | 5000 ms | command-catalog | chrome_bridge_command_catalog | no | Print this shared command registry as JSON or Markdown. |
 | self-test | verification | read | 10000 ms | self-test | chrome_bridge_self_test | no | Run static project parity checks without touching Chrome. |
 | runtime-smoke | verification | interaction | 180000 ms | runtime-smoke | chrome_bridge_runtime_smoke | yes | Run the real-browser fixture smoke test against the live bridge. |
-| doctor | diagnostic | read | 10000 ms | doctor | - | optional | Inspect local installation paths offline; pass --live-checks to probe bridge health and Chrome settings. |
+| doctor | diagnostic | read | 10000 ms | doctor | chrome_bridge_doctor | optional | Inspect local installation paths offline; pass --live-checks to probe bridge health and Chrome settings. |
 | extension-path | diagnostic | read | 5000 ms | extension-path | - | no | Print the unpacked extension directory path. |
 | codex-config | diagnostic | read | 5000 ms | codex-config | - | no | Print a Codex MCP configuration snippet using the current Node executable. |
 

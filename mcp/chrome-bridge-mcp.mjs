@@ -113,6 +113,34 @@ async function localSelfTest() {
   }
 }
 
+async function localDoctor(args = {}) {
+  try {
+    const cliArgs = [
+      path.join(rootDir, 'bin/chrome-bridge.mjs'),
+      'doctor',
+    ];
+    if (args.liveChecks) cliArgs.push('--live-checks');
+    const result = await execFileAsync(process.execPath, cliArgs, { timeout: 10_000 });
+    return parseLocalCliJson(result.stdout) || {};
+  } catch (error) {
+    const parsed = parseLocalCliJson(error?.stdout);
+    if (parsed) {
+      return {
+        ...parsed,
+        cliExitError: String(error?.message || error),
+        stderr: error?.stderr || '',
+      };
+    }
+
+    return {
+      ok: false,
+      error: String(error?.message || error),
+      stdout: error?.stdout || '',
+      stderr: error?.stderr || '',
+    };
+  }
+}
+
 async function localRuntimeSmoke(args = {}) {
   try {
     const cliArgs = [
@@ -346,6 +374,15 @@ server.tool(
     coveragePlan: z.boolean().optional(),
   },
   async (args) => textResult(await localRuntimeSmoke(args)),
+);
+
+server.tool(
+  'chrome_bridge_doctor',
+  'Inspect local Chrome Bridge installation paths and setup hints. Offline by default; pass liveChecks=true only when no other session is using the bridge because it probes /health and Chrome Apple Events.',
+  {
+    liveChecks: z.boolean().optional(),
+  },
+  async (args) => textResult(await localDoctor(args)),
 );
 
 server.tool(
