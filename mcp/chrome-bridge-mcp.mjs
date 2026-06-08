@@ -380,7 +380,7 @@ server.tool(
 
 server.tool(
   'chrome_bridge_runtime_smoke',
-  'Run a safe local runtime smoke test in real Chrome after extension v0.4.0 is loaded. Pass coveragePlan=true to print the offline checklist with verification.status="not-run"; live success requires ok=true, coverage.ok=true, and verification.status="passed".',
+  `Run a safe local runtime smoke test in real Chrome after extension v${BRIDGE_VERSION} is loaded. Pass coveragePlan=true to print the offline checklist with verification.status="not-run"; live success requires ok=true, coverage.ok=true, and verification.status="passed".`,
   {
     keepTab: z.boolean().optional(),
     coveragePlan: z.boolean().optional(),
