@@ -14,6 +14,7 @@
 
 - [ ] `npm run check`
 - [ ] `npm run check:runtime-smoke-plan`
+- [ ] `npm run check:cli-local-tools`
 - [ ] `npm run check:mcp-runtime-smoke`
 - [ ] `npm run check:mcp-local-tools`
 - [ ] `npm audit --audit-level=high`
