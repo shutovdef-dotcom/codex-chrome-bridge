@@ -276,6 +276,7 @@ let selectIndexChecks = 0;
 let tabIdChecks = 0;
 let clickAtCoordinateChecks = 0;
 let hoverCoordinateChecks = 0;
+let traceMaxEventsChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -534,6 +535,38 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
   check(hoverTrustedZeroPayload?.trusted === true, 'CLI hover trusted 0,0 must forward trusted=true');
   hoverCoordinateChecks += 1;
 
+  const traceMaxEventsInvalidCases = [
+    { label: 'invalid max-events', args: ['trace-start', '--max-events', 'nope', '--confirm'] },
+    { label: 'too small max-events', args: ['trace-start', '--max-events', '49', '--confirm'] },
+    { label: 'too large max-events', args: ['trace-start', '--max-events', '2001', '--confirm'] },
+  ];
+  for (const testCase of traceMaxEventsInvalidCases) {
+    const beforeInvalidTrace = receivedCommands.length;
+    const beforeInvalidTraceRejects = invalidPayloadRequests.length;
+    const rejected = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI trace-start ${testCase.label} must fail`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes('--max-events must be between 50 and 2000'),
+      `CLI trace-start ${testCase.label} rejection must explain max-events bounds`,
+    );
+    check(receivedCommands.length === beforeInvalidTrace, `CLI trace-start ${testCase.label} must not be accepted by fake command bridge`);
+    check(
+      invalidPayloadRequests.length === beforeInvalidTraceRejects,
+      `CLI trace-start ${testCase.label} must fail fast before contacting fake command bridge`,
+    );
+    traceMaxEventsChecks += 1;
+  }
+
+  const beforeTraceMaxEventsMin = receivedCommands.length;
+  const traceMaxEventsMin = await runCli(['trace-start', '--max-events', '50', '--confirm'], { CHROME_BRIDGE_URL: bridgeUrl });
+  check(traceMaxEventsMin.ok, 'CLI trace-start --max-events 50 must succeed against fake command bridge');
+  const traceMaxEventsMinParsed = parseJsonOutput(traceMaxEventsMin, 'CLI trace-start max-events 50 fake command bridge');
+  const traceMaxEventsMinPayload = receivedCommands[beforeTraceMaxEventsMin]?.payload || traceMaxEventsMinParsed?.payload;
+  check(receivedCommands[beforeTraceMaxEventsMin]?.action === 'traceStart', 'CLI trace-start --max-events 50 must dispatch traceStart');
+  check(traceMaxEventsMinPayload?.maxEvents === 50, 'CLI trace-start --max-events 50 must forward numeric maxEvents 50');
+  check(traceMaxEventsMinPayload?.confirmed === true, 'CLI trace-start --max-events 50 must forward confirmed');
+  traceMaxEventsChecks += 1;
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -607,6 +640,7 @@ process.stdout.write(`${JSON.stringify({
   tabIdChecks,
   clickAtCoordinateChecks,
   hoverCoordinateChecks,
+  traceMaxEventsChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
