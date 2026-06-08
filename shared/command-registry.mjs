@@ -1106,7 +1106,7 @@ export function cliSafetyNotesMarkdown() {
     `- \`--confirm\` is required for: ${codeList(required)}.`,
     `- \`--confirm\` is conditionally required for: ${codeList(conditional)}; use it with \`--all\` on scoped inventory commands.`,
     `- \`--confirm-sensitive\` is required in addition to \`--confirm\` for private-value requests exposed by: ${codeList(sensitive)}.`,
-    '- Live bridge caution: run `runtime-smoke`, `doctor --live-checks`, and `reload-extension --confirm` only when no other session is using the bridge.',
+    '- Live bridge caution: run `reload-extension --confirm`, `doctor --live-checks`, and `runtime-smoke` only when no other session is using the bridge.',
   ].join('\n');
 }
 
