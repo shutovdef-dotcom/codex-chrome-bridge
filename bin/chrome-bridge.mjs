@@ -7,6 +7,7 @@ import { execFile, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { parseBridgePort, startBridgeServer } from '../server/bridge-server.mjs';
+import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
 import { formatReadOutput } from '../shared/output-envelope.mjs';
 import {
   createRunId,
@@ -177,6 +178,7 @@ function confirmationPayload(args) {
 function readOutputOptions(args) {
   return {
     out: typeof args.out === 'string' ? args.out : undefined,
+    artifactDir: typeof args['artifact-dir'] === 'string' ? args['artifact-dir'] : undefined,
     summaryOnly: Boolean(args['summary-only']),
     noContent: Boolean(args['no-content']),
     includeContent: Boolean(args['include-content']),
@@ -2394,6 +2396,25 @@ tool_timeout_sec = 60
   }
 
   if (cmd === 'extract') {
+    if (args.preset === 'cpa-offer') {
+      printJson(await buildCpaOfferExtraction({
+        bridgeCommand: command,
+        target: targetPayload(args),
+        options: {
+          out: args.out,
+          artifactDir: args['artifact-dir'],
+          rawOut: args['raw-out'],
+          rawHtmlOut: args['raw-html-out'],
+          sourceNetwork: args.network,
+          selector: args.selector,
+          maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 200_000) ?? 200_000,
+          maxHtmlChars: parseNumberRangeArg(args['max-html-chars'], '--max-html-chars', 1_000, 500_000) ?? 500_000,
+          ...fullPageReadPayload({ ...args, 'full-page': true }),
+        },
+      }));
+      return;
+    }
+
     printJson(await command('extractPage', {
       ...targetPayload(args),
       kind: args.kind,

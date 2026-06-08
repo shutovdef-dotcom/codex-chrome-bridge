@@ -295,7 +295,7 @@ const ACTION_DOCS = Object.freeze({
   },
   extractPage: {
     category: 'read',
-    summary: 'Extract structured tables, form structure, lists, and key-value blocks without current form values.',
+    summary: 'Extract structured tables, form structure, lists, key-value blocks, or artifact-backed CPA offer presets without current form values.',
     cli: ['extract'],
     mcp: ['chrome_bridge_extract'],
   },
@@ -648,7 +648,7 @@ export const CLI_USAGE_LINES = Object.freeze([
   'chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]',
   'chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]',
   'chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>] [--placeholder <text>] [--href <text>] [--action <kind>] [--risk <risk>] [--limit 80] [--tab <id>] [--allow-external]',
-  'chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--max-items 50] [--tab <id>] [--allow-external]',
+  'chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-offer --network <name> --out <file> [--artifact-dir <dir>]] [--max-items 50] [--tab <id>] [--allow-external]',
   'chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
   'chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
   'chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',

@@ -14,6 +14,7 @@ import {
   commandCatalog,
   commandDefaultTimeoutMs,
 } from '../shared/command-registry.mjs';
+import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
 import { formatReadOutput } from '../shared/output-envelope.mjs';
 
 const BRIDGE_URL = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
@@ -46,6 +47,7 @@ const timestampSchema = z.number().min(0).max(Number.MAX_SAFE_INTEGER);
 const selectIndexSchema = z.number().int().nonnegative();
 const readOutputSchema = {
   out: z.string().optional(),
+  artifactDir: z.string().optional(),
   summaryOnly: z.boolean().optional(),
   noContent: z.boolean().optional(),
   includeContent: z.boolean().optional(),
@@ -667,15 +669,58 @@ server.tool(
 
 server.tool(
   'chrome_bridge_extract',
-  'Extract structured JSON from the selected tab: tables, forms, lists, and key-value blocks.',
+  'Extract structured JSON from the selected tab: tables, forms, lists, key-value blocks, or the artifact-backed cpa-offer preset.',
   {
     tabId: chromeIdSchema.optional(),
     kind: z.enum(['all', 'tables', 'forms', 'lists', 'keyValues']).optional(),
+    preset: z.enum(['cpa-offer']).optional(),
+    network: z.string().optional(),
+    out: z.string().optional(),
+    artifactDir: z.string().optional(),
+    rawOut: z.string().optional(),
+    rawHtmlOut: z.string().optional(),
+    selector: z.string().optional(),
+    maxChars: z.number().min(1000).max(200000).optional(),
+    maxHtmlChars: z.number().min(1000).max(500000).optional(),
+    ...fullPageReadSchema,
     maxItems: z.number().min(1).max(500).optional(),
     maxTextChars: z.number().min(50).max(2000).optional(),
     allowExternal: z.boolean().optional(),
   },
-  async (args) => textResult(await bridgeCommand('extractPage', args, 30_000)),
+  async (args) => {
+    if (args.preset === 'cpa-offer') {
+      return textResult(await buildCpaOfferExtraction({
+        bridgeCommand,
+        target: {
+          tabId: args.tabId,
+          allowExternal: args.allowExternal,
+        },
+        options: {
+          out: args.out,
+          artifactDir: args.artifactDir,
+          rawOut: args.rawOut,
+          rawHtmlOut: args.rawHtmlOut,
+          sourceNetwork: args.network,
+          selector: args.selector,
+          maxChars: args.maxChars ?? 200_000,
+          maxHtmlChars: args.maxHtmlChars ?? 500_000,
+          waitForText: args.waitForText,
+          waitForPattern: args.waitForPattern,
+          scrollStepPx: args.scrollStepPx,
+          maxScrollSteps: args.maxScrollSteps,
+          scrollDelayMs: args.scrollDelayMs,
+        },
+      }));
+    }
+
+    return textResult(await bridgeCommand('extractPage', {
+      tabId: args.tabId,
+      kind: args.kind,
+      maxItems: args.maxItems,
+      maxTextChars: args.maxTextChars,
+      allowExternal: args.allowExternal,
+    }, 30_000));
+  },
 );
 
 server.tool(
