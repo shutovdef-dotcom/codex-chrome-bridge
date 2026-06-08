@@ -160,6 +160,10 @@ if (coveragePlanParsed) {
     'MCP coverage-plan nextCommand must point at the first live verification prep step',
   );
   check(
+    coveragePlanParsed.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    'MCP coverage-plan top-level nextAction must explain the first live verification action',
+  );
+  check(
     coveragePlanParsed.verification?.nextCommand === 'chrome-bridge reload-extension --confirm',
     'MCP coverage-plan verification metadata must include the first live verification command',
   );
@@ -314,6 +318,7 @@ process.stdout.write(`${JSON.stringify({
   coveragePlanStatus: coveragePlanParsed?.verification?.status,
   coveragePlanLiveBridge: coveragePlanParsed?.liveBridge,
   coveragePlanNextCommand: coveragePlanParsed?.nextCommand,
+  coveragePlanTopLevelNextAction: coveragePlanParsed?.nextAction,
   coveragePlanVerificationNextCommand: coveragePlanParsed?.verification?.nextCommand,
   staleExtensionTopLevelNextCommand: staleParsed?.nextCommand,
   staleBridgeTopLevelNextCommand: staleBridgeParsed?.nextCommand,

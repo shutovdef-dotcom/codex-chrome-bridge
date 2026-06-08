@@ -136,6 +136,10 @@ if (parsed) {
     'coverage plan nextCommand must point at the first live verification prep step',
   );
   check(
+    parsed.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    'coverage plan top-level nextAction must explain the first live verification action',
+  );
+  check(
     parsed.verification?.nextCommand === 'chrome-bridge reload-extension --confirm',
     'coverage plan verification metadata must include the first live verification command',
   );
@@ -301,6 +305,7 @@ process.stdout.write(`${JSON.stringify({
   staleExtensionStatus: staleParsed?.verification?.status,
   staleBridgeStatus: staleBridgeParsed?.verification?.status,
   coveragePlanVerificationNextCommand: parsed.verification?.nextCommand,
+  coveragePlanTopLevelNextAction: parsed.nextAction,
   staleExtensionTopLevelNextCommand: staleParsed?.nextCommand,
   staleBridgeTopLevelNextCommand: staleBridgeParsed?.nextCommand,
   staleExtensionNextCommand: staleParsed?.verification?.nextCommand,
