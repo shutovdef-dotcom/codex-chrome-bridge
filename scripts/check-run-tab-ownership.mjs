@@ -226,6 +226,32 @@ try {
     check(failure.parsed?.closedTabIds?.length === 1, 'with-temp-tab forced failure must still close one owned tab');
     check(failure.parsed?.ownedTabsAfter?.length === 0, 'with-temp-tab forced failure must leave zero owned tabs');
 
+    const batchRunId = createRunId('batch');
+    const batchStartCommandCount = receivedCommands.length;
+    for (let i = 0; i < 20; i += 1) {
+      const batch = await runCli([
+        'with-temp-tab',
+        `https://example.test/batch-${i}`,
+        '--run-id',
+        batchRunId,
+        '--',
+        'text',
+        '--summary-only',
+        '--out',
+        path.join(artifactDir, `batch-${i}.txt`),
+      ], env);
+      check(batch.ok, `with-temp-tab batch command ${i} failed: ${batch.stderr || batch.stdout}`);
+      check(batch.parsed?.ownedTabsBefore?.length === 0, `with-temp-tab batch command ${i} must start with zero owned tabs`);
+      check(batch.parsed?.ownedTabsAfter?.length === 0, `with-temp-tab batch command ${i} must leave zero owned tabs`);
+      check(batch.parsed?.closedTabIds?.length === 1, `with-temp-tab batch command ${i} must close one owned tab`);
+    }
+    const batchCommands = receivedCommands.slice(batchStartCommandCount);
+    const batchState = await readRunState({ runId: batchRunId, stateDir });
+    check(batchState.ownedTabIds.length === 0, 'with-temp-tab batch must leave zero run-owned tabs in state');
+    check(batchCommands.filter((command) => command.action === 'open').length === 20, 'with-temp-tab batch must open 20 temp tabs');
+    check(batchCommands.filter((command) => command.action === 'text').length === 20, 'with-temp-tab batch must read 20 temp tabs');
+    check(batchCommands.filter((command) => command.action === 'closeTab').length === 20, 'with-temp-tab batch must close 20 temp tabs');
+
     const cleanupRunId = createRunId('cleanup');
     await recordOwnedTab({ runId: cleanupRunId, tabId: 901, stateDir });
     await recordOwnedTab({ runId: cleanupRunId, tabId: 902, stateDir });
@@ -239,6 +265,11 @@ try {
     check(cleanup.parsed?.ownedTabsBefore?.length === 2, 'cleanup-run-tabs must report owned tabs before cleanup');
     check(cleanup.parsed?.closedTabIds?.length === 2, 'cleanup-run-tabs must close recorded tabs');
     check(cleanup.parsed?.ownedTabsAfter?.length === 0, 'cleanup-run-tabs must remove closed tabs from run state');
+
+    const closedPayloadTabIds = receivedCommands
+      .filter((command) => command.action === 'closeTab')
+      .map((command) => command.payload.tabId);
+    check(!closedPayloadTabIds.includes(42), 'cleanup must not close tabs recorded under a different run id');
   });
 } finally {
   await fs.rm(stateDir, { recursive: true, force: true });
