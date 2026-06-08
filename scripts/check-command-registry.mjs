@@ -169,6 +169,14 @@ function functionBlock(source, name) {
   return '';
 }
 
+function mcpToolBlock(name) {
+  const marker = `server.tool(\n  '${name}',`;
+  const start = mcpText.indexOf(marker);
+  if (start < 0) return '';
+  const next = mcpText.indexOf('\n\nserver.tool(', start + marker.length);
+  return mcpText.slice(start, next < 0 ? undefined : next);
+}
+
 uniqueValues(MANIFEST_PERMISSIONS, 'manifest permissions');
 uniqueValues(EXTENSION_ACTIONS, 'extension actions');
 uniqueValues(CLI_COMMANDS, 'CLI commands');
@@ -658,6 +666,19 @@ check(functionBlock(mcpText, 'localDoctor').includes("if (args.liveChecks) cliAr
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpDocsText.includes('chrome_bridge_doctor') && mcpDocsText.includes('liveChecks: true'), 'MCP docs must include doctor liveChecks in the live verification sequence');
 check(mcpText.includes('TAB_GROUP_COLORS') && mcpText.includes('groupColor: z.enum(TAB_GROUP_COLORS).optional()'), 'MCP workspace groupColor schema must use the shared tab group color enum');
+for (const toolName of [
+  'chrome_bridge_windows',
+  'chrome_bridge_tabs',
+  'chrome_bridge_group',
+  'chrome_bridge_ensure_tab',
+  'chrome_bridge_adopt_tab',
+  'chrome_bridge_open',
+  'chrome_bridge_close_group',
+]) {
+  const block = mcpToolBlock(toolName);
+  check(block.includes('groupTitle: z.string().optional()'), `${toolName} MCP schema must expose groupTitle`);
+  check(block.includes('groupColor: z.enum(TAB_GROUP_COLORS).optional()'), `${toolName} MCP schema must expose shared groupColor enum`);
+}
 check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
 check(mcpText.includes("if (args.coveragePlan) cliArgs.push('--coverage-plan')"), 'MCP runtime smoke helper must forward coveragePlan to CLI');
 check(mcpText.includes('extension v${BRIDGE_VERSION}'), 'MCP runtime smoke tool description must derive the required extension version from BRIDGE_VERSION');
