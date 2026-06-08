@@ -850,7 +850,17 @@ const runtimeSmokeLiveVerificationBlock = functionBlock(cliText, 'runtimeSmokeLi
 const runtimeSmokeCoveragePlanBlock = functionBlock(cliText, 'runtimeSmokeCoveragePlan');
 const runtimeSmokeCoverageBlock = functionBlock(cliText, 'runtimeSmokeCoverage');
 const runtimeSmokeRequiredCoverageBlock = /const RUNTIME_SMOKE_REQUIRED_COVERAGE = Object\.freeze\(\[[\s\S]*?\]\);/.exec(cliText)?.[0] || '';
+const pageExecuteBlock = functionBlock(pageExecutionText, 'execute');
+const collectObserveBlock = functionBlock(pageScriptsText, 'collectObserve');
+const collectExtractBlock = functionBlock(pageScriptsText, 'collectExtract');
+const collectSnapshotBlock = functionBlock(pageScriptsText, 'collectSnapshot');
+const fillFormInPageBlock = functionBlock(pageScriptsText, 'fillFormInPage');
 const listSelectOptionsBlock = functionBlock(pageScriptsText, 'listSelectOptionsInPage');
+check(pageExecuteBlock.includes('frame?.error'), 'page execution wrapper must throw injected frame errors instead of returning undefined');
+check(collectObserveBlock.includes('stableSelectorForInjected'), 'observe injected script must use a local stable selector helper');
+check(collectExtractBlock.includes('stableSelectorForInjected'), 'extract injected script must use a local stable selector helper');
+check(collectSnapshotBlock.includes('stableSelectorForInjected'), 'snapshot injected script must use a local stable selector helper');
+check(fillFormInPageBlock.includes('formFieldValueStateInjected') && collectExtractBlock.includes('formFieldValueStateInjected'), 'injected form helpers must not depend on module-scope formFieldValueState');
 check(
   cliDebugBundleBlock.includes("command('traceSummary'")
     && cliDebugBundleBlock.includes('if (includeTraceEvents)')
