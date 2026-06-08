@@ -15,6 +15,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'extension/debugger-session.js',
   'extension/extension-errors.js',
   'extension/keyboard-events.js',
+  'extension/navigation-actions.js',
   'extension/offscreen.js',
   'extension/offscreen-lifecycle.js',
   'extension/page-execution.js',

@@ -36,6 +36,7 @@ const [
   debuggerSessionText,
   extensionErrorsText,
   keyboardEventsText,
+  navigationActionsText,
   offscreenLifecycleText,
   pageExecutionText,
   pageArtifactsText,
@@ -61,6 +62,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/debugger-session.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/extension-errors.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/keyboard-events.js'), 'utf8').catch(() => ''),
+  fs.readFile(path.join(rootDir, 'extension/navigation-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-execution.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-artifacts.js'), 'utf8').catch(() => ''),
@@ -174,6 +176,7 @@ for (const requiredPackageFile of [
   'shared/command-registry.mjs',
   'extension/extension-errors.js',
   'extension/page-scripts.js',
+  'extension/navigation-actions.js',
   'extension/offscreen-lifecycle.js',
   'extension/page-execution.js',
   'extension/page-artifacts.js',
@@ -558,8 +561,8 @@ check(!pageScriptsText.includes('after: nextValue'), 'fill-form preview must not
 check(!listSelectOptionsBlock.includes('selectedIndex'), 'select-options must not expose current selected index without confirmation');
 check(!listSelectOptionsBlock.includes('value: select.value'), 'select-options must not expose current selected value without confirmation');
 check(!listSelectOptionsBlock.includes('selected: option.selected'), 'select-options must not expose current selected option without confirmation');
-check(functionBlock(backgroundText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
-check(functionBlock(backgroundText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
+check(functionBlock(navigationActionsText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
+check(functionBlock(navigationActionsText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
 check(functionBlock(backgroundText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
 check(backgroundText.includes("from './browser-data.js';"), 'extension background must import private browser-data handlers from extension/browser-data.js');
 for (const helperName of ['historySearch', 'bookmarksSearch', 'flattenBookmarks', 'cookiesList', 'fetchUrl']) {
@@ -594,6 +597,17 @@ check(!backgroundText.includes('function virtualKeyCodeFor'), 'extension backgro
 check(functionBlock(keyboardEventsText, 'keyEventPayload').includes('windowsVirtualKeyCode'), 'extension keyboard event module must serialize debugger key events');
 check(functionBlock(keyboardEventsText, 'keyCodeFor').includes('ArrowUp'), 'extension keyboard event module must map named key codes');
 check(functionBlock(keyboardEventsText, 'virtualKeyCodeFor').includes('ArrowUp'), 'extension keyboard event module must map virtual key codes');
+check(backgroundText.includes("from './navigation-actions.js';"), 'extension background must import navigation actions from extension/navigation-actions.js');
+for (const helperName of ['listTabs', 'listWindows', 'ensureCodexTab', 'adoptTab', 'openTab', 'createGroupedTab', 'groupStatus', 'workspaceStatus', 'setWorkspace', 'clearWorkspace', 'activateTab', 'closeTab', 'closeGroup', 'goBack', 'goForward', 'reloadTab']) {
+  check(!functionBlock(backgroundText, helperName), `extension background must not own navigation action internals: ${helperName}`);
+}
+for (const helperName of ['listTabs', 'listWindows', 'ensureCodexTab', 'adoptTab', 'openTab', 'groupStatus', 'workspaceStatus', 'setWorkspace', 'clearWorkspace', 'activateTab', 'closeTab', 'closeGroup', 'goBack', 'goForward', 'reloadTab']) {
+  check(navigationActionsText.includes(`export async function ${helperName}`), `extension navigation actions module must export ${helperName}`);
+}
+check(functionBlock(navigationActionsText, 'openTab').includes('createGroupedTab(payload)'), 'extension navigation actions module must keep grouped new-tab creation path');
+check(functionBlock(navigationActionsText, 'setWorkspace').includes("requireConfirmed(payload, 'setWorkspace')"), 'extension setWorkspace must require confirmation');
+check(functionBlock(navigationActionsText, 'closeTab').includes('closeTabsWithGroupPersistenceMitigation([tab])'), 'closeTab must use ungroup-before-close mitigation');
+check(functionBlock(navigationActionsText, 'closeGroup').includes('closeTabsWithGroupPersistenceMitigation(tabs)'), 'closeGroup must use ungroup-before-close mitigation');
 check(backgroundText.includes("import { groupInfo, tabInfo } from './tab-info.js';"), 'extension background must import tab/group serializers from extension/tab-info.js');
 check(!backgroundText.includes('function groupInfo'), 'extension background must not own tab/group serializer internals');
 check(!backgroundText.includes('function tabInfo'), 'extension background must not own tab/group serializer internals');
@@ -680,8 +694,6 @@ check(
 );
 check((backgroundText.match(/chrome\.tabs\.remove/g) || []).length === 0, 'extension background must not remove tabs directly');
 check((tabCleanupText.match(/chrome\.tabs\.remove/g) || []).length === 1, 'extension tab cleanup module must remove tabs only through closeTabsWithGroupPersistenceMitigation');
-check(functionBlock(backgroundText, 'closeTab').includes('closeTabsWithGroupPersistenceMitigation([tab])'), 'closeTab must use ungroup-before-close mitigation');
-check(functionBlock(backgroundText, 'closeGroup').includes('closeTabsWithGroupPersistenceMitigation(tabs)'), 'closeGroup must use ungroup-before-close mitigation');
 check(
   functionBlock(userPromptsText, 'askUser').includes('closeTabsWithGroupPersistenceMitigation([tab], { ignoreMissing: true })'),
   'askUser prompt race cleanup must use ungroup-before-close mitigation',
