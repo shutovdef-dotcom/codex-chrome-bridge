@@ -986,6 +986,9 @@ function runtimeSmokeCoverage(steps) {
   const missing = RUNTIME_SMOKE_REQUIRED_COVERAGE.filter((name) => !successfulSteps.has(name));
   return {
     ok: missing.length === 0,
+    requiredCount: RUNTIME_SMOKE_REQUIRED_COVERAGE.length,
+    coveredCount: covered.length,
+    missingCount: missing.length,
     required: RUNTIME_SMOKE_REQUIRED_COVERAGE,
     covered,
     missing,
