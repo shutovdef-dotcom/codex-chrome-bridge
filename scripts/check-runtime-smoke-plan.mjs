@@ -90,6 +90,18 @@ if (parsed) {
   check(parsed.liveBridge === false, 'coverage plan output must report liveBridge=false');
   check(parsed.verification?.status === 'not-run', 'coverage plan verification status must be not-run');
   check(parsed.verification?.liveVerificationRequired === true, 'coverage plan must require final live verification');
+  check(
+    parsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm'),
+    'coverage plan final commands must include confirmed extension reload before live smoke',
+  );
+  check(
+    parsed.verification?.finalCommands?.includes('chrome-bridge doctor --live-checks'),
+    'coverage plan final commands must include explicit live doctor check',
+  );
+  check(
+    parsed.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'),
+    'coverage plan final commands must include live runtime-smoke',
+  );
   check(parsed.verification?.successCriteria?.ok === true, 'coverage plan success criteria must require top-level ok=true');
   check(parsed.verification?.successCriteria?.coverageOk === true, 'coverage plan success criteria must require coverage.ok=true');
   check(parsed.coverage?.ok === false, 'coverage plan coverage.ok must remain false until live smoke runs');
