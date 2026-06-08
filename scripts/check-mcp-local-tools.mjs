@@ -115,6 +115,56 @@ async function withFakeLiveDoctor(fn) {
   }
 }
 
+async function withFakeStaleSummaryBridge(fn) {
+  const staleBridgeVersion = '0.0.0-stale-summary';
+  const server = http.createServer((req, res) => {
+    if (req.url === '/health') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        bridge: {
+          version: staleBridgeVersion,
+        },
+        extension: {
+          connected: true,
+          info: {
+            version: BRIDGE_VERSION,
+          },
+        },
+      }));
+      return;
+    }
+
+    if (req.url === '/command') {
+      res.writeHead(503, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: false,
+        code: 'EXTENSION_NOT_CONNECTED',
+        error: 'fake summary bridge has no extension command transport',
+      }));
+      return;
+    }
+
+    res.writeHead(404, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: 'unexpected path' }));
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  try {
+    const { port } = server.address();
+    return await fn({
+      bridgeUrl: `http://127.0.0.1:${port}`,
+      staleBridgeVersion,
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 let doctorLiveBridgeCurrent = null;
 await withMcpClient(async (client) => {
   const tools = await client.listTools();
@@ -206,6 +256,25 @@ await withFakeLiveDoctor(async ({ bridgeUrl, pathEnv }) => {
   });
 });
 
+let sessionSummaryStaleBridgeRecommendation = false;
+await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
+  await withMcpClient(async (client) => {
+    const summaryParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_session_summary',
+      arguments: {},
+    }), 'MCP session-summary stale bridge');
+    if (!summaryParsed) return;
+
+    sessionSummaryStaleBridgeRecommendation = summaryParsed.recommendations?.some((recommendation) => (
+      recommendation.includes('Restart the local Chrome Bridge server')
+        && recommendation.includes(staleBridgeVersion)
+    ));
+    check(sessionSummaryStaleBridgeRecommendation, 'MCP session-summary must recommend restarting stale bridge server');
+  }, {
+    CHROME_BRIDGE_URL: bridgeUrl,
+  });
+});
+
 if (failures.length) {
   for (const failure of failures) process.stderr.write(`- ${failure}\n`);
   process.exit(1);
@@ -221,4 +290,5 @@ process.stdout.write(`${JSON.stringify({
   checkedTools: ['chrome_bridge_doctor', 'chrome_bridge_extension_path', 'chrome_bridge_codex_config', 'chrome_bridge_command_catalog'],
   doctorOfflineByDefault: true,
   doctorLiveBridgeCurrent,
+  sessionSummaryStaleBridgeRecommendation,
 }, null, 2)}\n`);

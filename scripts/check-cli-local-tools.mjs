@@ -91,6 +91,56 @@ async function withFakeLiveDoctor(fn) {
   }
 }
 
+async function withFakeStaleSummaryBridge(fn) {
+  const staleBridgeVersion = '0.0.0-stale-summary';
+  const server = http.createServer((req, res) => {
+    if (req.url === '/health') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        bridge: {
+          version: staleBridgeVersion,
+        },
+        extension: {
+          connected: true,
+          info: {
+            version: BRIDGE_VERSION,
+          },
+        },
+      }));
+      return;
+    }
+
+    if (req.url === '/command') {
+      res.writeHead(503, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: false,
+        code: 'EXTENSION_NOT_CONNECTED',
+        error: 'fake summary bridge has no extension command transport',
+      }));
+      return;
+    }
+
+    res.writeHead(404, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: 'unexpected path' }));
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  try {
+    const { port } = server.address();
+    return await fn({
+      bridgeUrl: `http://127.0.0.1:${port}`,
+      staleBridgeVersion,
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 function parseJsonOutput(result, label) {
   try {
     return JSON.parse(result.stdout || '{}');
@@ -127,6 +177,22 @@ await withFakeLiveDoctor(async ({ bridgeUrl, pathEnv }) => {
   check(liveDoctorJson.checks?.bridgeVersion === BRIDGE_VERSION, 'CLI doctor live checks must report observed bridge version');
   check(liveDoctorJson.checks?.bridgeCurrent === true, 'CLI doctor live checks must confirm bridge version is current');
   liveDoctorBridgeCurrent = liveDoctorJson.checks?.bridgeCurrent;
+});
+
+let sessionSummaryStaleBridgeRecommendation = false;
+await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
+  const summaryResult = await runCli(['session-summary'], {
+    CHROME_BRIDGE_URL: bridgeUrl,
+  });
+  check(summaryResult.ok, 'CLI session-summary must succeed against fake stale bridge health');
+  const summaryJson = parseJsonOutput(summaryResult, 'CLI session-summary stale bridge');
+  if (!summaryJson) return;
+
+  sessionSummaryStaleBridgeRecommendation = summaryJson.recommendations?.some((recommendation) => (
+    recommendation.includes('Restart the local Chrome Bridge server')
+      && recommendation.includes(staleBridgeVersion)
+  ));
+  check(sessionSummaryStaleBridgeRecommendation, 'CLI session-summary must recommend restarting stale bridge server');
 });
 
 const extensionPathResult = await runCli(['extension-path']);
@@ -166,6 +232,7 @@ process.stdout.write(`${JSON.stringify({
   checkedCommands: ['doctor', 'extension-path', 'codex-config', 'command-catalog'],
   doctorOfflineByDefault: true,
   doctorLiveBridgeCurrent: liveDoctorBridgeCurrent,
+  sessionSummaryStaleBridgeRecommendation,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
 }, null, 2)}\n`);
