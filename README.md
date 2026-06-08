@@ -93,7 +93,7 @@ node ./bin/chrome-bridge.mjs doctor --live-checks
 npm run runtime-smoke
 ```
 
-`npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan` and prints the required smoke checklist without contacting Chrome or the live bridge. Use it while another Codex session is actively using the bridge; its `nextCommand`, `verification.finalCommands`, and `verification.finalMcpCalls` fields show the live sequence to run after the bridge is free: run `node ./bin/chrome-bridge.mjs reload-extension --confirm`, run `node ./bin/chrome-bridge.mjs doctor --live-checks`, then run `npm run runtime-smoke`.
+`npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan` and prints the required smoke checklist without contacting Chrome or the live bridge. Use it while another Codex session is actively using the bridge; its top-level `nextCommand` / `nextAction`, `verification.finalCommands`, and `verification.finalMcpCalls` fields show the live sequence to run after the bridge is free: run `node ./bin/chrome-bridge.mjs reload-extension --confirm`, run `node ./bin/chrome-bridge.mjs doctor --live-checks`, then run `npm run runtime-smoke`.
 
 If the later live smoke is skipped because the bridge server or extension version is stale, the structured JSON output includes top-level `nextCommand` / `nextAction`, nested `verification.nextCommand` / `verification.nextAction`, and the same `verification.finalCommands` / `verification.finalMcpCalls` recovery sequence, so CLI and MCP agents can proceed without reconstructing the upgrade flow.
 

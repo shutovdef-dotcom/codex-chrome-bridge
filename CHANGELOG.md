@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added top-level `nextAction` to `runtime-smoke --coverage-plan`, matching the existing top-level `nextCommand` and live smoke recovery outputs.
 - Mirrored runtime-smoke recovery hints at top-level `nextCommand` / `nextAction` for skipped and failed live outputs, matching the nested verification metadata.
 - Added contextual `verification.nextCommand` / `verification.nextAction` recovery hints to offline and live runtime-smoke verification metadata.
 - Added final CLI/MCP recovery sequences to live runtime-smoke verification metadata, so skipped stale-version outputs preserve the exact extension reload, live doctor, and smoke commands.

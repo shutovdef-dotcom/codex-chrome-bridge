@@ -1167,6 +1167,7 @@ function runtimeSmokeCoveragePlan(startedAt) {
     expectedVersion: EXPECTED_EXTENSION_VERSION,
     reason: 'Coverage plan only; no bridge or Chrome checks were run.',
     nextCommand: 'chrome-bridge reload-extension --confirm',
+    nextAction: RUNTIME_SMOKE_RELOAD_EXTENSION_ACTION,
     verification: {
       status: 'not-run',
       liveVerificationRequired: true,
