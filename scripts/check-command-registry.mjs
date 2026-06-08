@@ -32,6 +32,7 @@ const [
   cliText,
   mcpText,
   backgroundText,
+  offscreenLifecycleText,
   pageScriptsText,
   tabCleanupText,
   packageContentsCheckerText,
@@ -44,6 +45,7 @@ const [
   fs.readFile(path.join(rootDir, 'bin/chrome-bridge.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
@@ -147,6 +149,7 @@ check(packageContentsCheckerText.includes('REQUIRED_PACKAGE_FILES'), 'package co
 for (const requiredPackageFile of [
   'shared/command-registry.mjs',
   'extension/page-scripts.js',
+  'extension/offscreen-lifecycle.js',
   'extension/tab-cleanup.js',
   'extension/workspace-policy.js',
   'docs/COMMAND-CATALOG.md',
@@ -523,6 +526,11 @@ check(!listSelectOptionsBlock.includes('selected: option.selected'), 'select-opt
 check(functionBlock(backgroundText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
 check(functionBlock(backgroundText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
 check(functionBlock(backgroundText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
+check(backgroundText.includes("import { startBridge } from './offscreen-lifecycle.js';"), 'extension background must import offscreen lifecycle helper from extension/offscreen-lifecycle.js');
+check(!backgroundText.includes('function ensureOffscreen'), 'extension background must not own offscreen lifecycle internals');
+check(!backgroundText.includes('async function startBridge'), 'extension background must not own offscreen lifecycle internals');
+check(functionBlock(offscreenLifecycleText, 'ensureOffscreen').includes('chrome.offscreen.createDocument'), 'offscreen lifecycle module must create the offscreen document');
+check(functionBlock(offscreenLifecycleText, 'startBridge').includes('ensureOffscreen'), 'offscreen lifecycle module must export startup retry helper');
 check(backgroundText.includes("import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';"), 'extension background must import tab cleanup helper from extension/tab-cleanup.js');
 check(!backgroundText.includes('function tabIdForClose'), 'extension background must not own tab cleanup helper internals');
 check(!backgroundText.includes('async function closeTabsWithGroupPersistenceMitigation'), 'extension background must not own tab cleanup helper internals');
