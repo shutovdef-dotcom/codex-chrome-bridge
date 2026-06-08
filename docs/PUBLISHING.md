@@ -33,7 +33,7 @@ Run the live `reload-extension --confirm`, `doctor --live-checks`, and `runtime-
 
 The plan output reports `verification.status: "not-run"` and `verification.liveVerificationRequired: true`; final verification is complete only after the normal live `runtime-smoke` reports top-level `ok: true`, `coverage.ok: true`, current bridge/extension versions, and `verification.status: "passed"`.
 
-`runtime-smoke` opens temporary local fixture tabs and covers existing-tab adoption, scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, screenshots, PDF export, dialog handling, file input upload, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata. Its JSON output includes a counted `coverage` summary, and top-level `ok` is true only when every required coverage item passed.
+`runtime-smoke` opens temporary local fixture tabs and covers existing-tab adoption, scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, querySelector/nth-of-type selector fallback, screenshots, PDF export, dialog handling, file input upload, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata. Its JSON output includes a counted `coverage` summary, and top-level `ok` is true only when every required coverage item passed.
 
 `check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
 

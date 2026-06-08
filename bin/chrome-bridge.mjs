@@ -759,6 +759,7 @@ function smokeHtml() {
       <p id="selected"></p>
       <button id="action" type="button">Action</button>
       <p id="clicked"></p>
+      <button type="button">Anonymous fallback target</button>
       <button id="coord" type="button">Coordinate Target</button>
       <p id="coord-clicked"></p>
       <button id="dialog-button" type="button">Dialog Target</button>
@@ -982,6 +983,7 @@ const RUNTIME_SMOKE_REQUIRED_COVERAGE = Object.freeze([
   'debug bundle default redaction',
   'tabs scoped includes smoke tab',
   'observe actionable elements',
+  'observe nth-of-type selector fallback',
   'find-elements filtered',
   'find-elements near text filtered',
   'extract forms',
@@ -1386,6 +1388,19 @@ async function runtimeSmoke(args = {}) {
       assert: (result) => {
         if (!result.elements?.some((element) => element.selector === '#action' && element.action === 'click')) {
           throw new Error('observe did not include action button');
+        }
+      },
+    });
+    await run('observe nth-of-type selector fallback', () => command('observe', {
+      tabId,
+      text: 'Anonymous fallback target',
+      limit: 20,
+    }, 30_000), {
+      assert: (result) => {
+        const fallback = result.elements?.find((element) => element.text === 'Anonymous fallback target');
+        if (!fallback) throw new Error('observe did not include anonymous fallback target');
+        if (!fallback.selector?.includes('nth-of-type')) {
+          throw new Error(`observe fallback selector did not use nth-of-type: ${fallback.selector || '<missing>'}`);
         }
       },
     });
