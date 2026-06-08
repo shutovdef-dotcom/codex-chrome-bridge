@@ -160,6 +160,7 @@ check(serverText.includes('body.code') && serverText.includes('body.details'), '
 check(bridgeContractText.includes('rejects unsupported actions'), 'Phase 0 must have bridge contract coverage for unsupported actions');
 check(bridgeContractText.includes('malformed JSON') && bridgeContractText.includes('oversized'), 'Phase 0 must have bridge contract coverage for malformed and oversized bodies');
 check(bridgeContractText.includes('stale extension') && bridgeContractText.includes('VERSION_UNKNOWN'), 'Phase 0 must have bridge contract coverage for version fail-closed behavior');
+check(bridgeContractText.includes('allows confirmed extension reload on stale extension versions'), 'Phase 0 must have bridge contract coverage for stale-extension reload recovery');
 check(!backgroundText.includes('Network.getResponseBody') && !debuggerSessionText.includes('Network.getResponseBody'), 'Phase 0 trace implementation must not capture response bodies');
 rejectsPayload('open', { url: 'javascript:alert(1)' }, 'URL protocol', 'Phase 0 open URL validation');
 rejectsPayload('fetchUrl', { url: 'file:///etc/passwd', confirmed: true }, 'URL protocol', 'Phase 0 request URL validation');
