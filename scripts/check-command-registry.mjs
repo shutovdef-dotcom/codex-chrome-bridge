@@ -617,6 +617,8 @@ check(codexChromeBridgeSkillText.includes('runtime-smoke --coverage-plan'), 'bun
 check(codexChromeBridgeSkillText.includes('npm run check:mcp-runtime-smoke'), 'bundled Codex chrome-bridge skill must mention MCP runtime-smoke contract check');
 check(codexChromeBridgeSkillText.includes('npm run check:tab-group-persistence'), 'bundled Codex chrome-bridge skill must mention tab-group persistence behavior check');
 check(codexChromeBridgeSkillText.includes('npm run check:privacy'), 'bundled Codex chrome-bridge skill must mention privacy scan check');
+check(codexChromeBridgeSkillText.includes('reload-extension --confirm'), 'bundled Codex chrome-bridge skill must include the live upgrade reload step');
+check(codexChromeBridgeSkillText.includes('doctor --live-checks'), 'bundled Codex chrome-bridge skill must include the live doctor upgrade check');
 check(codexChromeBridgeSkillText.includes('verification.status: "passed"'), 'bundled Codex chrome-bridge skill must document live runtime smoke success criteria');
 check(llmsText.includes('runtime-smoke:plan'), 'llms metadata must mention offline runtime smoke plan');
 check(llmsText.includes('check:tab-group-persistence'), 'llms metadata must mention tab-group persistence behavior check');
