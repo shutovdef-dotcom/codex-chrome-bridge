@@ -37,6 +37,7 @@ const [
   pageScriptsText,
   safetyGatesText,
   tabCleanupText,
+  tabInfoText,
   packageContentsCheckerText,
   privacyScannerText,
   checkWorkflowText,
@@ -52,6 +53,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/tab-info.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, '.github/workflows/check.yml'), 'utf8'),
@@ -537,6 +539,11 @@ check(!backgroundText.includes('function requireConfirmed'), 'extension backgrou
 check(!backgroundText.includes('function requireSensitiveConfirmed'), 'extension background must not own confirmation gate internals');
 check(functionBlock(safetyGatesText, 'requireConfirmed').includes('confirmed=true'), 'safety gates module must enforce mutation confirmation');
 check(functionBlock(safetyGatesText, 'requireSensitiveConfirmed').includes('confirmSensitive=true'), 'safety gates module must enforce sensitive confirmation');
+check(backgroundText.includes("import { groupInfo, tabInfo } from './tab-info.js';"), 'extension background must import tab/group serializers from extension/tab-info.js');
+check(!backgroundText.includes('function groupInfo'), 'extension background must not own tab/group serializer internals');
+check(!backgroundText.includes('function tabInfo'), 'extension background must not own tab/group serializer internals');
+check(functionBlock(tabInfoText, 'groupInfo').includes('collapsed'), 'extension tab info module must serialize tab group metadata');
+check(functionBlock(tabInfoText, 'tabInfo').includes('groupInfo(group)') && functionBlock(tabInfoText, 'tabInfo').includes('status'), 'extension tab info module must serialize tab metadata with group info');
 check(backgroundText.includes("import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js';"), 'extension background must import error classification helpers from extension/extension-errors.js');
 check(!backgroundText.includes('function extensionErrorCode'), 'extension background must not own extension error helper internals');
 check(!backgroundText.includes('function extensionErrorDetails'), 'extension background must not own extension error helper internals');
