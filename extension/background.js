@@ -439,6 +439,65 @@ async function getCodexGroupTabs(payload = {}) {
   return tabs.filter((tab) => groupIds.has(tab.groupId));
 }
 
+function tabIdForClose(input) {
+  const tabId = Number(input && typeof input === 'object' ? input.id : input);
+  return Number.isInteger(tabId) && tabId >= 0 ? tabId : null;
+}
+
+async function closeTabsWithGroupPersistenceMitigation(tabInputs, options = {}) {
+  const inputs = Array.isArray(tabInputs) ? tabInputs : [tabInputs];
+  const seen = new Set();
+  const tabs = [];
+  const missingTabIds = [];
+
+  for (const input of inputs) {
+    const tabId = tabIdForClose(input);
+    if (tabId === null || seen.has(tabId)) continue;
+    seen.add(tabId);
+
+    if (input && typeof input === 'object' && Number.isInteger(input.groupId)) {
+      tabs.push(input);
+      continue;
+    }
+
+    try {
+      tabs.push(await chrome.tabs.get(tabId));
+    } catch (error) {
+      if (!options.ignoreMissing) throw error;
+      missingTabIds.push(tabId);
+    }
+  }
+
+  const tabIds = tabs.map((tab) => tab.id);
+  const groupedTabIds = tabs
+    .filter((tab) => Number.isInteger(tab.groupId) && tab.groupId >= 0)
+    .map((tab) => tab.id);
+  let ungroupedBeforeClose = false;
+  let ungroupError = null;
+
+  if (groupedTabIds.length && chrome.tabs.ungroup) {
+    try {
+      await chrome.tabs.ungroup(groupedTabIds);
+      ungroupedBeforeClose = true;
+    } catch (error) {
+      ungroupError = String(error?.message || error);
+    }
+  }
+
+  if (tabIds.length) {
+    await chrome.tabs.remove(tabIds);
+  }
+
+  return {
+    closedTabIds: tabIds,
+    missingTabIds,
+    ungroupedBeforeClose,
+    ungroupedTabIds: ungroupedBeforeClose ? groupedTabIds : [],
+    ungroupUnavailable: Boolean(groupedTabIds.length) && !chrome.tabs.ungroup,
+    ungroupError,
+  };
+}
+
 async function ensureCodexGroupForTab(tab, payload = {}) {
   if (!chrome.tabGroups || !chrome.tabs.group) {
     throw new Error('chrome.tabGroups API is unavailable; reload the extension after granting the tabGroups permission');
@@ -690,21 +749,29 @@ async function activateTab(payload) {
 async function closeTab(payload) {
   requireConfirmed(payload, 'closeTab');
   const tab = await getTargetTab(payload);
-  await chrome.tabs.remove(tab.id);
+  const cleanup = await closeTabsWithGroupPersistenceMitigation([tab]);
   const { codexTabId } = await storageGet(['codexTabId']);
   if (codexTabId === tab.id) {
     await storageRemove(['codexTabId', 'codexWindowId']);
   }
-  return { closed: true, tab: tabInfo(tab) };
+  return {
+    closed: true,
+    tab: tabInfo(tab),
+    tabGroupPersistenceMitigation: cleanup,
+  };
 }
 
 async function closeGroup(payload) {
   requireConfirmed(payload, 'closeGroup');
   const tabs = await getCodexGroupTabs(payload);
   if (!tabs.length) return { closed: 0, tabs: [] };
-  await chrome.tabs.remove(tabs.map((tab) => tab.id));
+  const cleanup = await closeTabsWithGroupPersistenceMitigation(tabs);
   await storageRemove(['codexTabId', 'codexWindowId', 'codexGroupId', 'codexGroupWindowId']);
-  return { closed: tabs.length, tabs: tabs.map((tab) => tabInfo(tab)) };
+  return {
+    closed: tabs.length,
+    tabs: tabs.map((tab) => tabInfo(tab)),
+    tabGroupPersistenceMitigation: cleanup,
+  };
 }
 
 async function goBack(payload) {
@@ -1551,7 +1618,7 @@ async function askUser(payload = {}) {
       .then(({ tab, group }) => {
         const prompt = pendingUserPrompts.get(id);
         if (!prompt) {
-          chrome.tabs.remove(tab.id).catch(() => {});
+          closeTabsWithGroupPersistenceMitigation([tab], { ignoreMissing: true }).catch(() => {});
           return;
         }
         prompt.tabId = tab.id;
@@ -1636,7 +1703,7 @@ function completeUserPrompt(requestId, answer = {}) {
   prompt.resolve(result);
 
   if (prompt.closeOnAnswer && prompt.tabId) {
-    chrome.tabs.remove(prompt.tabId).catch(() => {});
+    closeTabsWithGroupPersistenceMitigation([prompt.tabId], { ignoreMissing: true }).catch(() => {});
   }
   restoreStoredCodexTarget(prompt.previous).catch(() => {});
   return true;

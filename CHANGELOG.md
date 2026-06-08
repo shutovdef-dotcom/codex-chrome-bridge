@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Ungroup bridge-owned tabs before closing them in `close-tab`, `close-group`, prompt cleanup, and runtime smoke cleanup so Chrome does not create new saved closed `Codex Bridge` group chips.
 - Added `adopt-tab` / `chrome_bridge_adopt_tab` to pull an already-open Chrome tab into the scoped `Codex Bridge` group with explicit confirmation.
 - Added `pdf` / `chrome_bridge_pdf` to export the selected real Chrome tab as a PDF.
 - Added `observe` / `chrome_bridge_observe` for read-only ranked actionable element discovery.
