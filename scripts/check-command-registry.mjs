@@ -488,8 +488,11 @@ check(cliText.includes('function tomlString(value)'), 'CLI codex-config must esc
 check(cliText.includes('command = ${tomlString(process.execPath)}'), 'CLI codex-config must use the current Node executable');
 check(!cliText.includes('/opt/homebrew/bin/node'), 'CLI codex-config must not hardcode a Homebrew Node path');
 check(cliText.includes("if (!args.confirm) throw new Error('reload-extension requires --confirm')"), 'CLI reload-extension must require --confirm');
+check(CLI_USAGE_LINES.includes('chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]'), 'runtime-smoke CLI usage must expose offline coverage-plan mode');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
+check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
+check(mcpText.includes("if (args.coveragePlan) cliArgs.push('--coverage-plan')"), 'MCP runtime smoke helper must forward coveragePlan to CLI');
 check(mcpText.includes('z.enum(HTTP_METHODS)'), 'MCP request method schema must use the shared HTTP method allowlist');
 check(cliText.includes('includeSnapshot') && cliText.includes('includeScreenshot'), 'CLI debug bundle page artifacts must be explicit opt-in');
 check(mcpText.includes('includeSnapshot: z.boolean().optional()') && mcpText.includes('includeScreenshot: z.boolean().optional()'), 'MCP debug bundle page artifacts must be explicit opt-in');
@@ -533,6 +536,11 @@ check(runtimeSmokeBlock.includes("debugBundle({") && runtimeSmokeBlock.includes(
 check(runtimeSmokeBlock.includes('assertTabCleanupMitigation'), 'runtime-smoke must assert tab cleanup mitigation metadata');
 check(runtimeSmokeBlock.includes('savedGroupPersistence'), 'runtime-smoke must assert saved tab-group persistence metadata');
 check(runtimeSmokeBlock.includes('RUNTIME_SMOKE_REQUIRED_COVERAGE'), 'runtime-smoke must declare required coverage names');
+check(runtimeSmokeBlock.indexOf("args['coverage-plan']") >= 0, 'runtime-smoke must support offline coverage-plan mode');
+check(
+  runtimeSmokeBlock.indexOf("args['coverage-plan']") < runtimeSmokeBlock.indexOf("bridgeFetch('/health')"),
+  'runtime-smoke coverage-plan mode must return before live bridge health checks',
+);
 for (const coverageStep of [
   'tabs scoped includes smoke tab',
   'viewport screenshot',
