@@ -530,6 +530,8 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-runtime-smoke-plan.mj
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-runtime-smoke.mjs'), 'utf8').catch(() => '')).includes('chrome_bridge_runtime_smoke'), 'MCP runtime smoke checker must call the MCP runtime smoke tool');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-runtime-smoke.mjs'), 'utf8').catch(() => '')).includes('cliExitError'), 'MCP runtime smoke checker must assert CLI exit metadata preservation');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('chrome_bridge_doctor'), 'MCP local tools checker must call the MCP doctor tool');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('chrome_bridge_extension_path'), 'MCP local tools checker must call the MCP extension-path tool');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('chrome_bridge_codex_config'), 'MCP local tools checker must call the MCP codex-config tool');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('liveChecks === false'), 'MCP local tools checker must assert doctor stays offline by default');
 check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
 check(pullRequestTemplateText.includes('npm run check:mcp-runtime-smoke'), 'pull request template must include MCP runtime smoke contract check');
@@ -545,8 +547,16 @@ check(llmsText.includes('runtime-smoke:plan'), 'llms metadata must mention offli
 check(llmsText.includes('verification.status: "passed"'), 'llms metadata must mention live runtime smoke success criteria');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(LOCAL_COMMAND_METADATA.doctor?.mcp?.includes('chrome_bridge_doctor'), 'registry local doctor command must expose an MCP tool');
+check(LOCAL_COMMAND_METADATA['extension-path']?.mcp?.includes('chrome_bridge_extension_path'), 'registry local extension-path command must expose an MCP tool');
+check(LOCAL_COMMAND_METADATA['codex-config']?.mcp?.includes('chrome_bridge_codex_config'), 'registry local codex-config command must expose an MCP tool');
 check(MCP_TOOLS.includes('chrome_bridge_doctor'), 'MCP tool list must include chrome_bridge_doctor');
+check(MCP_TOOLS.includes('chrome_bridge_extension_path'), 'MCP tool list must include chrome_bridge_extension_path');
+check(MCP_TOOLS.includes('chrome_bridge_codex_config'), 'MCP tool list must include chrome_bridge_codex_config');
 check(mcpText.includes('chrome_bridge_doctor'), 'MCP server must register chrome_bridge_doctor');
+check(mcpText.includes('chrome_bridge_extension_path'), 'MCP server must register chrome_bridge_extension_path');
+check(mcpText.includes('chrome_bridge_codex_config'), 'MCP server must register chrome_bridge_codex_config');
+check(mcpText.includes("localCliText('extension-path')"), 'MCP extension-path tool must use the local CLI command');
+check(mcpText.includes("localCliText('codex-config')"), 'MCP codex-config tool must use the local CLI command');
 check(mcpText.includes('liveChecks: z.boolean().optional()'), 'MCP doctor tool must expose optional liveChecks');
 check(functionBlock(mcpText, 'localDoctor').includes("if (args.liveChecks) cliArgs.push('--live-checks')"), 'MCP doctor helper must keep live checks behind liveChecks=true');
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
