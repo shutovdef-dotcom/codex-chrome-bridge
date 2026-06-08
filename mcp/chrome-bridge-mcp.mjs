@@ -77,14 +77,33 @@ function textResult(value) {
   };
 }
 
+function parseLocalCliJson(stdout) {
+  if (!stdout) return null;
+  try {
+    const parsed = JSON.parse(stdout);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 async function localSelfTest() {
   try {
     const result = await execFileAsync(process.execPath, [
       path.join(rootDir, 'bin/chrome-bridge.mjs'),
       'self-test',
     ], { timeout: 10_000 });
-    return JSON.parse(result.stdout || '{}');
+    return parseLocalCliJson(result.stdout) || {};
   } catch (error) {
+    const parsed = parseLocalCliJson(error?.stdout);
+    if (parsed) {
+      return {
+        ...parsed,
+        cliExitError: String(error?.message || error),
+        stderr: error?.stderr || '',
+      };
+    }
+
     return {
       ok: false,
       error: String(error?.message || error),
@@ -103,8 +122,17 @@ async function localRuntimeSmoke(args = {}) {
     if (args.keepTab) cliArgs.push('--keep-tab');
     if (args.coveragePlan) cliArgs.push('--coverage-plan');
     const result = await execFileAsync(process.execPath, cliArgs, { timeout: 180_000 });
-    return JSON.parse(result.stdout || '{}');
+    return parseLocalCliJson(result.stdout) || {};
   } catch (error) {
+    const parsed = parseLocalCliJson(error?.stdout);
+    if (parsed) {
+      return {
+        ...parsed,
+        cliExitError: String(error?.message || error),
+        stderr: error?.stderr || '',
+      };
+    }
+
     return {
       ok: false,
       error: String(error?.message || error),
