@@ -542,6 +542,7 @@ check(readmeText.includes('npm run check:cli-local-tools'), 'README must documen
 check(readmeText.includes('npm run check:mcp-runtime-smoke'), 'README must document MCP runtime smoke contract check');
 check(readmeText.includes('npm run check:mcp-local-tools'), 'README must document MCP local tools contract check');
 check(readmeText.includes('npm run check:tab-group-persistence'), 'README must document tab-group persistence behavior check');
+check(readmeText.includes('stale-extension/stale-bridge'), 'README must document stale-extension and stale-bridge verifier metadata');
 check(publishingText.includes('npm run runtime-smoke:plan'), 'publishing checklist must use the canonical offline runtime smoke plan script');
 check(publishingText.includes('npm run check:roadmap'), 'publishing checklist must include roadmap coverage contract check');
 check(publishingText.includes('npm run check:cli-local-tools'), 'publishing checklist must include CLI local tools contract check');
@@ -583,6 +584,7 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs')
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('catalogParsed?.cliCommands'), 'MCP local tools checker must verify command catalog CLI command list');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('createFakeChrome'), 'tab-group persistence checker must use fake Chrome APIs');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('savedGroupPersistence'), 'tab-group persistence checker must assert removal persistence metadata');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-roadmap-coverage.mjs'), 'utf8').catch(() => '')).includes('check-tab-group-persistence.mjs'), 'roadmap coverage must include the tab-group persistence behavior checker');
 check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
 check(pullRequestTemplateText.includes('npm run check:roadmap'), 'pull request template must include roadmap coverage check');
 check(pullRequestTemplateText.includes('npm run check:cli-local-tools'), 'pull request template must include CLI local tools contract check');
