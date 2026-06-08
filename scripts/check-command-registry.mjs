@@ -524,6 +524,9 @@ expectPayload('type', { selector: '#name', text: '', confirmed: true }, true, 't
 expectPayload('type', { selector: '#name', confirmed: true }, false, 'type missing text payload');
 expectPayload('press', { confirmed: true }, false, 'press missing key payload');
 expectPayload('select', { confirmed: true }, false, 'select missing selector payload');
+expectPayload('select', { selector: '#country', index: 0, confirmed: true }, true, 'select zero index payload');
+expectPayload('select', { selector: '#country', index: -1, confirmed: true }, false, 'select negative index payload');
+expectPayload('select', { selector: '#country', index: 1.5, confirmed: true }, false, 'select fractional index payload');
 expectPayload('listSelectOptions', {}, false, 'select-options missing selector payload');
 expectPayload('click', { selector: 'button', confirmed: true, unknown: true }, false, 'unknown payload key rejection');
 
