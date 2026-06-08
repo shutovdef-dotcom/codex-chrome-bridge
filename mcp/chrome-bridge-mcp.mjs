@@ -206,8 +206,12 @@ async function sessionSummary() {
 
 function summaryRecommendations(health, group, workspace) {
   const recommendations = [];
+  const bridgeVersion = health?.bridge?.version;
   const extensionVersion = health?.extension?.info?.version;
   const policyMode = workspace?.policy?.mode || workspace?.workspace?.policyMode;
+  if (bridgeVersion && bridgeVersion !== BRIDGE_VERSION) {
+    recommendations.push(`Restart the local Chrome Bridge server; expected ${BRIDGE_VERSION}, got ${bridgeVersion}.`);
+  }
   if (extensionVersion && extensionVersion !== BRIDGE_VERSION) {
     recommendations.push(`Reload the unpacked extension; expected ${BRIDGE_VERSION}, got ${extensionVersion}.`);
   }

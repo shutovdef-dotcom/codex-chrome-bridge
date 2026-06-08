@@ -109,7 +109,7 @@ Use `chrome_bridge_ask_user` when the agent needs clarification, account selecti
 
 It opens a local extension page in the `Codex Bridge` group and returns the user's answer. It does not bypass CAPTCHA or automate protected challenges.
 
-`chrome_bridge_session_summary` includes bridge health, scoped group state, workspace policy state, and recommendations. `chrome_bridge_debug_bundle` writes the same policy-aware summary into `session-summary.json`.
+`chrome_bridge_session_summary` includes bridge health, scoped group state, workspace policy state, and recommendations such as bridge server restart, extension reload, first-tab setup, or active `strict` policy warnings. `chrome_bridge_debug_bundle` writes the same policy-aware summary into `session-summary.json`.
 
 `chrome_bridge_debug_bundle` redacts URL/title/text/value fields in its default JSON files and writes `trace-summary.json` rather than full trace events. Set `includeSnapshot`, `includeObserve`, `includeScreenshot`, or `includeTraceEvents` only when the local bundle may safely contain page text, element labels, pixels, URLs, or console/log text from the active browser page.
 

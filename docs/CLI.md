@@ -256,6 +256,6 @@ The command opens a local extension page inside the `Codex Bridge` group and wai
 chrome-bridge ask --question "Continue?" --choices-json '["Yes","No"]' --no-text
 ```
 
-`session-summary` includes bridge health, scoped group state, workspace policy state, and recommendations such as extension reload, first-tab setup, or active `strict` policy warnings. `debug-bundle` writes the same summary into `session-summary.json`.
+`session-summary` includes bridge health, scoped group state, workspace policy state, and recommendations such as bridge server restart, extension reload, first-tab setup, or active `strict` policy warnings. `debug-bundle` writes the same summary into `session-summary.json`.
 
 `debug-bundle` redacts URL/title/text/value fields in its default JSON files and writes `trace-summary.json` rather than full trace events. Use `--include-snapshot`, `--include-observe`, `--include-screenshot`, or `--include-trace-events` only when the resulting local bundle may safely contain page text, element labels, pixels, URLs, or console/log text from the active browser page.
