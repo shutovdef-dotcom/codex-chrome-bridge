@@ -108,6 +108,7 @@ const [
   cliLocalToolsCheckerText,
   mcpRuntimeSmokeCheckerText,
   mcpLocalToolsCheckerText,
+  tabGroupPersistenceCheckerText,
   readmeText,
   cliDocsText,
   mcpDocsText,
@@ -139,6 +140,7 @@ const [
   readProjectFile('scripts/check-cli-local-tools.mjs'),
   readProjectFile('scripts/check-mcp-runtime-smoke.mjs'),
   readProjectFile('scripts/check-mcp-local-tools.mjs'),
+  readProjectFile('scripts/check-tab-group-persistence.mjs'),
   readProjectFile('README.md'),
   readProjectFile('docs/CLI.md'),
   readProjectFile('docs/MCP.md'),
@@ -228,6 +230,7 @@ check(runtimeSmokePlanCheckerText.includes('CHROME_BRIDGE_URL') && runtimeSmokeP
 check(cliLocalToolsCheckerText.includes("runCli(['doctor'])") && cliLocalToolsCheckerText.includes('catalogJson.counts?.mcpTools'), 'Deferred verification must cover local CLI diagnostics offline');
 check(mcpRuntimeSmokeCheckerText.includes('chrome_bridge_runtime_smoke') && mcpRuntimeSmokeCheckerText.includes('cliExitError'), 'Deferred verification must cover MCP runtime-smoke JSON preservation');
 check(mcpLocalToolsCheckerText.includes('chrome_bridge_command_catalog') && mcpLocalToolsCheckerText.includes('unexpected MCP tool'), 'Deferred verification must cover MCP local tools and listTools parity');
+check(tabGroupPersistenceCheckerText.includes('createFakeChrome') && tabGroupPersistenceCheckerText.includes('savedGroupPersistence'), 'Deferred verification must cover tab-group persistence lifecycle with fake Chrome APIs');
 check(roadmapText.includes('Deferred Runtime Verification') && publishingText.includes('verification.status: "passed"'), 'Deferred live runtime verification criteria must be documented');
 
 const coveragePlan = await runCoveragePlan();
