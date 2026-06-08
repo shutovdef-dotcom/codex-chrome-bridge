@@ -32,6 +32,7 @@
 - Added explicit `runtime-smoke --coverage-plan` verification metadata so offline plans cannot be mistaken for completed live smoke passes.
 - Added `check:runtime-smoke-plan` to prove the offline smoke plan stays independent from the live bridge.
 - Added explicit live `runtime-smoke` verification metadata for passed, failed, and skipped final smoke states.
+- Extended `check:runtime-smoke-plan` to exercise stale-extension skip metadata with a fake `/health` server.
 - Added a generated CLI command metadata table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
 - Added generated CLI and MCP safety notes for confirmation, sensitive-confirmation, conditional inventory confirmation, and live bridge interruption guidance.
 - Expanded the generated MCP reference block from a plain tool list into a registry-derived table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.

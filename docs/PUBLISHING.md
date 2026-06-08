@@ -31,7 +31,7 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 
 `check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
 
-`check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL and fails if `--coverage-plan` starts contacting the live bridge.
+`check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL, verifies stale-extension skip metadata against a fake `/health` server, and fails if `--coverage-plan` starts contacting the live bridge.
 
 `check:registry` also verifies that the GitHub Check workflow keeps the Node.js 20/22/24 matrix and runs `npm ci`, `npm run check`, `npm run check:audit`, and `npm run check:pack` without adding live `runtime-smoke` to CI.
 
