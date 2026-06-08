@@ -300,5 +300,5 @@ The current implementation can be statically verified while another session is u
 
 1. Reload or restart the unpacked extension and local bridge server.
 2. Run `npm run runtime-smoke`.
-3. Confirm the smoke output reports `coverage.ok: true` for scoped tabs, `setWorkspace` strict policy, `session-summary`, default `debug-bundle`, `observe`, `find-elements` including nearby text, `extract`, screenshots, `pdf`, tracing, browser-data safety gates, strict outside-tab blocking, and cleanup metadata.
+3. Confirm the smoke output reports `coverage.ok: true` for scoped tabs, `setWorkspace` strict policy, `session-summary`, default `debug-bundle`, `observe`, `find-elements` including nearby text, `extract`, screenshots, `pdf`, interactions, tracing, successful browser-data reads, browser-data safety gates, strict outside-tab blocking, and cleanup metadata.
 4. If a release needs human UX assurance, manually spot-check one scoped tab workflow after the automated smoke pass.
