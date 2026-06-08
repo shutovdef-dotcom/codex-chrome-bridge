@@ -614,6 +614,16 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
       message: '--limit must be between 1 and 200',
     },
     {
+      label: 'history negative start-time',
+      args: ['history', '--start-time', '-1', '--confirm'],
+      message: '--start-time must be between 0 and 9007199254740991',
+    },
+    {
+      label: 'history negative end-time',
+      args: ['history', '--end-time', '-1', '--confirm'],
+      message: '--end-time must be between 0 and 9007199254740991',
+    },
+    {
       label: 'bookmarks too large limit',
       args: ['bookmarks', '--limit', '201', '--confirm'],
       message: '--limit must be between 1 and 200',
@@ -649,6 +659,13 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
       expectedLimit: 1,
     },
     {
+      label: 'history time filter',
+      action: 'historySearch',
+      args: ['history', '--start-time', '0', '--end-time', '1', '--confirm'],
+      expectedLimit: undefined,
+      expectedPayload: { startTime: 0, endTime: 1 },
+    },
+    {
       label: 'bookmarks min limit',
       action: 'bookmarksSearch',
       args: ['bookmarks', '--limit', '1', '--confirm'],
@@ -668,7 +685,12 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
     const parsed = parseJsonOutput(accepted, `CLI ${testCase.label} fake command bridge`);
     const commandPayload = receivedCommands[beforeValidLimit]?.payload || parsed?.payload;
     check(receivedCommands[beforeValidLimit]?.action === testCase.action, `CLI ${testCase.label} must dispatch ${testCase.action}`);
-    check(commandPayload?.limit === testCase.expectedLimit, `CLI ${testCase.label} must forward numeric limit`);
+    if (testCase.expectedLimit !== undefined) {
+      check(commandPayload?.limit === testCase.expectedLimit, `CLI ${testCase.label} must forward numeric limit`);
+    }
+    for (const [key, value] of Object.entries(testCase.expectedPayload || {})) {
+      check(commandPayload?.[key] === value, `CLI ${testCase.label} must forward ${key}`);
+    }
     check(commandPayload?.confirmed === true, `CLI ${testCase.label} must forward confirmed`);
     privateLimitChecks += 1;
   }

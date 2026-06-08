@@ -539,6 +539,13 @@ expectPayload('select', { selector: '#country', index: 1.5, confirmed: true }, f
 expectPayload('listSelectOptions', {}, false, 'select-options missing selector payload');
 expectPayload('click', { selector: 'button', confirmed: true, unknown: true }, false, 'unknown payload key rejection');
 
+const historyUsageLine = cliUsageLineForCommand('history');
+const historyCliBlock = cliCommandBlock('history');
+check(historyUsageLine.includes('--start-time <ms>'), 'history CLI usage must document --start-time');
+check(historyUsageLine.includes('--end-time <ms>'), 'history CLI usage must document --end-time');
+check(historyCliBlock.includes("startTime: parseNumberRangeArg(args['start-time']"), 'history CLI command must parse --start-time');
+check(historyCliBlock.includes("endTime: parseNumberRangeArg(args['end-time']"), 'history CLI command must parse --end-time');
+
 const catalogPath = path.join(rootDir, 'docs/COMMAND-CATALOG.md');
 const catalogText = await fs.readFile(catalogPath, 'utf8');
 const catalogJson = commandCatalog();
