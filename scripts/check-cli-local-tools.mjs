@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 import { execFile } from 'node:child_process';
+import fs from 'node:fs/promises';
+import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { CLI_COMMANDS, MCP_TOOLS } from '../shared/command-registry.mjs';
+import { BRIDGE_VERSION, CLI_COMMANDS, MCP_TOOLS } from '../shared/command-registry.mjs';
 
 const execFileAsync = promisify(execFile);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -18,13 +21,14 @@ function check(condition, message) {
   if (!condition) fail(message);
 }
 
-async function runCli(args) {
+async function runCli(args, env = {}) {
   try {
     const result = await execFileAsync(process.execPath, [cliPath, ...args], {
       cwd: rootDir,
       env: {
         ...process.env,
         CHROME_BRIDGE_URL: 'http://127.0.0.1:9',
+        ...env,
       },
       timeout: 10_000,
       maxBuffer: 1024 * 1024,
@@ -37,6 +41,53 @@ async function runCli(args) {
       stderr: error?.stderr || '',
       error: String(error?.message || error),
     };
+  }
+}
+
+async function withFakeLiveDoctor(fn) {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-doctor-check-'));
+  const fakeBinDir = path.join(tmpDir, 'bin');
+  await fs.mkdir(fakeBinDir);
+  const fakeOsascript = path.join(fakeBinDir, 'osascript');
+  await fs.writeFile(fakeOsascript, '#!/bin/sh\nprintf "Codex Bridge Fake Chrome Title\\n"\n');
+  await fs.chmod(fakeOsascript, 0o755);
+
+  const server = http.createServer((req, res) => {
+    if (req.url !== '/health') {
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unexpected path' }));
+      return;
+    }
+
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      bridge: {
+        version: BRIDGE_VERSION,
+      },
+      extension: {
+        connected: true,
+        info: {
+          version: BRIDGE_VERSION,
+        },
+      },
+    }));
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  try {
+    const { port } = server.address();
+    return await fn({
+      bridgeUrl: `http://127.0.0.1:${port}`,
+      pathEnv: `${fakeBinDir}${path.delimiter}${process.env.PATH || ''}`,
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    await fs.rm(tmpDir, { recursive: true, force: true });
   }
 }
 
@@ -59,6 +110,23 @@ if (doctorJson) {
   check(Array.isArray(doctorJson.nextActions), 'CLI doctor must return setup nextActions');
   check(doctorJson.nextActions.some((action) => action.includes('runtime-smoke --coverage-plan')), 'CLI doctor offline nextActions must recommend coverage-plan');
 }
+
+await withFakeLiveDoctor(async ({ bridgeUrl, pathEnv }) => {
+  const liveDoctorResult = await runCli(['doctor', '--live-checks'], {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    PATH: pathEnv,
+  });
+  check(liveDoctorResult.ok, 'CLI doctor --live-checks must succeed against fake health and fake osascript');
+  const liveDoctorJson = parseJsonOutput(liveDoctorResult, 'CLI doctor live checks');
+  if (!liveDoctorJson) return;
+
+  check(liveDoctorJson.liveChecks === true, 'CLI doctor live check fixture must report liveChecks=true');
+  check(liveDoctorJson.health?.ok === true, 'CLI doctor live check fixture must read fake health');
+  check(liveDoctorJson.checks?.expectedBridgeVersion === BRIDGE_VERSION, 'CLI doctor live checks must report expected bridge version');
+  check(liveDoctorJson.checks?.bridgeVersion === BRIDGE_VERSION, 'CLI doctor live checks must report observed bridge version');
+  check(liveDoctorJson.checks?.bridgeCurrent === true, 'CLI doctor live checks must confirm bridge version is current');
+  check(liveDoctorJson.checks?.appleEventsJsEnabled === true, 'CLI doctor live check fixture must use fake osascript');
+});
 
 const extensionPathResult = await runCli(['extension-path']);
 check(extensionPathResult.ok, 'CLI extension-path must succeed offline');
