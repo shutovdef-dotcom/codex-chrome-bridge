@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Made CLI `wait`, `scroll`, `storage`, `request`, and `ask` validate numeric arguments locally before contacting the bridge.
 - Made CLI read/discovery/export commands validate numeric bounds locally before contacting the bridge.
 - Made CLI `history`, `bookmarks`, and `cookies` validate `--limit` bounds locally before contacting the bridge.
 - Made CLI `trace-start --max-events` validate the `50..2000` range locally before contacting the bridge.

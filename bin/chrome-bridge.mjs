@@ -2014,7 +2014,7 @@ tool_timeout_sec = 60
     printJson(await command('waitForSelector', {
       ...targetPayload(args),
       selector: args.selector,
-      timeoutMs: args['timeout-ms'] ? Number(args['timeout-ms']) : undefined,
+      timeoutMs: parseFiniteNumberArg(args['timeout-ms'], '--timeout-ms'),
       visible: !args['hidden-ok'],
     }, 30_000));
     return;
@@ -2108,8 +2108,8 @@ tool_timeout_sec = 60
   if (cmd === 'scroll') {
     printJson(await command('scroll', {
       ...targetPayload(args),
-      x: args.x ? Number(args.x) : 0,
-      y: args.y ? Number(args.y) : 0,
+      x: parseFiniteNumberArg(args.x, '--x') ?? 0,
+      y: parseFiniteNumberArg(args.y, '--y') ?? 0,
     }));
     return;
   }
@@ -2313,7 +2313,7 @@ tool_timeout_sec = 60
       ...targetPayload(args),
       ...confirmationPayload(args),
       includeValues: Boolean(args['include-values']),
-      maxValueChars: args['max-value-chars'] ? Number(args['max-value-chars']) : undefined,
+      maxValueChars: parseNumberRangeArg(args['max-value-chars'], '--max-value-chars', 50, 5_000),
     }, 30_000));
     return;
   }
@@ -2328,7 +2328,7 @@ tool_timeout_sec = 60
       headers: parseJsonOption(args['headers-json'], '--headers-json'),
       body: args.body,
       credentials: args.credentials,
-      maxChars: args['max-chars'] ? Number(args['max-chars']) : undefined,
+      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 100, 200_000),
     }, 60_000));
     return;
   }
@@ -2336,13 +2336,14 @@ tool_timeout_sec = 60
   if (cmd === 'ask') {
     const question = args.question || first;
     if (!question) throw new Error('ask requires --question <text>');
+    const timeoutMs = parseNumberRangeArg(args['timeout-ms'], '--timeout-ms', 5_000, 1_800_000);
     printJson(await command('askUser', {
       question,
       choices: parseJsonOption(args['choices-json'], '--choices-json'),
       allowText: !args['no-text'],
       closeOnAnswer: !args['keep-tab'],
-      timeoutMs: args['timeout-ms'] ? Number(args['timeout-ms']) : undefined,
-    }, args['timeout-ms'] ? Number(args['timeout-ms']) + 5_000 : 305_000));
+      timeoutMs,
+    }, timeoutMs === undefined ? 305_000 : timeoutMs + 5_000));
     return;
   }
 
