@@ -28,7 +28,7 @@ The tool reference table below is generated from the shared registry by `npm run
 
 `chrome_bridge_runtime_smoke` accepts `coveragePlan: true` to print the required smoke coverage checklist offline. The coverage-plan output reports `verification.status: "not-run"` and does not touch Chrome. Without `coveragePlan`, it is a live real-browser check and should wait until no other session is using the bridge; treat it as complete only when it reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`. If the underlying CLI exits nonzero after printing structured JSON, the MCP wrapper preserves that JSON, including failed or skipped `verification` metadata, and adds `cliExitError` for diagnostics.
 
-Coverage-plan and live skipped or failed outputs include `verification.nextCommand` / `verification.nextAction` plus `verification.finalCommands` and `verification.finalMcpCalls`, so CLI and MCP agents can recover from stale bridge or extension versions without guessing the final reload, live doctor, and smoke sequence.
+Coverage-plan and live skipped or failed outputs include top-level `nextCommand` / `nextAction`, nested `verification.nextCommand` / `verification.nextAction`, plus `verification.finalCommands` and `verification.finalMcpCalls`, so CLI and MCP agents can recover from stale bridge or extension versions without guessing the final reload, live doctor, and smoke sequence.
 
 Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-context requests and cookie URL filters accept `http:` and `https:` URLs. Unsafe script/data/file-style URL schemes are rejected by the shared command contract before extension dispatch.
 

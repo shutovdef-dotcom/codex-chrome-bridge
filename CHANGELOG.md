@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Mirrored runtime-smoke recovery hints at top-level `nextCommand` / `nextAction` for skipped and failed live outputs, matching the nested verification metadata.
 - Added contextual `verification.nextCommand` / `verification.nextAction` recovery hints to offline and live runtime-smoke verification metadata.
 - Added final CLI/MCP recovery sequences to live runtime-smoke verification metadata, so skipped stale-version outputs preserve the exact extension reload, live doctor, and smoke commands.
 - Added CLI `history --start-time/--end-time` forwarding and generated usage docs for history time filters.

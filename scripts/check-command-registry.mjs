@@ -886,7 +886,7 @@ check(runtimeSmokeLiveVerificationBlock.includes('nextCommand') && runtimeSmokeL
 check(runtimeSmokeLiveVerificationBlock.includes('bridgeVersion'), 'runtime-smoke live verification metadata must include bridge version');
 check(runtimeSmokeBlock.includes("runtimeSmokeLiveVerification({ status: 'skipped'"), 'runtime-smoke stale-extension output must include explicit skipped verification state');
 check(runtimeSmokeBlock.includes('Restart the local Chrome Bridge server first'), 'runtime-smoke must skip before fixture work when live bridge server version is stale');
-check(runtimeSmokeBlock.includes('verification: runtimeSmokeLiveVerification({'), 'runtime-smoke final output must include machine-readable live verification metadata');
+check(runtimeSmokeBlock.includes('const verification = runtimeSmokeLiveVerification({') && runtimeSmokeBlock.includes('verification,'), 'runtime-smoke final output must include machine-readable live verification metadata');
 check(runtimeSmokeBlock.includes('nextCommand: verification.nextCommand') && runtimeSmokeBlock.includes('nextAction: verification.nextAction'), 'runtime-smoke outputs must mirror recovery hints at the top level');
 check(runtimeSmokeBlock.includes("runtimeSmokeLiveVerification({ status: 'skipped'"), 'runtime-smoke version mismatch skip must include verification metadata');
 for (const coverageStep of [

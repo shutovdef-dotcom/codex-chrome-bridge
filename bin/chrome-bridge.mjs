@@ -1319,6 +1319,7 @@ async function runtimeSmoke(args = {}) {
   const health = await bridgeFetch('/health');
   const bridgeVersion = health?.bridge?.version || null;
   if (bridgeVersion !== EXPECTED_EXTENSION_VERSION) {
+    const verification = runtimeSmokeLiveVerification({ status: 'skipped', bridgeVersion });
     return {
       ok: false,
       startedAt,
@@ -1326,11 +1327,14 @@ async function runtimeSmoke(args = {}) {
       bridgeVersion,
       skipped: true,
       reason: `Restart the local Chrome Bridge server first; live bridge version is ${bridgeVersion || 'unknown'}`,
-      verification: runtimeSmokeLiveVerification({ status: 'skipped', bridgeVersion }),
+      nextCommand: verification.nextCommand,
+      nextAction: verification.nextAction,
+      verification,
     };
   }
   const extensionVersion = health?.extension?.info?.version || null;
   if (extensionVersion !== EXPECTED_EXTENSION_VERSION) {
+    const verification = runtimeSmokeLiveVerification({ status: 'skipped', bridgeVersion, extensionVersion });
     return {
       ok: false,
       startedAt,
@@ -1338,7 +1342,9 @@ async function runtimeSmoke(args = {}) {
       extensionVersion,
       skipped: true,
       reason: `Reload the unpacked extension first; live extension version is ${extensionVersion || 'unknown'}`,
-      verification: runtimeSmokeLiveVerification({ status: 'skipped', bridgeVersion, extensionVersion }),
+      nextCommand: verification.nextCommand,
+      nextAction: verification.nextAction,
+      verification,
     };
   }
 
@@ -1824,6 +1830,13 @@ async function runtimeSmoke(args = {}) {
   const failures = steps.filter((step) => !step.ok);
   const coverage = runtimeSmokeCoverage(steps);
   const ok = failures.length === 0 && coverage.ok;
+  const verification = runtimeSmokeLiveVerification({
+    status: ok ? 'passed' : 'failed',
+    bridgeVersion,
+    extensionVersion,
+    failures,
+    coverage,
+  });
   return {
     ok,
     startedAt,
@@ -1839,13 +1852,9 @@ async function runtimeSmoke(args = {}) {
       failures: failures.length,
     },
     coverage,
-    verification: runtimeSmokeLiveVerification({
-      status: ok ? 'passed' : 'failed',
-      bridgeVersion,
-      extensionVersion,
-      failures,
-      coverage,
-    }),
+    nextCommand: verification.nextCommand,
+    nextAction: verification.nextAction,
+    verification,
     failures,
     steps,
   };
