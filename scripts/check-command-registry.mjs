@@ -636,11 +636,11 @@ check((tabCleanupText.match(/chrome\.tabs\.remove/g) || []).length === 1, 'exten
 check(functionBlock(backgroundText, 'closeTab').includes('closeTabsWithGroupPersistenceMitigation([tab])'), 'closeTab must use ungroup-before-close mitigation');
 check(functionBlock(backgroundText, 'closeGroup').includes('closeTabsWithGroupPersistenceMitigation(tabs)'), 'closeGroup must use ungroup-before-close mitigation');
 check(
-  functionBlock(backgroundText, 'askUser').includes('closeTabsWithGroupPersistenceMitigation([tab], { ignoreMissing: true })'),
+  functionBlock(userPromptsText, 'askUser').includes('closeTabsWithGroupPersistenceMitigation([tab], { ignoreMissing: true })'),
   'askUser prompt race cleanup must use ungroup-before-close mitigation',
 );
 check(
-  functionBlock(backgroundText, 'completeUserPrompt').includes('closeTabsWithGroupPersistenceMitigation([prompt.tabId], { ignoreMissing: true })'),
+  functionBlock(userPromptsText, 'completeUserPrompt').includes('closeTabsWithGroupPersistenceMitigation([prompt.tabId], { ignoreMissing: true })'),
   'askUser close-on-answer cleanup must use ungroup-before-close mitigation',
 );
 

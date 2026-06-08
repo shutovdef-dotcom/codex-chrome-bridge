@@ -7,6 +7,7 @@
 - Split Chrome Debugger key-event payload mapping into `extension/keyboard-events.js`.
 - Split confirmation gate helpers into `extension/safety-gates.js`.
 - Split tab-load completion polling into `extension/tab-loading.js`.
+- Split human-in-the-loop prompt state and tab lifecycle into `extension/user-prompts.js`.
 - Split extension error-code classification into `extension/extension-errors.js`.
 - Split MV3 offscreen document startup into `extension/offscreen-lifecycle.js`.
 - Split tab close cleanup into `extension/tab-cleanup.js` so ungroup-before-close mitigation lives in a focused extension module.
