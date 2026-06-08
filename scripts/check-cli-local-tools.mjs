@@ -266,6 +266,7 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
 
 let groupScopePayloadChecks = 0;
 let inventoryIncludeAllChecks = 0;
+let privateSensitiveChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -292,6 +293,54 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
     check(commandPayload?.includeAll === true, `CLI ${testCase.args[0]} --all --confirm must forward includeAll`);
     check(commandPayload?.confirmed === true, `CLI ${testCase.args[0]} --all --confirm must forward confirmed`);
     inventoryIncludeAllChecks += 1;
+  }
+
+  const sensitiveCases = [
+    {
+      action: 'cookiesList',
+      command: 'cookies',
+      args: ['cookies', '--confirm'],
+      confirmedArgs: ['cookies', '--confirm', '--confirm-sensitive'],
+      expectedPayload: { confirmSensitive: true },
+    },
+    {
+      action: 'storageSnapshot',
+      command: 'storage',
+      args: ['storage', '--include-values', '--confirm'],
+      confirmedArgs: ['storage', '--include-values', '--confirm', '--confirm-sensitive'],
+      expectedPayload: { includeValues: true, confirmSensitive: true },
+    },
+    {
+      action: 'fetchUrl',
+      command: 'request',
+      args: ['request', 'https://example.com', '--credentials', 'include', '--confirm'],
+      confirmedArgs: ['request', 'https://example.com', '--credentials', 'include', '--confirm', '--confirm-sensitive'],
+      expectedPayload: { url: 'https://example.com', credentials: 'include', confirmSensitive: true },
+    },
+  ];
+
+  for (const testCase of sensitiveCases) {
+    const beforeReject = receivedCommands.length;
+    const rejected = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI ${testCase.command} private-sensitive request must fail without --confirm-sensitive`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes('confirmSensitive=true'),
+      `CLI ${testCase.command} private-sensitive rejection must explain confirmSensitive=true`,
+    );
+    check(receivedCommands.length === beforeReject, `CLI ${testCase.command} private-sensitive request without confirmSensitive must not be accepted`);
+    privateSensitiveChecks += 1;
+
+    const beforeAccept = receivedCommands.length;
+    const accepted = await runCli(testCase.confirmedArgs, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(accepted.ok, `CLI ${testCase.command} --confirm-sensitive must succeed against fake command bridge`);
+    const parsed = parseJsonOutput(accepted, `CLI ${testCase.command} --confirm-sensitive fake command bridge`);
+    const commandPayload = receivedCommands[beforeAccept]?.payload || parsed?.payload;
+    check(receivedCommands[beforeAccept]?.action === testCase.action, `CLI ${testCase.command} --confirm-sensitive must dispatch ${testCase.action}`);
+    for (const [key, value] of Object.entries(testCase.expectedPayload)) {
+      check(commandPayload?.[key] === value, `CLI ${testCase.command} --confirm-sensitive must forward ${key}`);
+    }
+    check(commandPayload?.confirmed === true, `CLI ${testCase.command} --confirm-sensitive must forward confirmed`);
+    privateSensitiveChecks += 1;
   }
 
   const groupTitle = 'Codex Bridge CLI Group Scope';
@@ -360,6 +409,7 @@ process.stdout.write(`${JSON.stringify({
   doctorLiveBridgeCurrent: liveDoctorBridgeCurrent,
   sessionSummaryStaleBridgeRecommendation,
   inventoryIncludeAllChecks,
+  privateSensitiveChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,

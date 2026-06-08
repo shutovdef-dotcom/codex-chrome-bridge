@@ -345,6 +345,7 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
 });
 
 let inventoryIncludeAllChecks = 0;
+let privateSensitiveChecks = 0;
 let groupScopePayloadChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const groupTitle = 'Codex Bridge MCP Group Scope';
@@ -352,6 +353,29 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const includeAllCases = [
     { action: 'windows', tool: 'chrome_bridge_windows' },
     { action: 'tabs', tool: 'chrome_bridge_tabs' },
+  ];
+  const sensitiveCases = [
+    {
+      action: 'cookiesList',
+      tool: 'chrome_bridge_cookies_list',
+      args: { confirmed: true },
+      confirmedArgs: { confirmed: true, confirmSensitive: true },
+      expectedPayload: { confirmSensitive: true },
+    },
+    {
+      action: 'storageSnapshot',
+      tool: 'chrome_bridge_storage_snapshot',
+      args: { includeValues: true, confirmed: true },
+      confirmedArgs: { includeValues: true, confirmed: true, confirmSensitive: true },
+      expectedPayload: { includeValues: true, confirmSensitive: true },
+    },
+    {
+      action: 'fetchUrl',
+      tool: 'chrome_bridge_request',
+      args: { url: 'https://example.com', credentials: 'include', confirmed: true },
+      confirmedArgs: { url: 'https://example.com', credentials: 'include', confirmed: true, confirmSensitive: true },
+      expectedPayload: { url: 'https://example.com', credentials: 'include', confirmSensitive: true },
+    },
   ];
   const cases = [
     { action: 'windows', tool: 'chrome_bridge_windows', args: { groupTitle, groupColor } },
@@ -398,6 +422,42 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
       inventoryIncludeAllChecks += 1;
     }
 
+    for (const testCase of sensitiveCases) {
+      const beforeReject = receivedCommands.length;
+      try {
+        const rejected = await client.callTool({
+          name: testCase.tool,
+          arguments: testCase.args,
+        });
+        const rejectedText = rejected?.content?.find((item) => item?.type === 'text')?.text || '';
+        check(rejected?.isError === true, `MCP ${testCase.tool} private-sensitive request must return a tool error without confirmSensitive`);
+        check(
+          rejectedText.includes('confirmSensitive=true'),
+          `MCP ${testCase.tool} private-sensitive tool error must explain confirmSensitive=true`,
+        );
+      } catch (error) {
+        check(
+          String(error?.message || error).includes('confirmSensitive=true'),
+          `MCP ${testCase.tool} private-sensitive rejection must explain confirmSensitive=true`,
+        );
+      }
+      check(receivedCommands.length === beforeReject, `MCP ${testCase.tool} private-sensitive request without confirmSensitive must not be accepted`);
+      privateSensitiveChecks += 1;
+
+      const beforeAccept = receivedCommands.length;
+      const parsed = parseToolJson(await client.callTool({
+        name: testCase.tool,
+        arguments: testCase.confirmedArgs,
+      }), `MCP ${testCase.tool} private-sensitive fake command bridge`);
+      const commandPayload = receivedCommands[beforeAccept]?.payload || parsed?.payload;
+      check(receivedCommands[beforeAccept]?.action === testCase.action, `MCP ${testCase.tool} private-sensitive request must dispatch ${testCase.action}`);
+      for (const [key, value] of Object.entries(testCase.expectedPayload)) {
+        check(commandPayload?.[key] === value, `MCP ${testCase.tool} private-sensitive request must forward ${key}`);
+      }
+      check(commandPayload?.confirmed === true, `MCP ${testCase.tool} private-sensitive request must forward confirmed`);
+      privateSensitiveChecks += 1;
+    }
+
     for (const testCase of cases) {
       check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupTitle'), `${testCase.action} schema must allow groupTitle before MCP behavior checks`);
       check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupColor'), `${testCase.action} schema must allow groupColor before MCP behavior checks`);
@@ -434,5 +494,6 @@ process.stdout.write(`${JSON.stringify({
   doctorLiveBridgeCurrent,
   sessionSummaryStaleBridgeRecommendation,
   inventoryIncludeAllChecks,
+  privateSensitiveChecks,
   groupScopePayloadChecks,
 }, null, 2)}\n`);
