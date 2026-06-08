@@ -916,8 +916,13 @@ check(workspaceTabsText.includes('codexManagedGroupTitles'), 'extension workspac
 const tabGroupPersistenceListenersBlock = functionBlock(tabGroupPersistenceText, 'installTabGroupPersistenceListeners');
 check(tabGroupPersistenceListenersBlock.includes('chrome.tabGroups.onCreated'), 'extension tab-group persistence listeners must watch created Codex groups');
 check(tabGroupPersistenceListenersBlock.includes('chrome.tabGroups.onUpdated'), 'extension tab-group persistence listeners must watch updated Codex groups');
+check(tabGroupPersistenceListenersBlock.includes('chrome.tabGroups.onRemoved'), 'extension tab-group persistence listeners must watch removed Codex groups');
+check(tabGroupPersistenceListenersBlock.includes('chrome.tabs.onUpdated'), 'extension tab-group persistence listeners must watch tab group membership updates');
+check(tabGroupPersistenceListenersBlock.includes('chrome.tabs.onRemoved'), 'extension tab-group persistence listeners must watch managed tab removals');
 check(tabGroupPersistenceListenersBlock.includes('handleManagedTabGroupChange'), 'extension tab-group persistence listeners must route events through a managed-group guard');
 check(functionBlock(tabGroupPersistenceText, 'handleManagedTabGroupChange').includes('disableSavedTabGroupIfSupported(group)'), 'extension tab-group persistence event handler must mark managed groups unsaved');
+check(functionBlock(tabGroupPersistenceText, 'handleManagedTabGroupRemoved').includes('forgetManagedGroupTabs(group.id)'), 'extension tab-group persistence removal handler must forget managed group tab membership');
+check(functionBlock(tabGroupPersistenceText, 'rememberManagedTabGroupMembership').includes('isManagedCodexGroup(group)'), 'extension tab-group persistence must remember only managed Codex tab groups');
 check(backgroundText.includes('enforceManagedTabGroupPersistence,'), 'extension background must import startup managed-group persistence enforcement');
 check(
   backgroundText.includes('installTabGroupPersistenceListeners,') && backgroundText.includes("from './tab-group-persistence.js';"),
