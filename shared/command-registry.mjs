@@ -1129,7 +1129,7 @@ export function mcpSafetyNotesMarkdown() {
     `- \`confirmed: true\` is required for: ${codeList(required)}.`,
     `- \`confirmed: true\` is conditionally required for: ${codeList(conditional)}; use it when passing \`includeAll: true\`.`,
     `- \`confirmSensitive: true\` is required in addition to \`confirmed: true\` for private-value requests exposed by: ${codeList(sensitive)}.`,
-    '- Live bridge caution: run `chrome_bridge_runtime_smoke` and `chrome_bridge_reload_extension` only when no other session is using the bridge.',
+    '- Live bridge caution: run `chrome_bridge_reload_extension`, `chrome_bridge_doctor` with `liveChecks: true`, and `chrome_bridge_runtime_smoke` only when no other session is using the bridge.',
   ].join('\n');
 }
 

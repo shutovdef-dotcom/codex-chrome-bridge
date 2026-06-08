@@ -98,7 +98,7 @@ The safety notes below are generated from the shared registry by `npm run docs:c
 - `confirmed: true` is required for: `chrome_bridge_reload_extension`, `chrome_bridge_set_workspace`, `chrome_bridge_clear_workspace`, `chrome_bridge_adopt_tab`, `chrome_bridge_close_tab`, `chrome_bridge_close_group`, `chrome_bridge_click_at`, `chrome_bridge_click`, `chrome_bridge_type`, `chrome_bridge_press`, `chrome_bridge_select`, `chrome_bridge_fill_form`, `chrome_bridge_handle_dialog`, `chrome_bridge_upload_file`, `chrome_bridge_trace_start`, `chrome_bridge_history_search`, `chrome_bridge_bookmarks_search`.
 - `confirmed: true` is conditionally required for: `chrome_bridge_windows`, `chrome_bridge_tabs`; use it when passing `includeAll: true`.
 - `confirmSensitive: true` is required in addition to `confirmed: true` for private-value requests exposed by: `chrome_bridge_cookies_list`, `chrome_bridge_storage_snapshot`, `chrome_bridge_request`.
-- Live bridge caution: run `chrome_bridge_runtime_smoke` and `chrome_bridge_reload_extension` only when no other session is using the bridge.
+- Live bridge caution: run `chrome_bridge_reload_extension`, `chrome_bridge_doctor` with `liveChecks: true`, and `chrome_bridge_runtime_smoke` only when no other session is using the bridge.
 <!-- END GENERATED MCP SAFETY NOTES -->
 
 Agents should ask the user before setting these flags unless the user has already explicitly authorized the exact action.
