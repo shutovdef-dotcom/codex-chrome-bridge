@@ -611,6 +611,8 @@ check(contributingText.includes('verification.status: "passed"'), 'contributing 
 check(codexChromeBridgeSkillText.includes('runtime-smoke --coverage-plan'), 'bundled Codex chrome-bridge skill must recommend offline runtime smoke plan before live smoke');
 check(codexChromeBridgeSkillText.includes('verification.status: "passed"'), 'bundled Codex chrome-bridge skill must document live runtime smoke success criteria');
 check(llmsText.includes('runtime-smoke:plan'), 'llms metadata must mention offline runtime smoke plan');
+check(llmsText.includes('check:tab-group-persistence'), 'llms metadata must mention tab-group persistence behavior check');
+check(llmsText.includes('check:privacy'), 'llms metadata must mention privacy scan check');
 check(llmsText.includes('verification.status: "passed"'), 'llms metadata must mention live runtime smoke success criteria');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(LOCAL_COMMAND_METADATA.doctor?.mcp?.includes('chrome_bridge_doctor'), 'registry local doctor command must expose an MCP tool');
