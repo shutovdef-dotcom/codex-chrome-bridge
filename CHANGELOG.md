@@ -23,6 +23,7 @@
 - Split tab and group response serialization into `extension/tab-info.js`.
 - Made grouped tab cleanup fail closed when Chrome cannot ungroup tabs before close, preventing bridge-driven cleanup from creating new saved closed group chips on ungroup errors.
 - Made `runtime-smoke` assert tab cleanup metadata, including saved tab-group persistence mitigation results.
+- Added a machine-readable `runtime-smoke` coverage summary for the deferred live verification checklist.
 - Expanded `runtime-smoke` to cover strict workspace policy, outside-tab blocking, session-summary recommendations, and debug-bundle default redaction/omission checks.
 - Added a generated CLI command metadata table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
 - Added generated CLI and MCP safety notes for confirmation, sensitive-confirmation, conditional inventory confirmation, and live bridge interruption guidance.

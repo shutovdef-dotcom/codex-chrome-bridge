@@ -938,6 +938,21 @@ const DEBUG_BUNDLE_REDACTED_KEYS = new Set([
   'favIconUrl',
 ]);
 
+const RUNTIME_SMOKE_REQUIRED_COVERAGE = Object.freeze([
+  'set strict smoke workspace',
+  'workspace includes smoke tab',
+  'session summary covers strict policy',
+  'debug bundle default redaction',
+  'observe actionable elements',
+  'find-elements filtered',
+  'find-elements near text filtered',
+  'extract forms',
+  'pdf export',
+  'strict policy rejects outside tab even with allowExternal',
+  'cleanup close outside smoke group',
+  'cleanup close smoke tab',
+]);
+
 function redactDebugBundleValue(value) {
   if (Array.isArray(value)) return value.map((item) => redactDebugBundleValue(item));
   if (!value || typeof value !== 'object') return value;
@@ -945,6 +960,20 @@ function redactDebugBundleValue(value) {
     key,
     DEBUG_BUNDLE_REDACTED_KEYS.has(key) ? '[redacted]' : redactDebugBundleValue(entry),
   ]));
+}
+
+function runtimeSmokeCoverage(steps) {
+  const successfulSteps = new Set(steps
+    .filter((step) => step.ok)
+    .map((step) => step.name));
+  const covered = RUNTIME_SMOKE_REQUIRED_COVERAGE.filter((name) => successfulSteps.has(name));
+  const missing = RUNTIME_SMOKE_REQUIRED_COVERAGE.filter((name) => !successfulSteps.has(name));
+  return {
+    ok: missing.length === 0,
+    required: RUNTIME_SMOKE_REQUIRED_COVERAGE,
+    covered,
+    missing,
+  };
 }
 
 async function debugBundle(args = {}) {
@@ -1043,6 +1072,9 @@ async function debugBundle(args = {}) {
 
 async function runtimeSmoke(args = {}) {
   const startedAt = new Date().toISOString();
+  if (!RUNTIME_SMOKE_REQUIRED_COVERAGE.length) {
+    throw new Error('runtime-smoke required coverage list must not be empty');
+  }
   const health = await bridgeFetch('/health');
   const extensionVersion = health?.extension?.info?.version || null;
   if (extensionVersion !== EXPECTED_EXTENSION_VERSION) {
@@ -1461,6 +1493,7 @@ async function runtimeSmoke(args = {}) {
   }
 
   const failures = steps.filter((step) => !step.ok);
+  const coverage = runtimeSmokeCoverage(steps);
   return {
     ok: failures.length === 0,
     startedAt,
@@ -1474,6 +1507,7 @@ async function runtimeSmoke(args = {}) {
       steps: steps.length,
       failures: failures.length,
     },
+    coverage,
     failures,
     steps,
   };

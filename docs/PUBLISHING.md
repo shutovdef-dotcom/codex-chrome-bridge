@@ -21,7 +21,7 @@ node ./bin/chrome-bridge.mjs runtime-smoke
 
 Run the live `health`, `doctor --live-checks`, and `runtime-smoke` checks only when no other Codex session is actively using the bridge.
 
-`runtime-smoke` opens temporary local fixture tabs and covers scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, screenshots, PDF export, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata.
+`runtime-smoke` opens temporary local fixture tabs and covers scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, screenshots, PDF export, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata. Its JSON output includes a `coverage` summary; treat the live pass as complete only when `coverage.ok` is `true`.
 
 `check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
 
