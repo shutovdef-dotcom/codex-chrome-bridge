@@ -27,6 +27,7 @@ function createFakeChrome() {
     [202, { id: 202, title: 'Unrelated', color: 'blue', windowId: 1, saved: true }],
     [303, { id: 303, title: 'Codex Bridge Session B', color: 'purple', windowId: 1 }],
     [404, { id: 404, title: 'Project Runtime Session', color: 'cyan', windowId: 1, saved: true }],
+    [505, { id: 505, title: 'Project Write Session', color: 'cyan', windowId: 1, saved: true }],
   ]);
   const tabs = new Map([
     [11, { id: 11, windowId: 1, groupId: 101 }],
@@ -35,29 +36,46 @@ function createFakeChrome() {
     [31, { id: 31, windowId: 1, groupId: 303 }],
     [32, { id: 32, windowId: 1, groupId: 303 }],
     [41, { id: 41, windowId: 1, groupId: 404 }],
+    [51, { id: 51, windowId: 1, groupId: -1 }],
   ]);
+  const localValues = { codexManagedGroupTitles: ['Codex Bridge Session A'] };
+  const sessionValues = { codexManagedGroupIds: [404] };
   const updates = [];
   const savedClosedGroupChips = [];
+  const localSets = [];
+  const sessionSets = [];
+  const groupCalls = [];
+
+  function storageGet(keys, values) {
+    const result = {};
+    for (const key of Array.isArray(keys) ? keys : [keys]) {
+      if (Object.prototype.hasOwnProperty.call(values, key)) result[key] = values[key];
+    }
+    return result;
+  }
 
   return {
     updates,
+    localSets,
+    sessionSets,
+    groupCalls,
     storage: {
       local: {
         async get(keys) {
-          const result = {};
-          for (const key of keys) {
-            if (key === 'codexManagedGroupTitles') result[key] = ['Codex Bridge Session A'];
-          }
-          return result;
+          return storageGet(keys, localValues);
+        },
+        async set(values) {
+          localSets.push({ ...values });
+          Object.assign(localValues, values);
         },
       },
       session: {
         async get(keys) {
-          const result = {};
-          for (const key of keys) {
-            if (key === 'codexManagedGroupIds') result[key] = [404];
-          }
-          return result;
+          return storageGet(keys, sessionValues);
+        },
+        async set(values) {
+          sessionSets.push({ ...values });
+          Object.assign(sessionValues, values);
         },
       },
     },
@@ -73,6 +91,19 @@ function createFakeChrome() {
         return [...tabs.values()].filter((tab) => (
           !Number.isInteger(query.windowId) || tab.windowId === query.windowId
         ));
+      },
+      async group(options = {}) {
+        const tabIds = Array.isArray(options.tabIds) ? options.tabIds : [options.tabIds];
+        const groupId = Number.isInteger(options.groupId) ? options.groupId : 606;
+        groupCalls.push({ ...options, tabIds });
+        if (!groups.has(groupId)) {
+          groups.set(groupId, { id: groupId, title: '', color: 'grey', windowId: 1, saved: true });
+        }
+        for (const tabId of tabIds) {
+          const tab = tabs.get(tabId);
+          if (tab) tabs.set(tabId, { ...tab, groupId });
+        }
+        return groupId;
       },
       async ungroup(tabIds) {
         const ids = Array.isArray(tabIds) ? tabIds : [tabIds];
@@ -129,6 +160,9 @@ const {
 const {
   closeTabsWithGroupPersistenceMitigation,
 } = await import('../extension/tab-cleanup.js');
+const {
+  ensureCodexGroupForTab,
+} = await import('../extension/workspace-tabs.js');
 
 const listenerInstall = installTabGroupPersistenceListeners();
 check(listenerInstall.installed === true, 'tab-group persistence listeners must install against fake Chrome');
@@ -168,6 +202,26 @@ const managedByStoredIdChange = await handleManagedTabGroupChange({
 check(managedByStoredIdChange.managed === true, 'custom session group remembered by id must be recognized');
 check(managedByStoredIdChange.disabled === true, 'custom session group remembered by id must disable saved state');
 check(managedByStoredIdChange.remembered === 1, 'custom session group remembered by id must remember member tabs');
+
+let sessionGroupIdWriteChecks = 0;
+const ensuredCustomGroup = await ensureCodexGroupForTab(
+  { id: 51, windowId: 1, groupId: -1 },
+  { groupTitle: 'Project Write Session', groupColor: 'cyan' },
+);
+check(ensuredCustomGroup.id === 505, 'workspace grouping must reuse the custom target group');
+check(
+  chrome.groupCalls.some((call) => call.groupId === 505 && call.tabIds.includes(51)),
+  'workspace grouping must place the tab into the custom target group',
+);
+check(
+  chrome.sessionSets.some((entry) => entry.codexManagedGroupIds?.includes(505)),
+  'workspace grouping must remember custom managed group ids in Chrome session storage',
+);
+check(
+  chrome.localSets.every((entry) => !Object.prototype.hasOwnProperty.call(entry, 'codexManagedGroupIds')),
+  'workspace grouping must not persist browser-session group ids in local storage',
+);
+sessionGroupIdWriteChecks = 4;
 
 const membership = await rememberManagedTabGroupMembership({ id: 11, windowId: 1, groupId: 101 });
 check(membership.remembered === true, 'managed tab membership update must be remembered');
@@ -232,6 +286,7 @@ process.stdout.write(`${JSON.stringify({
   ok: true,
   listenerChecks: 5,
   managedChangeRemembered: managedChange.remembered,
+  sessionGroupIdWriteChecks,
   removalMetadata: Boolean(removed.savedGroupPersistence),
   savedClosedGroupChipPrevention: cleanup.savedClosedGroupChipPrevention,
 }, null, 2)}\n`);
