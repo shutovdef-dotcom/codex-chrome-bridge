@@ -59,6 +59,8 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'scripts/check-tab-group-persistence.mjs',
   'scripts/check-package-contents.mjs',
   'scripts/check-privacy-scan.mjs',
+  'scripts/install-launch-agent.mjs',
+  'scripts/uninstall-launch-agent.mjs',
   'README.md',
   'llms.txt',
   'CHANGELOG.md',
