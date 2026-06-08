@@ -29,6 +29,7 @@
 - Expanded `runtime-smoke` to cover strict workspace policy, outside-tab blocking, session-summary recommendations, and debug-bundle default redaction/omission checks.
 - Added offline `runtime-smoke --coverage-plan` / MCP `coveragePlan` mode to inspect the required live-smoke checklist without touching Chrome.
 - Added `doctor` offline guidance for the `runtime-smoke --coverage-plan` checklist before live bridge verification.
+- Added explicit `runtime-smoke --coverage-plan` verification metadata so offline plans cannot be mistaken for completed live smoke passes.
 - Added a generated CLI command metadata table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
 - Added generated CLI and MCP safety notes for confirmation, sensitive-confirmation, conditional inventory confirmation, and live bridge interruption guidance.
 - Expanded the generated MCP reference block from a plain tool list into a registry-derived table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.

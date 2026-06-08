@@ -24,6 +24,8 @@ Run the live `health`, `doctor --live-checks`, and `runtime-smoke` checks only w
 
 `npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan`. It is offline and can be run while another session is using the bridge. It prints the required coverage checklist without calling `/health`, opening Chrome tabs, or reloading the extension.
 
+The plan output reports `verification.status: "not-run"` and `verification.liveVerificationRequired: true`; final verification is complete only after the normal live `runtime-smoke` reports top-level `ok: true` and `coverage.ok: true`.
+
 `runtime-smoke` opens temporary local fixture tabs and covers scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, screenshots, PDF export, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata. Its JSON output includes a counted `coverage` summary, and top-level `ok` is true only when every required coverage item passed.
 
 `check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.

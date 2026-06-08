@@ -1007,6 +1007,20 @@ function runtimeSmokeCoveragePlan(startedAt) {
     expectedVersion: EXPECTED_EXTENSION_VERSION,
     reason: 'Coverage plan only; no bridge or Chrome checks were run.',
     nextCommand: 'chrome-bridge runtime-smoke',
+    verification: {
+      status: 'not-run',
+      liveVerificationRequired: true,
+      finalCommands: [
+        'chrome-bridge health',
+        'chrome-bridge runtime-smoke',
+      ],
+      successCriteria: {
+        ok: true,
+        coverageOk: true,
+        extensionVersion: EXPECTED_EXTENSION_VERSION,
+        requiredCoverageCount: RUNTIME_SMOKE_REQUIRED_COVERAGE.length,
+      },
+    },
     coverage: runtimeSmokeCoverage([]),
   };
 }
