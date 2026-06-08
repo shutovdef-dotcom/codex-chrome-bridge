@@ -251,6 +251,7 @@ async function doctor(args) {
     actions,
     nextActions: !includeLiveChecks ? [
       'Run chrome-bridge self-test for offline project verification.',
+      'Run chrome-bridge runtime-smoke --coverage-plan for the offline live-smoke checklist.',
       'Pass --live-checks only when no other Codex session is actively using the bridge.',
       'Run chrome-bridge health and runtime-smoke later for final live verification.',
     ] : extensionConnected && extensionCurrent ? [
