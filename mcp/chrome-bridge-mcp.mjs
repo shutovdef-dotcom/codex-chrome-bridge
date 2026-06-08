@@ -41,6 +41,7 @@ const webUrlSchema = z.string().refine(
 
 const chromeIdSchema = z.number().int().nonnegative();
 const payloadTimeoutSchema = z.number().min(0).max(300000);
+const timestampSchema = z.number().min(0).max(Number.MAX_SAFE_INTEGER);
 const selectIndexSchema = z.number().int().nonnegative();
 
 async function bridgeFetch(pathname, options = {}) {
@@ -953,8 +954,8 @@ server.tool(
   {
     query: z.string().optional(),
     limit: z.number().min(1).max(200).optional(),
-    startTime: z.number().optional(),
-    endTime: z.number().optional(),
+    startTime: timestampSchema.optional(),
+    endTime: timestampSchema.optional(),
     confirmed: z.boolean(),
   },
   async (args) => textResult(await bridgeCommand('historySearch', args, 30_000)),

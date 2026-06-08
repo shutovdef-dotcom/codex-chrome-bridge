@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added non-negative `historySearch` time-filter validation across direct bridge payloads and MCP schemas.
 - Added payload `timeoutMs` bounds for navigation and selector-wait commands across direct bridge validation, CLI, and MCP schemas.
 - Added explicit bridge server port validation so CLI and direct server startup fail fast before binding invalid ports.
 - Made CLI `wait`, `scroll`, `storage`, `request`, and `ask` validate numeric arguments locally before contacting the bridge.

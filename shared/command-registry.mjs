@@ -1398,6 +1398,10 @@ export function validateCommandPayload(action, payload = {}) {
   if (['historySearch', 'bookmarksSearch'].includes(action)) {
     ensureNumberRange(normalizedPayload, 'limit', action, 1, 200);
   }
+  if (action === 'historySearch') {
+    ensureNumberRange(normalizedPayload, 'startTime', action, 0, Number.MAX_SAFE_INTEGER);
+    ensureNumberRange(normalizedPayload, 'endTime', action, 0, Number.MAX_SAFE_INTEGER);
+  }
   if (action === 'cookiesList') {
     ensureNumberRange(normalizedPayload, 'limit', action, 1, 500);
   }
