@@ -144,7 +144,11 @@ check(
   'docs/MCP.md generated MCP safety notes must exactly match registry confirmation/live-bridge metadata',
 );
 check(
-  actualMcpSafetyBlock?.includes('`confirmSensitive: true`') && actualMcpSafetyBlock?.includes('`chrome_bridge_runtime_smoke`') && actualMcpSafetyBlock?.includes('`chrome_bridge_reload_extension`'),
+  actualMcpSafetyBlock?.includes('`confirmSensitive: true`')
+    && actualMcpSafetyBlock?.includes('`chrome_bridge_runtime_smoke`')
+    && actualMcpSafetyBlock?.includes('`chrome_bridge_reload_extension`')
+    && actualMcpSafetyBlock?.includes('`chrome_bridge_doctor`')
+    && actualMcpSafetyBlock?.includes('`liveChecks: true`'),
   'docs/MCP.md generated MCP safety notes must mention sensitive confirmation and live interruption tools',
 );
 
