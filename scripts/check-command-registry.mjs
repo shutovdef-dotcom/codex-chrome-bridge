@@ -516,6 +516,7 @@ check(COMMAND_METADATA.traceSummary?.summary?.includes('metadata'), 'registry mu
 const cliDebugBundleBlock = functionBlock(cliText, 'debugBundle');
 const mcpDebugBundleBlock = functionBlock(mcpText, 'debugBundle');
 const runtimeSmokeBlock = functionBlock(cliText, 'runtimeSmoke');
+const runtimeSmokeLiveVerificationBlock = functionBlock(cliText, 'runtimeSmokeLiveVerification');
 const runtimeSmokeCoveragePlanBlock = functionBlock(cliText, 'runtimeSmokeCoveragePlan');
 const runtimeSmokeCoverageBlock = functionBlock(cliText, 'runtimeSmokeCoverage');
 const runtimeSmokeRequiredCoverageBlock = /const RUNTIME_SMOKE_REQUIRED_COVERAGE = Object\.freeze\(\[[\s\S]*?\]\);/.exec(cliText)?.[0] || '';
@@ -559,6 +560,10 @@ check(
 check(runtimeSmokeCoveragePlanBlock.includes("status: 'not-run'"), 'runtime-smoke coverage-plan output must mark live verification as not-run');
 check(runtimeSmokeCoveragePlanBlock.includes('liveVerificationRequired: true'), 'runtime-smoke coverage-plan output must explicitly require final live verification');
 check(runtimeSmokeCoveragePlanBlock.includes('coverageOk: true'), 'runtime-smoke coverage-plan output must document coverage.ok success criteria');
+check(runtimeSmokeLiveVerificationBlock.includes("status: 'passed'") && runtimeSmokeLiveVerificationBlock.includes("status: 'failed'"), 'runtime-smoke live output must include explicit passed/failed verification states');
+check(runtimeSmokeLiveVerificationBlock.includes("status: 'skipped'"), 'runtime-smoke stale-extension output must include explicit skipped verification state');
+check(runtimeSmokeBlock.includes('verification: runtimeSmokeLiveVerification({'), 'runtime-smoke final output must include machine-readable live verification metadata');
+check(runtimeSmokeBlock.includes("runtimeSmokeLiveVerification({ status: 'skipped'"), 'runtime-smoke version mismatch skip must include verification metadata');
 for (const coverageStep of [
   'tabs scoped includes smoke tab',
   'viewport screenshot',
