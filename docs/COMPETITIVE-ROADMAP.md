@@ -299,10 +299,10 @@ That sequence proves the now-modular browser surface in Chrome before expanding 
 
 The current implementation can be statically verified while another session is using the live bridge. Final completion still requires a real-browser pass after the bridge is free:
 
-1. Run `npm run runtime-smoke:plan` if you need the offline checklist while another session is using the bridge; this reports `verification.status: "not-run"` until the live smoke pass runs and includes `verification.nextCommand`, `verification.nextAction`, `verification.finalCommands`, and `verification.finalMcpCalls` for the recovery and live sequence.
+1. Run `npm run runtime-smoke:plan` if you need the offline checklist while another session is using the bridge; this reports `verification.status: "not-run"` until the live smoke pass runs and includes top-level `nextCommand` / `nextAction`, nested `verification.nextCommand`, `verification.nextAction`, `verification.finalCommands`, and `verification.finalMcpCalls` for the recovery and live sequence.
 2. Run `chrome-bridge reload-extension --confirm` after confirming no other session is using the bridge.
 3. Run `chrome-bridge doctor --live-checks`.
 4. Run `chrome-bridge runtime-smoke`.
 5. Confirm the smoke output reports `ok: true`, `coverage.ok: true`, current bridge/extension versions, and `verification.status: "passed"` for existing-tab adoption, scoped tabs, `setWorkspace` strict policy, `session-summary`, default `debug-bundle`, `observe`, querySelector/nth-of-type selector fallback, `find-elements` including nearby text, `extract`, screenshots, `pdf`, dialog handling, file input upload, interactions, tracing, successful browser-data reads, browser-data safety gates, strict outside-tab blocking, and cleanup metadata including `savedClosedGroupChipPrevention`.
-6. If a live smoke output is skipped or failed, use `verification.nextCommand` / `verification.nextAction` for the immediate recovery step and `verification.finalCommands` / `verification.finalMcpCalls` for the full CLI/MCP sequence.
+6. If a live smoke output is skipped or failed, use top-level `nextCommand` / `nextAction` for the immediate recovery step; nested `verification.nextCommand` / `verification.nextAction` carries the same context, and `verification.finalCommands` / `verification.finalMcpCalls` provides the full CLI/MCP sequence.
 7. If a release needs human UX assurance, manually spot-check one scoped tab workflow after the automated smoke pass.
