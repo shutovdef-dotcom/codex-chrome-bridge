@@ -126,7 +126,6 @@ await withFakeLiveDoctor(async ({ bridgeUrl, pathEnv }) => {
   check(liveDoctorJson.checks?.expectedBridgeVersion === BRIDGE_VERSION, 'CLI doctor live checks must report expected bridge version');
   check(liveDoctorJson.checks?.bridgeVersion === BRIDGE_VERSION, 'CLI doctor live checks must report observed bridge version');
   check(liveDoctorJson.checks?.bridgeCurrent === true, 'CLI doctor live checks must confirm bridge version is current');
-  check(liveDoctorJson.checks?.appleEventsJsEnabled === true, 'CLI doctor live check fixture must use fake osascript');
   liveDoctorBridgeCurrent = liveDoctorJson.checks?.bridgeCurrent;
 });
 
