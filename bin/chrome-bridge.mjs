@@ -119,6 +119,14 @@ function parseRequiredFiniteNumberArg(value, name, message) {
   return parsed;
 }
 
+function parseFiniteNumberArgWithMessage(value, name, message) {
+  try {
+    return parseFiniteNumberArg(value, name);
+  } catch {
+    throw new Error(message);
+  }
+}
+
 function parseChromeIdArg(value, name) {
   return parseNonNegativeIntegerArg(value, name);
 }
@@ -143,6 +151,21 @@ function confirmationPayload(args) {
   };
   if (args['confirm-sensitive']) payload.confirmSensitive = true;
   return payload;
+}
+
+function hoverCoordinatePayload(args) {
+  const message = 'hover requires --selector or numeric --x and --y';
+  const x = parseFiniteNumberArgWithMessage(args.x, '--x', message);
+  const y = parseFiniteNumberArgWithMessage(args.y, '--y', message);
+
+  if (args.trusted || !args.selector) {
+    return {
+      x: parseRequiredFiniteNumberArg(args.x, '--x', message),
+      y: parseRequiredFiniteNumberArg(args.y, '--y', message),
+    };
+  }
+
+  return { x, y };
 }
 
 function parseJsonOption(value, name) {
@@ -2104,11 +2127,11 @@ tool_timeout_sec = 60
   }
 
   if (cmd === 'hover') {
+    const coordinates = hoverCoordinatePayload(args);
     printJson(await command('hover', {
       ...targetPayload(args),
       selector: args.selector,
-      x: args.x === undefined ? undefined : Number(args.x),
-      y: args.y === undefined ? undefined : Number(args.y),
+      ...coordinates,
       trusted: Boolean(args.trusted),
     }, 30_000));
     return;

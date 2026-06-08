@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Made CLI `hover` validate selector-or-coordinate targets locally, including numeric `--x`/`--y` for trusted hover, before contacting the bridge.
 - Made CLI `click-at` validate numeric `--x` and `--y` locally before contacting the bridge, while preserving zero coordinates.
 - Made CLI `select --index` parsing fail fast for non-integer or negative values before contacting the bridge, while preserving option index `0` as valid.
 - Made CLI `--tab` parsing fail fast for non-integer or negative values before contacting the bridge, while preserving Chrome tab ID `0` as valid.
