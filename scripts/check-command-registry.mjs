@@ -459,6 +459,11 @@ expectPayload('adoptTab', { tabId: 1.5, confirmed: true }, false, 'adoptTab frac
 expectPayload('adoptTab', { tabId: 123, confirmed: true, allowExternal: true }, false, 'adoptTab allowExternal rejection');
 expectPayload('open', {}, false, 'open missing url payload');
 expectPayload('waitForSelector', {}, false, 'waitForSelector missing selector payload');
+expectPayload('waitForSelector', { selector: 'main', timeoutMs: 0 }, true, 'waitForSelector zero timeout payload');
+expectPayload('waitForSelector', { selector: 'main', timeoutMs: -1 }, false, 'waitForSelector negative timeout payload');
+expectPayload('goBack', { timeoutMs: 300_000 }, true, 'goBack timeout payload');
+expectPayload('goForward', { timeoutMs: 300_001 }, false, 'goForward invalid timeout payload');
+expectPayload('reloadTab', { timeoutMs: -1 }, false, 'reloadTab invalid timeout payload');
 expectPayload('extractPage', { kind: 'tables', maxItems: 5 }, true, 'extractPage kind payload');
 expectPayload('extractPage', { kind: 'everything' }, false, 'extractPage invalid kind payload');
 expectPayload('extractPage', { maxItems: 501 }, false, 'extractPage invalid maxItems payload');

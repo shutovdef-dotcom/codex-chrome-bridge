@@ -828,6 +828,16 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
       message: '--timeout-ms must be numeric',
     },
     {
+      label: 'wait negative timeout-ms',
+      args: ['wait', '--selector', 'main', '--timeout-ms', '-1'],
+      message: '--timeout-ms must be between 0 and 300000',
+    },
+    {
+      label: 'wait too large timeout-ms',
+      args: ['wait', '--selector', 'main', '--timeout-ms', '300001'],
+      message: '--timeout-ms must be between 0 and 300000',
+    },
+    {
       label: 'scroll invalid x',
       args: ['scroll', '--x', 'nope'],
       message: '--x must be numeric',

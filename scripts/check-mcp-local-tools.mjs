@@ -348,6 +348,7 @@ let inventoryIncludeAllChecks = 0;
 let privateSensitiveChecks = 0;
 let unsafeUrlMethodChecks = 0;
 let selectTargetChecks = 0;
+let timeoutBoundsChecks = 0;
 let groupScopePayloadChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const groupTitle = 'Codex Bridge MCP Group Scope';
@@ -500,6 +501,51 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
       unsafeUrlMethodChecks += 1;
     }
 
+    const timeoutInvalidCases = [
+      {
+        tool: 'chrome_bridge_wait_for_selector',
+        args: { selector: 'main', timeoutMs: -1 },
+        expected: ['timeoutMs', 'greater than or equal to 0', 'between 0 and 300000'],
+      },
+      {
+        tool: 'chrome_bridge_back',
+        args: { timeoutMs: 300_001 },
+        expected: ['timeoutMs', 'less than or equal to 300000', 'between 0 and 300000'],
+      },
+    ];
+    for (const testCase of timeoutInvalidCases) {
+      const beforeReject = receivedCommands.length;
+      try {
+        const rejected = await client.callTool({
+          name: testCase.tool,
+          arguments: testCase.args,
+        });
+        const rejectedText = rejected?.content?.find((item) => item?.type === 'text')?.text || '';
+        check(rejected?.isError === true, `MCP ${testCase.tool} invalid timeoutMs must return a tool error`);
+        check(
+          testCase.expected.some((needle) => rejectedText.includes(needle)),
+          `MCP ${testCase.tool} invalid timeoutMs tool error must explain timeout bounds`,
+        );
+      } catch (error) {
+        check(
+          testCase.expected.some((needle) => String(error?.message || error).includes(needle)),
+          `MCP ${testCase.tool} invalid timeoutMs rejection must explain timeout bounds`,
+        );
+      }
+      check(receivedCommands.length === beforeReject, `MCP ${testCase.tool} invalid timeoutMs must not be accepted by fake bridge`);
+      timeoutBoundsChecks += 1;
+    }
+
+    const beforeWaitZero = receivedCommands.length;
+    const waitZeroParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_wait_for_selector',
+      arguments: { selector: 'main', timeoutMs: 0 },
+    }), 'MCP wait timeout 0 fake command bridge');
+    const waitZeroPayload = receivedCommands[beforeWaitZero]?.payload || waitZeroParsed?.payload;
+    check(receivedCommands[beforeWaitZero]?.action === 'waitForSelector', 'MCP wait timeout 0 must dispatch waitForSelector');
+    check(waitZeroPayload?.timeoutMs === 0, 'MCP wait timeout 0 must forward timeoutMs 0');
+    timeoutBoundsChecks += 1;
+
     check(COMMAND_PAYLOAD_SCHEMAS.select?.includes('index'), 'select schema must allow index before MCP behavior checks');
     const beforeMissingSelectTarget = receivedCommands.length;
     try {
@@ -576,5 +622,6 @@ process.stdout.write(`${JSON.stringify({
   privateSensitiveChecks,
   unsafeUrlMethodChecks,
   selectTargetChecks,
+  timeoutBoundsChecks,
   groupScopePayloadChecks,
 }, null, 2)}\n`);
