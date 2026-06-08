@@ -10,6 +10,7 @@
 - Hardened extension tab/group recovery so Chrome tab, group, and window IDs with value `0` are treated as valid IDs instead of absent values.
 - Hardened shared and MCP payload validation so `tabId` must be a non-negative integer while still allowing Chrome tab ID `0`.
 - Hardened shared and MCP payload validation so select option `index` must be a non-negative integer while still allowing option index `0`.
+- Hardened shared and MCP payload validation so `select` requires an explicit `value`, `label`, or `index` before extension dispatch.
 - Hardened direct command validation so workspace `groupColor` must be one of Chrome's supported tab group colors instead of silently normalizing invalid values.
 - Aligned the MCP `chrome_bridge_set_workspace` schema with the shared Chrome tab group color enum.
 - Exposed `groupTitle` and shared `groupColor` enum options across MCP scoped/group actions that already supported those payload keys in the shared command contract.

@@ -81,6 +81,12 @@ function textResult(value) {
   };
 }
 
+function requireSelectTarget(args = {}) {
+  if (args.value === undefined && args.label === undefined && args.index === undefined) {
+    throw new Error('select requires value, label, or index');
+  }
+}
+
 function parseLocalCliJson(stdout) {
   if (!stdout) return null;
   try {
@@ -821,7 +827,10 @@ server.tool(
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
   },
-  async (args) => textResult(await bridgeCommand('select', args, 30_000)),
+  async (args) => {
+    requireSelectTarget(args);
+    return textResult(await bridgeCommand('select', args, 30_000));
+  },
 );
 
 server.tool(

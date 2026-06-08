@@ -770,6 +770,8 @@ check(mcpText.includes('const chromeIdSchema = z.number().int().nonnegative()'),
 check(!mcpText.includes('tabId: z.number().optional()'), 'MCP tools must not accept unconstrained numeric tabId values');
 check(mcpText.includes('const selectIndexSchema = z.number().int().nonnegative()'), 'MCP select tool must define a non-negative integer option index schema');
 check(!mcpToolBlock('chrome_bridge_select').includes('index: z.number().optional()'), 'MCP select tool must not accept unconstrained numeric option indexes');
+check(mcpText.includes('function requireSelectTarget'), 'MCP select tool must validate an explicit option target before bridge dispatch');
+check(mcpToolBlock('chrome_bridge_select').includes('requireSelectTarget(args)'), 'MCP select handler must call the option target guard');
 for (const toolName of [
   'chrome_bridge_windows',
   'chrome_bridge_tabs',

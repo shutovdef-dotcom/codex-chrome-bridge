@@ -1305,6 +1305,13 @@ function ensureUrlProtocol(payload, key, action, allowedProtocols) {
   }
 }
 
+function ensureSelectTarget(payload, action) {
+  if (action !== 'select') return;
+  if (payload.value === undefined && payload.label === undefined && payload.index === undefined) {
+    throw payloadError('select requires value, label, or index');
+  }
+}
+
 function requiresConfirmed(action, payload) {
   if (['windows', 'tabs'].includes(action)) return payload.includeAll === true;
   if (action === 'fillForm') return payload.dryRun === false;
@@ -1405,6 +1412,7 @@ export function validateCommandPayload(action, payload = {}) {
   if (['waitForSelector', 'click', 'select', 'listSelectOptions', 'uploadFile'].includes(action)) {
     ensureNonEmptyString(normalizedPayload, 'selector', action);
   }
+  ensureSelectTarget(normalizedPayload, action);
   if (action === 'clickAt') {
     ensureRequired(normalizedPayload, 'x', action);
     ensureRequired(normalizedPayload, 'y', action);
