@@ -940,6 +940,7 @@ const DEBUG_BUNDLE_REDACTED_KEYS = new Set([
 ]);
 
 const RUNTIME_SMOKE_REQUIRED_COVERAGE = Object.freeze([
+  'adopt existing smoke tab',
   'set strict smoke workspace',
   'workspace includes smoke tab',
   'session summary covers strict policy',
@@ -1169,6 +1170,7 @@ async function runtimeSmoke(args = {}) {
   let strictWorkspaceSet = false;
   let debugBundleDir = null;
   const smokeId = String(Date.now());
+  const adoptSourceGroupTitle = `Codex Bridge Smoke Adopt Source ${smokeId}`;
   const strictGroupTitle = `Codex Bridge Smoke Strict ${smokeId}`;
   const outsideGroupTitle = `Codex Bridge Smoke Outside ${smokeId}`;
 
@@ -1205,16 +1207,32 @@ async function runtimeSmoke(args = {}) {
   };
 
   try {
-    const opened = await run('open grouped smoke tab', () => command('open', {
+    const opened = await run('open adoption source smoke tab', () => command('open', {
       url: fixture.url,
       newTab: true,
+      groupTitle: adoptSourceGroupTitle,
+      groupColor: 'grey',
     }, 30_000), {
       assert: (result) => {
         if (!result?.id) throw new Error('open did not return a tab id');
-        if (result.group?.title !== 'Codex Bridge') throw new Error('smoke tab was not placed in Codex Bridge group');
+        if (result.group?.title !== adoptSourceGroupTitle) throw new Error('adoption source tab was not placed in the source group');
       },
     });
     tabId = opened.id;
+
+    const adopted = await run('adopt existing smoke tab', () => command('adoptTab', {
+      tabId,
+      confirmed: true,
+      groupTitle: 'Codex Bridge',
+      groupColor: 'purple',
+    }, 30_000), {
+      assert: (result) => {
+        if (!result?.adopted) throw new Error('adoptTab did not report adoption');
+        if (result.tab?.id !== tabId) throw new Error('adoptTab changed the adopted tab id');
+        if (result.tab?.group?.title !== 'Codex Bridge') throw new Error('adopted tab was not placed in Codex Bridge group');
+      },
+    });
+    tabId = adopted.tab.id;
 
     await run('set strict smoke workspace', () => command('setWorkspace', {
       name: `smoke-${smokeId}`,

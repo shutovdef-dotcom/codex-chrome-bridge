@@ -633,6 +633,7 @@ check(cliText.includes("addJson('session-summary.json', redactDebugBundleValue(s
 check(mcpText.includes("addJson('session-summary.json', redactDebugBundleValue(summary))"), 'MCP debug bundle session summary must be redacted');
 check(!LOCAL_COMMAND_METADATA['debug-bundle'].summary.includes('screenshot'), 'debug-bundle catalog summary must not imply screenshot capture by default');
 for (const smokeStep of [
+  'adopt existing smoke tab',
   'workspace includes smoke tab',
   'set strict smoke workspace',
   'strict policy rejects outside tab even with allowExternal',
@@ -661,6 +662,7 @@ check(runtimeSmokeBlock.includes("runtimeSmokeLiveVerification({ status: 'skippe
 check(runtimeSmokeBlock.includes('verification: runtimeSmokeLiveVerification({'), 'runtime-smoke final output must include machine-readable live verification metadata');
 check(runtimeSmokeBlock.includes("runtimeSmokeLiveVerification({ status: 'skipped'"), 'runtime-smoke version mismatch skip must include verification metadata');
 for (const coverageStep of [
+  'adopt existing smoke tab',
   'tabs scoped includes smoke tab',
   'viewport screenshot',
   'selector screenshot',
