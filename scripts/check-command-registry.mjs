@@ -575,7 +575,7 @@ check(browserDataText.includes('export async function fetchUrl'), 'extension bro
 check(functionBlock(browserDataText, 'historySearch').includes("requireConfirmed(payload, 'historySearch')"), 'extension browser data history must require confirmation');
 check(functionBlock(browserDataText, 'cookiesList').includes("requireSensitiveConfirmed(payload, 'cookiesList without url/domain/name')"), 'extension browser data cookies whole-jar reads must require sensitive confirmation');
 check(functionBlock(browserDataText, 'fetchUrl').includes("requireSensitiveConfirmed(payload, 'fetchUrl credentials=include')"), 'extension browser data credentialed requests must require sensitive confirmation');
-check(backgroundText.includes("import { requireConfirmed, requireSensitiveConfirmed } from './safety-gates.js';"), 'extension background must import safety gates from extension/safety-gates.js');
+check(backgroundText.includes("import { requireConfirmed } from './safety-gates.js';"), 'extension background must import safety gates from extension/safety-gates.js');
 check(!backgroundText.includes('function requireConfirmed'), 'extension background must not own confirmation gate internals');
 check(!backgroundText.includes('function requireSensitiveConfirmed'), 'extension background must not own confirmation gate internals');
 check(functionBlock(safetyGatesText, 'requireConfirmed').includes('confirmed=true'), 'safety gates module must enforce mutation confirmation');
@@ -608,12 +608,12 @@ check(functionBlock(navigationActionsText, 'openTab').includes('createGroupedTab
 check(functionBlock(navigationActionsText, 'setWorkspace').includes("requireConfirmed(payload, 'setWorkspace')"), 'extension setWorkspace must require confirmation');
 check(functionBlock(navigationActionsText, 'closeTab').includes('closeTabsWithGroupPersistenceMitigation([tab])'), 'closeTab must use ungroup-before-close mitigation');
 check(functionBlock(navigationActionsText, 'closeGroup').includes('closeTabsWithGroupPersistenceMitigation(tabs)'), 'closeGroup must use ungroup-before-close mitigation');
-check(backgroundText.includes("import { groupInfo, tabInfo } from './tab-info.js';"), 'extension background must import tab/group serializers from extension/tab-info.js');
+check(backgroundText.includes("import { tabInfo } from './tab-info.js';") && navigationActionsText.includes("import { groupInfo, tabInfo } from './tab-info.js';"), 'extension tab/group serializers must be imported by active extension modules');
 check(!backgroundText.includes('function groupInfo'), 'extension background must not own tab/group serializer internals');
 check(!backgroundText.includes('function tabInfo'), 'extension background must not own tab/group serializer internals');
 check(functionBlock(tabInfoText, 'groupInfo').includes('collapsed'), 'extension tab info module must serialize tab group metadata');
 check(functionBlock(tabInfoText, 'tabInfo').includes('groupInfo(group)') && functionBlock(tabInfoText, 'tabInfo').includes('status'), 'extension tab info module must serialize tab metadata with group info');
-check(backgroundText.includes("import { waitForTabComplete } from './tab-loading.js';"), 'extension background must import tab loading helper from extension/tab-loading.js');
+check(navigationActionsText.includes("from './tab-loading.js';"), 'extension navigation actions must import tab loading helper from extension/tab-loading.js');
 check(!backgroundText.includes('function waitForTabComplete'), 'extension background must not own tab loading internals');
 check(!backgroundText.includes('function delay'), 'extension background must not own tab loading delay internals');
 check(functionBlock(tabLoadingText, 'waitForTabComplete').includes("tab.status === 'complete'"), 'extension tab loading module must wait for complete tab status');
@@ -678,7 +678,7 @@ for (const helperName of ['waitForSelector', 'observe', 'findElements', 'extract
 check(functionBlock(pageReadActionsText, 'observe').includes('collectObserve'), 'extension page read actions module must use page observation scripts');
 check(functionBlock(pageReadActionsText, 'findElements').includes('elementFilters'), 'extension page read actions module must preserve element filter echo');
 check(functionBlock(pageReadActionsText, 'storageSnapshot').includes("requireSensitiveConfirmed(payload, 'storageSnapshot includeValues')"), 'extension page read actions storage snapshot must require sensitive confirmation for values');
-check(backgroundText.includes("import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';"), 'extension background must import tab cleanup helper from extension/tab-cleanup.js');
+check(navigationActionsText.includes("import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';"), 'extension navigation actions must import tab cleanup helper from extension/tab-cleanup.js');
 check(!backgroundText.includes('function tabIdForClose'), 'extension background must not own tab cleanup helper internals');
 check(!backgroundText.includes('async function closeTabsWithGroupPersistenceMitigation'), 'extension background must not own tab cleanup helper internals');
 const tabCloseMitigationBlock = functionBlock(tabCleanupText, 'closeTabsWithGroupPersistenceMitigation');

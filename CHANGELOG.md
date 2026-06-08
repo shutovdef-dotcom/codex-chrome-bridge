@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Split navigation, workspace, tab inventory, and scoped close actions into `extension/navigation-actions.js`.
 - Split screenshot and PDF artifact capture into `extension/page-artifacts.js`.
 - Split page inspection and read actions into `extension/page-read-actions.js`.
 - Split injected page execution into `extension/page-execution.js`.

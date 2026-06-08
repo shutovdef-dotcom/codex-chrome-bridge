@@ -12,6 +12,7 @@ The `extension/` directory contains a Manifest V3 extension:
 - `debugger-session.js` owns Chrome Debugger attach/detach lifecycle, per-tab serialization, and trace event buffering.
 - `extension-errors.js` classifies extension-side command failures into stable bridge error codes.
 - `keyboard-events.js` owns Chrome Debugger key-event payload mapping for trusted keyboard input.
+- `navigation-actions.js` owns tab/window inventory, workspace status/configuration, tab creation/adoption, scoped closes, and basic navigation actions.
 - `offscreen-lifecycle.js` owns creation and retry-safe startup of the MV3 offscreen bridge document.
 - `page-artifacts.js` owns screenshot and PDF artifact capture.
 - `page-execution.js` owns the `chrome.scripting.executeScript` execution boundary for injected page helpers.
