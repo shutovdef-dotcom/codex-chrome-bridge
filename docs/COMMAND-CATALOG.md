@@ -23,8 +23,8 @@ Version: 0.4.1
 | observe | read | read | 30000 ms | observe | chrome_bridge_observe | no | tabId, allowExternal, limit, maxTextChars, role, text, nearText, placeholder, href, actionKind, risk | Read ranked actionable elements with querySelector-verified selectors without mutating page state. |
 | findElements | read | read | 30000 ms | find-elements | chrome_bridge_find_elements | no | tabId, allowExternal, limit, maxTextChars, role, text, nearText, placeholder, href, actionKind, risk | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | extractPage | read | read | 30000 ms | extract | chrome_bridge_extract | no | tabId, allowExternal, kind, maxItems, maxTextChars | Extract structured tables, form structure, lists, and key-value blocks without current form values. |
-| snapshot | read | read | 30000 ms | snapshot | chrome_bridge_snapshot | no | tabId, allowExternal, maxChars | Read a bounded structured page snapshot with querySelector-verified element selectors. |
-| text | read | read | 30000 ms | text | chrome_bridge_text | no | tabId, allowExternal, maxChars | Read bounded visible page text. |
+| snapshot | read | read | 30000 ms | snapshot | chrome_bridge_snapshot | no | tabId, allowExternal, maxChars, fullPage, waitForText, waitForPattern, scrollStepPx, maxScrollSteps, scrollDelayMs | Read a bounded structured page snapshot with optional full-page rendered text coverage. |
+| text | read | read | 30000 ms | text | chrome_bridge_text | no | tabId, allowExternal, maxChars, fullPage, waitForText, waitForPattern, scrollStepPx, maxScrollSteps, scrollDelayMs | Read bounded visible page text with optional full-page scroll-walk coverage. |
 | html | read | read | 30000 ms | html | chrome_bridge_html | no | tabId, allowExternal, maxChars, selector, outer | Read bounded page HTML for a selector or the whole document. |
 | screenshot | artifact | read | 30000 ms | screenshot | chrome_bridge_screenshot | no | tabId, allowExternal, fullPage, selector | Capture a PNG screenshot of the selected tab, full page, or selector. |
 | printPdf | artifact | read | 60000 ms | pdf | chrome_bridge_pdf | no | tabId, allowExternal, landscape, printBackground, preferCssPageSize, pageRanges, scale | Print the selected tab to a local PDF artifact. |
@@ -92,8 +92,8 @@ chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <i
 chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]
 chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>] [--placeholder <text>] [--href <text>] [--action <kind>] [--risk <risk>] [--limit 80] [--tab <id>] [--allow-external]
 chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--max-items 50] [--tab <id>] [--allow-external]
-chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
-chrome-bridge text [--tab <id>] [--max-chars 200000] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
+chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
+chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]

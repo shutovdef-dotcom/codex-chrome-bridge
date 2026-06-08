@@ -50,8 +50,8 @@ export const COMMAND_PAYLOAD_SCHEMAS = freezeSchemaMap({
   observe: [...base, 'limit', 'maxTextChars', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk'],
   findElements: [...base, 'limit', 'maxTextChars', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk'],
   extractPage: [...base, 'kind', 'maxItems', 'maxTextChars'],
-  snapshot: maxChars,
-  text: maxChars,
+  snapshot: [...maxChars, 'fullPage', 'waitForText', 'waitForPattern', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs'],
+  text: [...maxChars, 'fullPage', 'waitForText', 'waitForPattern', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs'],
   html: [...maxChars, 'selector', 'outer'],
   screenshot: [...base, 'fullPage', 'selector'],
   printPdf: [...base, 'landscape', 'printBackground', 'preferCssPageSize', 'pageRanges', 'scale'],
@@ -301,13 +301,13 @@ const ACTION_DOCS = Object.freeze({
   },
   snapshot: {
     category: 'read',
-    summary: 'Read a bounded structured page snapshot with querySelector-verified element selectors.',
+    summary: 'Read a bounded structured page snapshot with optional full-page rendered text coverage.',
     cli: ['snapshot'],
     mcp: ['chrome_bridge_snapshot'],
   },
   text: {
     category: 'read',
-    summary: 'Read bounded visible page text.',
+    summary: 'Read bounded visible page text with optional full-page scroll-walk coverage.',
     cli: ['text'],
     mcp: ['chrome_bridge_text'],
   },
@@ -649,8 +649,8 @@ export const CLI_USAGE_LINES = Object.freeze([
   'chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]',
   'chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>] [--placeholder <text>] [--href <text>] [--action <kind>] [--risk <risk>] [--limit 80] [--tab <id>] [--allow-external]',
   'chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--max-items 50] [--tab <id>] [--allow-external]',
-  'chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
-  'chrome-bridge text [--tab <id>] [--max-chars 200000] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
+  'chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
+  'chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
   'chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
   'chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--allow-external]',
   'chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]',
@@ -1364,7 +1364,7 @@ export function validateCommandPayload(action, payload = {}) {
   const normalizedPayload = payload === undefined ? {} : payload;
   rejectUnknownKeys(normalizedPayload, allowed, action);
 
-  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents']) {
+  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs']) {
     ensureNumber(normalizedPayload, key, action);
   }
   ensureNonNegativeInteger(normalizedPayload, 'tabId', action);
@@ -1372,7 +1372,7 @@ export function validateCommandPayload(action, payload = {}) {
   for (const key of ['includeAll', 'includeTabs', 'active', 'newTab', 'allowExternal', 'focusWindow', 'confirmed', 'confirmSensitive', 'bypassCache', 'visible', 'outer', 'fullPage', 'landscape', 'printBackground', 'preferCssPageSize', 'trusted', 'ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'network', 'console', 'includeExtensionEvents', 'includeValues', 'allowText', 'closeOnAnswer', 'dryRun', 'accept']) {
     ensureBoolean(normalizedPayload, key, action);
   }
-  for (const key of ['url', 'selector', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk', 'kind', 'pageRanges', 'button', 'key', 'code', 'value', 'label', 'file', 'query', 'domain', 'name', 'method', 'credentials', 'question', 'groupTitle', 'groupColor', 'promptText', 'policyMode']) {
+  for (const key of ['url', 'selector', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk', 'kind', 'pageRanges', 'button', 'key', 'code', 'value', 'label', 'file', 'query', 'domain', 'name', 'method', 'credentials', 'question', 'groupTitle', 'groupColor', 'promptText', 'policyMode', 'waitForText', 'waitForPattern']) {
     ensureString(normalizedPayload, key, action);
   }
   ensureStringArray(normalizedPayload, 'files', action);
@@ -1406,6 +1406,9 @@ export function validateCommandPayload(action, payload = {}) {
   }
   if (['snapshot', 'text'].includes(action)) {
     ensureNumberRange(normalizedPayload, 'maxChars', action, 1_000, 200_000);
+    ensureNumberRange(normalizedPayload, 'scrollStepPx', action, 100, 5_000);
+    ensureNumberRange(normalizedPayload, 'maxScrollSteps', action, 1, 200);
+    ensureNumberRange(normalizedPayload, 'scrollDelayMs', action, 0, 2_000);
   }
   if (action === 'html') {
     ensureNumberRange(normalizedPayload, 'maxChars', action, 1_000, 500_000);

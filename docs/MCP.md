@@ -61,8 +61,8 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_observe` | `observe` | read | 30000 ms | no | yes | Read ranked actionable elements with querySelector-verified selectors without mutating page state. |
 | `chrome_bridge_find_elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | `chrome_bridge_extract` | `extractPage` | read | 30000 ms | no | yes | Extract structured tables, form structure, lists, and key-value blocks without current form values. |
-| `chrome_bridge_snapshot` | `snapshot` | read | 30000 ms | no | yes | Read a bounded structured page snapshot with querySelector-verified element selectors. |
-| `chrome_bridge_text` | `text` | read | 30000 ms | no | yes | Read bounded visible page text. |
+| `chrome_bridge_snapshot` | `snapshot` | read | 30000 ms | no | yes | Read a bounded structured page snapshot with optional full-page rendered text coverage. |
+| `chrome_bridge_text` | `text` | read | 30000 ms | no | yes | Read bounded visible page text with optional full-page scroll-walk coverage. |
 | `chrome_bridge_html` | `html` | read | 30000 ms | no | yes | Read bounded page HTML for a selector or the whole document. |
 | `chrome_bridge_screenshot` | `screenshot` | read | 30000 ms | no | yes | Capture a PNG screenshot of the selected tab, full page, or selector. |
 | `chrome_bridge_pdf` | `printPdf` | read | 60000 ms | no | yes | Print the selected tab to a local PDF artifact. |

@@ -125,6 +125,12 @@ function inlineContent(content, options = {}) {
 
 function commonEnvelope({ action, result, options, now, contentType, artifactPath, buffer, charCount, truncated }) {
   const meta = tabMeta(result);
+  const diagnostics = {
+    requestedOut: options.out ? path.resolve(options.out) : null,
+    artifactBytes: buffer.byteLength,
+  };
+  if (result.fullPageDiagnostics) diagnostics.fullPage = result.fullPageDiagnostics;
+  if (result.coverage) diagnostics.coverage = result.coverage;
   return {
     ok: true,
     outputContract: OUTPUT_CONTRACT_VERSION,
@@ -138,10 +144,7 @@ function commonEnvelope({ action, result, options, now, contentType, artifactPat
     sourceTruncated: truncated,
     artifactPath,
     sha256: sha256(buffer),
-    diagnostics: {
-      requestedOut: options.out ? path.resolve(options.out) : null,
-      artifactBytes: buffer.byteLength,
-    },
+    diagnostics,
   };
 }
 

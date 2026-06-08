@@ -50,15 +50,171 @@ function stableSelectorFor(element, options = {}) {
   return parts.join(' > ') || tag;
 }
 
-export function collectText(options = {}) {
+export async function collectText(options = {}) {
   const maxChars = Number(options.maxChars || 50_000);
-  const text = (document.body?.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
+  const cleanTextInjected = (value) => String(value || '')
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  const lineKeyInjected = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+  const delayInjected = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const rootScrollElementInjected = () => document.scrollingElement || document.documentElement;
+  const isRootScrollElementInjected = (element) => element === rootScrollElementInjected()
+    || element === document.documentElement
+    || element === document.body;
+  const mainScrollContainerInjected = () => {
+    const root = rootScrollElementInjected();
+    const rootScrollHeight = Math.max(root?.scrollHeight || 0, document.body?.scrollHeight || 0);
+    const rootClientHeight = Math.max(window.innerHeight || 0, root?.clientHeight || 0);
+    const candidates = [root, ...Array.from(document.querySelectorAll('main,[role="main"],section,article,div'))]
+      .filter(Boolean)
+      .filter((element) => {
+        if (element === root) return rootScrollHeight > rootClientHeight + 80;
+        const style = getComputedStyle(element);
+        const overflowY = `${style.overflowY} ${style.overflow}`;
+        return element.scrollHeight > element.clientHeight + 80
+          && element.clientHeight > 120
+          && /(auto|scroll|overlay)/.test(overflowY);
+      })
+      .map((element) => {
+        const tag = element.tagName?.toLowerCase?.() || 'document';
+        const role = element.getAttribute?.('role') || '';
+        const mainBonus = tag === 'main' || role === 'main' ? 5_000_000 : 0;
+        const area = (element.scrollHeight || rootScrollHeight) * Math.max(element.clientWidth || window.innerWidth || 1, 1);
+        return { element, score: area + mainBonus };
+      })
+      .sort((a, b) => b.score - a.score);
+    return candidates[0]?.element || root;
+  };
+  const selectorForScrollContainerInjected = (element) => {
+    if (isRootScrollElementInjected(element)) return 'document.scrollingElement';
+    const tag = element.tagName?.toLowerCase?.() || 'element';
+    if (element.id) return `${tag}#${element.id}`;
+    if (element.getAttribute?.('role')) return `${tag}[role="${element.getAttribute('role')}"]`;
+    return tag;
+  };
+  const scrollTopForInjected = (element) => (
+    isRootScrollElementInjected(element)
+      ? window.scrollY || rootScrollElementInjected()?.scrollTop || 0
+      : element.scrollTop || 0
+  );
+  const maxScrollTopForInjected = (element) => {
+    if (isRootScrollElementInjected(element)) {
+      const root = rootScrollElementInjected();
+      return Math.max(0, Math.max(root?.scrollHeight || 0, document.body?.scrollHeight || 0) - window.innerHeight);
+    }
+    return Math.max(0, element.scrollHeight - element.clientHeight);
+  };
+  const scrollToInjected = async (element, top, delayMs) => {
+    if (isRootScrollElementInjected(element)) {
+      window.scrollTo(window.scrollX || 0, top);
+    } else {
+      element.scrollTop = top;
+      element.dispatchEvent(new Event('scroll', { bubbles: true }));
+    }
+    window.dispatchEvent(new Event('scroll'));
+    await delayInjected(delayMs);
+  };
+  const requiredPatternInjected = (() => {
+    if (!options.waitForPattern) return null;
+    try {
+      return new RegExp(String(options.waitForPattern), 'i');
+    } catch {
+      return null;
+    }
+  })();
+  const waitForText = lineKeyInjected(options.waitForText);
+  const waitMatchesInjected = (value) => {
+    const normalized = lineKeyInjected(value);
+    return {
+      text: waitForText ? normalized.includes(waitForText) : null,
+      pattern: requiredPatternInjected ? requiredPatternInjected.test(normalized) : null,
+    };
+  };
+  const collectCurrentTextInjected = () => cleanTextInjected(document.body?.innerText || document.body?.textContent || '');
+
+  if (!options.fullPage) {
+    const text = collectCurrentTextInjected();
+    return {
+      url: location.href,
+      title: document.title,
+      text: text.slice(0, maxChars),
+      truncated: text.length > maxChars,
+      length: text.length,
+      fullPageDiagnostics: {
+        mode: 'document-innerText',
+        fullPage: false,
+      },
+    };
+  }
+
+  const startedAt = Date.now();
+  const container = mainScrollContainerInjected();
+  const originalTop = scrollTopForInjected(container);
+  const stepPx = Math.min(Math.max(Number(options.scrollStepPx || Math.round((window.innerHeight || 800) * 0.75)), 100), 5_000);
+  const maxSteps = Math.min(Math.max(Number(options.maxScrollSteps || 80), 1), 200);
+  const scrollDelayMs = Math.min(Math.max(Number(options.scrollDelayMs ?? 120), 0), 2_000);
+  const seenLines = new Set();
+  const lines = [];
+  let scrollSteps = 0;
+  let requiredTextFound = waitForText ? false : null;
+  let requiredPatternFound = requiredPatternInjected ? false : null;
+
+  const addSampleInjected = () => {
+    const sample = collectCurrentTextInjected();
+    for (const line of sample.split('\n').map((item) => item.trim()).filter(Boolean)) {
+      const key = lineKeyInjected(line);
+      if (!key || seenLines.has(key)) continue;
+      seenLines.add(key);
+      lines.push(line);
+    }
+    const matches = waitMatchesInjected(sample);
+    if (matches.text === true) requiredTextFound = true;
+    if (matches.pattern === true) requiredPatternFound = true;
+  };
+
+  try {
+    addSampleInjected();
+    let maxTop = maxScrollTopForInjected(container);
+    for (let index = 0; index < maxSteps && maxTop > 0; index += 1) {
+      const top = Math.min(maxTop, Math.round(index * stepPx));
+      await scrollToInjected(container, top, scrollDelayMs);
+      scrollSteps += 1;
+      addSampleInjected();
+      maxTop = maxScrollTopForInjected(container);
+      const reachedBottom = top >= maxTop;
+      const requiredSatisfied = (requiredTextFound !== false) && (requiredPatternFound !== false);
+      if (requiredSatisfied && (waitForText || requiredPatternInjected)) break;
+      if (reachedBottom) break;
+    }
+  } finally {
+    await scrollToInjected(container, originalTop, 0);
+  }
+
+  const text = cleanTextInjected(lines.join('\n'));
   return {
     url: location.href,
     title: document.title,
     text: text.slice(0, maxChars),
     truncated: text.length > maxChars,
     length: text.length,
+    fullPageDiagnostics: {
+      mode: 'full-page-scroll-walk',
+      fullPage: true,
+      scrollContainer: selectorForScrollContainerInjected(container),
+      scrollSteps,
+      maxScrollSteps: maxSteps,
+      scrollStepPx: stepPx,
+      scrollDelayMs,
+      lineCount: lines.length,
+      requiredText: waitForText || null,
+      requiredTextFound,
+      requiredPattern: options.waitForPattern || null,
+      requiredPatternFound,
+      restoredScroll: Math.abs(scrollTopForInjected(container) - originalTop) <= 2,
+      elapsedMs: Date.now() - startedAt,
+    },
   };
 }
 
@@ -725,9 +881,167 @@ export function collectExtract(options = {}) {
   };
 }
 
-export function collectSnapshot(options = {}) {
+export async function collectSnapshot(options = {}) {
   const maxChars = Number(options.maxChars || 50_000);
-  const text = (document.body?.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
+  const collectRenderedTextInjected = async () => {
+    const cleanTextInjected = (value) => String(value || '')
+      .replace(/\r/g, '')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    const lineKeyInjected = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+    const delayInjected = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const rootScrollElementInjected = () => document.scrollingElement || document.documentElement;
+    const isRootScrollElementInjected = (element) => element === rootScrollElementInjected()
+      || element === document.documentElement
+      || element === document.body;
+    const mainScrollContainerInjected = () => {
+      const root = rootScrollElementInjected();
+      const rootScrollHeight = Math.max(root?.scrollHeight || 0, document.body?.scrollHeight || 0);
+      const rootClientHeight = Math.max(window.innerHeight || 0, root?.clientHeight || 0);
+      const candidates = [root, ...Array.from(document.querySelectorAll('main,[role="main"],section,article,div'))]
+        .filter(Boolean)
+        .filter((element) => {
+          if (element === root) return rootScrollHeight > rootClientHeight + 80;
+          const style = getComputedStyle(element);
+          const overflowY = `${style.overflowY} ${style.overflow}`;
+          return element.scrollHeight > element.clientHeight + 80
+            && element.clientHeight > 120
+            && /(auto|scroll|overlay)/.test(overflowY);
+        })
+        .map((element) => {
+          const tag = element.tagName?.toLowerCase?.() || 'document';
+          const role = element.getAttribute?.('role') || '';
+          const mainBonus = tag === 'main' || role === 'main' ? 5_000_000 : 0;
+          const area = (element.scrollHeight || rootScrollHeight) * Math.max(element.clientWidth || window.innerWidth || 1, 1);
+          return { element, score: area + mainBonus };
+        })
+        .sort((a, b) => b.score - a.score);
+      return candidates[0]?.element || root;
+    };
+    const selectorForScrollContainerInjected = (element) => {
+      if (isRootScrollElementInjected(element)) return 'document.scrollingElement';
+      const tag = element.tagName?.toLowerCase?.() || 'element';
+      if (element.id) return `${tag}#${element.id}`;
+      if (element.getAttribute?.('role')) return `${tag}[role="${element.getAttribute('role')}"]`;
+      return tag;
+    };
+    const scrollTopForInjected = (element) => (
+      isRootScrollElementInjected(element)
+        ? window.scrollY || rootScrollElementInjected()?.scrollTop || 0
+        : element.scrollTop || 0
+    );
+    const maxScrollTopForInjected = (element) => {
+      if (isRootScrollElementInjected(element)) {
+        const root = rootScrollElementInjected();
+        return Math.max(0, Math.max(root?.scrollHeight || 0, document.body?.scrollHeight || 0) - window.innerHeight);
+      }
+      return Math.max(0, element.scrollHeight - element.clientHeight);
+    };
+    const scrollToInjected = async (element, top, delayMs) => {
+      if (isRootScrollElementInjected(element)) {
+        window.scrollTo(window.scrollX || 0, top);
+      } else {
+        element.scrollTop = top;
+        element.dispatchEvent(new Event('scroll', { bubbles: true }));
+      }
+      window.dispatchEvent(new Event('scroll'));
+      await delayInjected(delayMs);
+    };
+    const requiredPatternInjected = (() => {
+      if (!options.waitForPattern) return null;
+      try {
+        return new RegExp(String(options.waitForPattern), 'i');
+      } catch {
+        return null;
+      }
+    })();
+    const waitForText = lineKeyInjected(options.waitForText);
+    const waitMatchesInjected = (value) => {
+      const normalized = lineKeyInjected(value);
+      return {
+        text: waitForText ? normalized.includes(waitForText) : null,
+        pattern: requiredPatternInjected ? requiredPatternInjected.test(normalized) : null,
+      };
+    };
+    const collectCurrentTextInjected = () => cleanTextInjected(document.body?.innerText || document.body?.textContent || '');
+
+    if (!options.fullPage) {
+      const value = collectCurrentTextInjected();
+      return {
+        text: value,
+        diagnostics: {
+          mode: 'document-innerText',
+          fullPage: false,
+        },
+      };
+    }
+
+    const startedAt = Date.now();
+    const container = mainScrollContainerInjected();
+    const originalTop = scrollTopForInjected(container);
+    const stepPx = Math.min(Math.max(Number(options.scrollStepPx || Math.round((window.innerHeight || 800) * 0.75)), 100), 5_000);
+    const maxSteps = Math.min(Math.max(Number(options.maxScrollSteps || 80), 1), 200);
+    const scrollDelayMs = Math.min(Math.max(Number(options.scrollDelayMs ?? 120), 0), 2_000);
+    const seenLines = new Set();
+    const lines = [];
+    let scrollSteps = 0;
+    let requiredTextFound = waitForText ? false : null;
+    let requiredPatternFound = requiredPatternInjected ? false : null;
+
+    const addSampleInjected = () => {
+      const sample = collectCurrentTextInjected();
+      for (const line of sample.split('\n').map((item) => item.trim()).filter(Boolean)) {
+        const key = lineKeyInjected(line);
+        if (!key || seenLines.has(key)) continue;
+        seenLines.add(key);
+        lines.push(line);
+      }
+      const matches = waitMatchesInjected(sample);
+      if (matches.text === true) requiredTextFound = true;
+      if (matches.pattern === true) requiredPatternFound = true;
+    };
+
+    try {
+      addSampleInjected();
+      let maxTop = maxScrollTopForInjected(container);
+      for (let index = 0; index < maxSteps && maxTop > 0; index += 1) {
+        const top = Math.min(maxTop, Math.round(index * stepPx));
+        await scrollToInjected(container, top, scrollDelayMs);
+        scrollSteps += 1;
+        addSampleInjected();
+        maxTop = maxScrollTopForInjected(container);
+        const reachedBottom = top >= maxTop;
+        const requiredSatisfied = (requiredTextFound !== false) && (requiredPatternFound !== false);
+        if (requiredSatisfied && (waitForText || requiredPatternInjected)) break;
+        if (reachedBottom) break;
+      }
+    } finally {
+      await scrollToInjected(container, originalTop, 0);
+    }
+
+    return {
+      text: cleanTextInjected(lines.join('\n')),
+      diagnostics: {
+        mode: 'full-page-scroll-walk',
+        fullPage: true,
+        scrollContainer: selectorForScrollContainerInjected(container),
+        scrollSteps,
+        maxScrollSteps: maxSteps,
+        scrollStepPx: stepPx,
+        scrollDelayMs,
+        lineCount: lines.length,
+        requiredText: waitForText || null,
+        requiredTextFound,
+        requiredPattern: options.waitForPattern || null,
+        requiredPatternFound,
+        restoredScroll: Math.abs(scrollTopForInjected(container) - originalTop) <= 2,
+        elapsedMs: Date.now() - startedAt,
+      },
+    };
+  };
+  const renderedText = await collectRenderedTextInjected();
+  const text = renderedText.text;
   const cssEscapeInjected = (value) => {
     if (globalThis.CSS?.escape) return CSS.escape(String(value));
     return String(value).replace(/["\\]/g, '\\$&');
@@ -850,5 +1164,6 @@ export function collectSnapshot(options = {}) {
     text: text.slice(0, maxChars),
     textLength: text.length,
     truncated: text.length > maxChars,
+    fullPageDiagnostics: renderedText.diagnostics,
   };
 }

@@ -184,6 +184,17 @@ function readOutputOptions(args) {
   };
 }
 
+function fullPageReadPayload(args) {
+  return {
+    fullPage: Boolean(args['full-page']),
+    waitForText: args['wait-for-text'],
+    waitForPattern: args['wait-for-pattern'],
+    scrollStepPx: parseNumberRangeArg(args['scroll-step-px'], '--scroll-step-px', 100, 5_000),
+    maxScrollSteps: parseNumberRangeArg(args['max-scroll-steps'], '--max-scroll-steps', 1, 200),
+    scrollDelayMs: parseNumberRangeArg(args['scroll-delay-ms'], '--scroll-delay-ms', 0, 2_000),
+  };
+}
+
 function errorJson(error) {
   return {
     message: String(error?.message || error),
@@ -263,6 +274,7 @@ async function runNestedTempTabCommand(argv, tabId) {
     const result = await command(cmd, {
       ...targetPayload(scopedArgs),
       maxChars: parseNumberRangeArg(scopedArgs['max-chars'], '--max-chars', 1_000, 200_000) ?? 200_000,
+      ...fullPageReadPayload(scopedArgs),
     }, 30_000);
     return formatReadOutput({
       action: cmd,
@@ -778,7 +790,7 @@ async function selfTest() {
     { label: 'extension module', item: 'page interaction imports', ok: background.includes("from './page-interactions.js'") },
     { label: 'extension module', item: 'page interaction exports', ok: pageInteractions.includes('export async function click') && pageInteractions.includes('export async function uploadFile') },
     { label: 'extension module', item: 'page script imports', ok: pageReadActions.includes("from './page-scripts.js'") && pageInteractions.includes("from './page-scripts.js'") },
-    { label: 'extension module', item: 'page script exports', ok: pageScripts.includes('export function collectSnapshot') },
+    { label: 'extension module', item: 'page script exports', ok: pageScripts.includes('function collectSnapshot') },
     { label: 'extension module', item: 'runtime action imports', ok: background.includes("from './runtime-actions.js'") },
     { label: 'extension module', item: 'runtime action exports', ok: runtimeActions.includes('export function reloadExtension') },
     { label: 'extension module', item: 'safety gates imports', ok: runtimeActions.includes("from './safety-gates.js'") },
@@ -2395,6 +2407,7 @@ tool_timeout_sec = 60
     const result = await command(cmd, {
       ...targetPayload(args),
       maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 200_000) ?? 200_000,
+      ...fullPageReadPayload(args),
     }, 30_000);
     printJson(await formatReadOutput({
       action: cmd,

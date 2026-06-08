@@ -148,9 +148,12 @@ async function withFakeBridge(fn) {
 }
 
 function functionBlock(source, name) {
-  const match = new RegExp(`export async function ${name}\\\\([^)]*\\\\) \\\\{[\\\\s\\\\S]*?^\\\\}`, 'm').exec(source)
-    || new RegExp(`export function ${name}\\\\([^)]*\\\\) \\\\{[\\\\s\\\\S]*?^\\\\}`, 'm').exec(source);
-  return match?.[0] || '';
+  const start = source.indexOf(`export async function ${name}(`) >= 0
+    ? source.indexOf(`export async function ${name}(`)
+    : source.indexOf(`export function ${name}(`);
+  if (start < 0) return '';
+  const next = source.indexOf('\nexport ', start + 1);
+  return source.slice(start, next < 0 ? source.length : next);
 }
 
 const [

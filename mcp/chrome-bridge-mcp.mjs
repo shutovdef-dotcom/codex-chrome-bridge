@@ -51,6 +51,14 @@ const readOutputSchema = {
   includeContent: z.boolean().optional(),
   maxInlineChars: z.number().int().min(0).max(500000).optional(),
 };
+const fullPageReadSchema = {
+  fullPage: z.boolean().optional(),
+  waitForText: z.string().optional(),
+  waitForPattern: z.string().optional(),
+  scrollStepPx: z.number().min(100).max(5000).optional(),
+  maxScrollSteps: z.number().int().min(1).max(200).optional(),
+  scrollDelayMs: z.number().min(0).max(2000).optional(),
+};
 
 async function bridgeFetch(pathname, options = {}) {
   const response = await fetch(`${BRIDGE_URL}${pathname}`, options);
@@ -677,6 +685,7 @@ server.tool(
     tabId: chromeIdSchema.optional(),
     maxChars: z.number().min(1000).max(200000).optional(),
     allowExternal: z.boolean().optional(),
+    ...fullPageReadSchema,
     ...readOutputSchema,
   },
   async (args) => {
@@ -684,6 +693,12 @@ server.tool(
       tabId: args.tabId,
       maxChars: args.maxChars ?? 200_000,
       allowExternal: args.allowExternal,
+      fullPage: Boolean(args.fullPage),
+      waitForText: args.waitForText,
+      waitForPattern: args.waitForPattern,
+      scrollStepPx: args.scrollStepPx,
+      maxScrollSteps: args.maxScrollSteps,
+      scrollDelayMs: args.scrollDelayMs,
     }, 30_000);
     return textResult(await formatReadOutput({
       action: 'snapshot',
@@ -700,6 +715,7 @@ server.tool(
     tabId: chromeIdSchema.optional(),
     maxChars: z.number().min(1000).max(200000).optional(),
     allowExternal: z.boolean().optional(),
+    ...fullPageReadSchema,
     ...readOutputSchema,
   },
   async (args) => {
@@ -707,6 +723,12 @@ server.tool(
       tabId: args.tabId,
       maxChars: args.maxChars ?? 200_000,
       allowExternal: args.allowExternal,
+      fullPage: Boolean(args.fullPage),
+      waitForText: args.waitForText,
+      waitForPattern: args.waitForPattern,
+      scrollStepPx: args.scrollStepPx,
+      maxScrollSteps: args.maxScrollSteps,
+      scrollDelayMs: args.scrollDelayMs,
     }, 30_000);
     return textResult(await formatReadOutput({
       action: 'text',
