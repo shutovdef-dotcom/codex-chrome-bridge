@@ -548,10 +548,10 @@ async function selfTest() {
       item: 'debugger actions serialized per tab',
       ok: registry.includes('DEBUGGER_SERIALIZED_ACTIONS')
         && DEBUGGER_SERIALIZED_ACTIONS.length >= 10
-        && background.includes('const debuggerLocks = new Map()')
-        && background.includes('async function withTabLock')
-        && background.includes('async function withDebugger')
-        && background.includes('return withTabLock(tabId'),
+        && debuggerSession.includes('const debuggerLocks = new Map()')
+        && debuggerSession.includes('async function withTabLock')
+        && debuggerSession.includes('export async function withDebugger')
+        && debuggerSession.includes('return withTabLock(tabId'),
     },
     { label: 'trace privacy', item: 'no response body capture', ok: !background.includes('Network.getResponseBody') },
     {

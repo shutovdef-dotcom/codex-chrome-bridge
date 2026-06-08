@@ -494,11 +494,13 @@ for (const smokeStep of [
   check(runtimeSmokeBlock.includes(smokeStep), `runtime-smoke must cover deferred roadmap step: ${smokeStep}`);
 }
 check(runtimeSmokeBlock.includes("debugBundle({") && runtimeSmokeBlock.includes('readJsonFile'), 'runtime-smoke must inspect debug-bundle files without enabling page artifacts');
-check(backgroundText.includes('const debuggerLocks = new Map()'), 'extension must maintain per-tab debugger locks');
-check(functionBlock(backgroundText, 'withTabLock').includes('debuggerLocks.set(tabId, next)'), 'withTabLock must serialize debugger work per tab');
-check(functionBlock(backgroundText, 'withDebugger').includes('return withTabLock(tabId'), 'withDebugger must run under the per-tab debugger lock');
-check((backgroundText.match(/chrome\.debugger\.sendCommand/g) || []).length === 1, 'extension must send debugger commands only through sendDebuggerCommand');
-check((backgroundText.match(/chrome\.debugger\.detach/g) || []).length === 1, 'extension must detach debugger only through detachDebugger');
+check(debuggerSessionText.includes('const debuggerLocks = new Map()'), 'extension must maintain per-tab debugger locks');
+check(functionBlock(debuggerSessionText, 'withTabLock').includes('debuggerLocks.set(tabId, next)'), 'withTabLock must serialize debugger work per tab');
+check(functionBlock(debuggerSessionText, 'withDebugger').includes('return withTabLock(tabId'), 'withDebugger must run under the per-tab debugger lock');
+check((debuggerSessionText.match(/chrome\.debugger\.sendCommand/g) || []).length === 1, 'extension must send debugger commands only through sendDebuggerCommand');
+check((debuggerSessionText.match(/chrome\.debugger\.detach/g) || []).length === 1, 'extension must detach debugger only through detachDebugger');
+check(functionBlock(debuggerSessionText, 'startTraceForTab').includes('withTabLock(tab.id'), 'traceStart debugger action must use the serialized debugger wrapper');
+check(functionBlock(debuggerSessionText, 'stopTraceForTab').includes('withTabLock(tab.id'), 'traceStop debugger action must use the serialized debugger wrapper');
 
 const debuggerActionFunctions = {
   screenshot: 'screenshot',
@@ -516,10 +518,13 @@ const debuggerActionFunctions = {
 for (const action of DEBUGGER_SERIALIZED_ACTIONS) {
   const block = functionBlock(backgroundText, debuggerActionFunctions[action]);
   check(block, `${action} debugger action function is missing`);
-  check(
-    action.startsWith('trace') ? block.includes('withTabLock(') : block.includes('withDebugger('),
-    `${action} debugger action must use the serialized debugger wrapper`,
-  );
+  if (action === 'traceStart') {
+    check(block.includes('startTraceForTab('), `${action} debugger action must use the serialized debugger wrapper`);
+  } else if (action === 'traceStop') {
+    check(block.includes('stopTraceForTab('), `${action} debugger action must use the serialized debugger wrapper`);
+  } else {
+    check(block.includes('withDebugger('), `${action} debugger action must use the serialized debugger wrapper`);
+  }
 }
 check(mcpText.includes('const navigationUrlSchema'), 'MCP must define navigationUrlSchema for http/https/about:blank');
 check(mcpText.includes('const webUrlSchema'), 'MCP must define webUrlSchema for http/https-only URL tools');
