@@ -13,6 +13,7 @@ The `extension/` directory contains a Manifest V3 extension:
 - `page-scripts.js` contains self-contained functions injected into web pages through `chrome.scripting.executeScript`.
 - `safety-gates.js` owns confirmation and sensitive-confirmation runtime guards.
 - `tab-cleanup.js` owns tab close cleanup, including ungroup-before-close mitigation for saved closed tab groups.
+- `tab-info.js` owns tab and tab-group response serialization.
 - `workspace-policy.js` owns local workspace defaults and scoped policy normalization.
 - `offscreen.html` and `offscreen.js` keep a WebSocket connection to the local bridge server.
 - `ask.html` and `ask.js` provide a local human-in-the-loop prompt page.

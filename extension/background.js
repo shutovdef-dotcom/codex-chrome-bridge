@@ -17,6 +17,7 @@ import {
 import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js';
 import { startBridge } from './offscreen-lifecycle.js';
 import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';
+import { groupInfo, tabInfo } from './tab-info.js';
 import { requireConfirmed, requireSensitiveConfirmed } from './safety-gates.js';
 import { groupOptions } from './workspace-policy.js';
 
@@ -1590,30 +1591,4 @@ function completeUserPrompt(requestId, answer = {}) {
   }
   restoreStoredCodexTarget(prompt.previous).catch(() => {});
   return true;
-}
-
-function groupInfo(group) {
-  return {
-    id: group.id,
-    windowId: group.windowId,
-    title: group.title,
-    color: group.color,
-    collapsed: group.collapsed,
-  };
-}
-
-function tabInfo(tab, options = {}) {
-  const groups = options.groups || [];
-  const group = options.group || groups.find((candidate) => candidate.id === tab.groupId) || null;
-  return {
-    id: tab.id,
-    windowId: tab.windowId,
-    index: tab.index,
-    active: tab.active,
-    groupId: Number.isInteger(tab.groupId) ? tab.groupId : undefined,
-    group: group ? groupInfo(group) : null,
-    title: tab.title,
-    url: tab.url,
-    status: tab.status,
-  };
 }
