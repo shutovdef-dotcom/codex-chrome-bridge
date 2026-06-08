@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Split screenshot and PDF artifact capture into `extension/page-artifacts.js`.
 - Split page inspection and read actions into `extension/page-read-actions.js`.
 - Split injected page execution into `extension/page-execution.js`.
 - Split private browser-data actions for history, bookmarks, cookies, and extension-context requests into `extension/browser-data.js`.

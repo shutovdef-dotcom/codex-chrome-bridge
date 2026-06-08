@@ -535,7 +535,8 @@ const debuggerActionFunctions = {
 };
 
 for (const action of DEBUGGER_SERIALIZED_ACTIONS) {
-  const block = functionBlock(backgroundText, debuggerActionFunctions[action]);
+  const source = ['screenshot', 'printPdf'].includes(action) ? pageArtifactsText : backgroundText;
+  const block = functionBlock(source, debuggerActionFunctions[action]);
   check(block, `${action} debugger action function is missing`);
   if (action === 'traceStart') {
     check(block.includes('startTraceForTab('), `${action} debugger action must use the serialized debugger wrapper`);
