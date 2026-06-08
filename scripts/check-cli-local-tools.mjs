@@ -275,6 +275,7 @@ let selectTargetChecks = 0;
 let selectIndexChecks = 0;
 let tabIdChecks = 0;
 let clickAtCoordinateChecks = 0;
+let hoverCoordinateChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -488,6 +489,51 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
   check(clickAtZeroPayload?.confirmed === true, 'CLI click-at 0,0 must forward confirmed');
   clickAtCoordinateChecks += 1;
 
+  const hoverInvalidCases = [
+    { label: 'missing target', args: ['hover'] },
+    { label: 'missing y', args: ['hover', '--x', '5'] },
+    { label: 'invalid x', args: ['hover', '--x', 'nope', '--y', '5'] },
+    { label: 'trusted missing x', args: ['hover', '--selector', '#action', '--trusted'] },
+    { label: 'trusted invalid y', args: ['hover', '--x', '5', '--y', 'nope', '--trusted'] },
+  ];
+  for (const testCase of hoverInvalidCases) {
+    const beforeInvalidHover = receivedCommands.length;
+    const beforeInvalidHoverRejects = invalidPayloadRequests.length;
+    const rejected = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI hover ${testCase.label} must fail`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes('hover requires --selector or numeric --x and --y'),
+      `CLI hover ${testCase.label} rejection must explain selector or numeric --x and --y`,
+    );
+    check(receivedCommands.length === beforeInvalidHover, `CLI hover ${testCase.label} must not be accepted by fake command bridge`);
+    check(
+      invalidPayloadRequests.length === beforeInvalidHoverRejects,
+      `CLI hover ${testCase.label} must fail fast before contacting fake command bridge`,
+    );
+    hoverCoordinateChecks += 1;
+  }
+
+  const beforeHoverSelector = receivedCommands.length;
+  const hoverSelector = await runCli(['hover', '--selector', '#action'], { CHROME_BRIDGE_URL: bridgeUrl });
+  check(hoverSelector.ok, 'CLI hover selector must succeed against fake command bridge');
+  const hoverSelectorParsed = parseJsonOutput(hoverSelector, 'CLI hover selector fake command bridge');
+  const hoverSelectorPayload = receivedCommands[beforeHoverSelector]?.payload || hoverSelectorParsed?.payload;
+  check(receivedCommands[beforeHoverSelector]?.action === 'hover', 'CLI hover selector must dispatch hover');
+  check(hoverSelectorPayload?.selector === '#action', 'CLI hover selector must forward selector');
+  check(hoverSelectorPayload?.trusted === false, 'CLI hover selector must forward trusted=false');
+  hoverCoordinateChecks += 1;
+
+  const beforeHoverTrustedZero = receivedCommands.length;
+  const hoverTrustedZero = await runCli(['hover', '--x', '0', '--y', '0', '--trusted'], { CHROME_BRIDGE_URL: bridgeUrl });
+  check(hoverTrustedZero.ok, 'CLI hover trusted 0,0 must succeed against fake command bridge');
+  const hoverTrustedZeroParsed = parseJsonOutput(hoverTrustedZero, 'CLI hover trusted 0,0 fake command bridge');
+  const hoverTrustedZeroPayload = receivedCommands[beforeHoverTrustedZero]?.payload || hoverTrustedZeroParsed?.payload;
+  check(receivedCommands[beforeHoverTrustedZero]?.action === 'hover', 'CLI hover trusted 0,0 must dispatch hover');
+  check(hoverTrustedZeroPayload?.x === 0, 'CLI hover trusted 0,0 must forward numeric x 0');
+  check(hoverTrustedZeroPayload?.y === 0, 'CLI hover trusted 0,0 must forward numeric y 0');
+  check(hoverTrustedZeroPayload?.trusted === true, 'CLI hover trusted 0,0 must forward trusted=true');
+  hoverCoordinateChecks += 1;
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -560,6 +606,7 @@ process.stdout.write(`${JSON.stringify({
   selectIndexChecks,
   tabIdChecks,
   clickAtCoordinateChecks,
+  hoverCoordinateChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
