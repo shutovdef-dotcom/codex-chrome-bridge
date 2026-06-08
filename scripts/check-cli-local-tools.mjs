@@ -268,6 +268,7 @@ let groupScopePayloadChecks = 0;
 let inventoryIncludeAllChecks = 0;
 let privateSensitiveChecks = 0;
 let unsafeUrlMethodChecks = 0;
+let selectTargetChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -374,6 +375,31 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
     unsafeUrlMethodChecks += 1;
   }
 
+  check(COMMAND_PAYLOAD_SCHEMAS.select?.includes('index'), 'select schema must allow index before CLI behavior checks');
+  const beforeMissingSelectTarget = receivedCommands.length;
+  const missingSelectTarget = await runCli(['select', '--selector', '#country', '--confirm'], { CHROME_BRIDGE_URL: bridgeUrl });
+  check(!missingSelectTarget.ok, 'CLI select without value, label, or index must fail');
+  check(
+    `${missingSelectTarget.stderr}\n${missingSelectTarget.stdout}\n${missingSelectTarget.error}`.includes('select requires value, label, or index'),
+    'CLI select missing target rejection must explain value, label, or index',
+  );
+  check(
+    receivedCommands.length === beforeMissingSelectTarget,
+    'CLI select missing target must not be accepted by fake command bridge',
+  );
+  selectTargetChecks += 1;
+
+  const beforeSelectIndex = receivedCommands.length;
+  const selectIndex = await runCli(['select', '--selector', '#country', '--index', '0', '--confirm'], { CHROME_BRIDGE_URL: bridgeUrl });
+  check(selectIndex.ok, 'CLI select with index 0 must succeed against fake command bridge');
+  const selectIndexParsed = parseJsonOutput(selectIndex, 'CLI select index 0 fake command bridge');
+  const selectIndexPayload = receivedCommands[beforeSelectIndex]?.payload || selectIndexParsed?.payload;
+  check(receivedCommands[beforeSelectIndex]?.action === 'select', 'CLI select with index 0 must dispatch select');
+  check(selectIndexPayload?.selector === '#country', 'CLI select with index 0 must forward selector');
+  check(selectIndexPayload?.index === 0, 'CLI select with index 0 must forward numeric index 0');
+  check(selectIndexPayload?.confirmed === true, 'CLI select with index 0 must forward confirmed');
+  selectTargetChecks += 1;
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -442,6 +468,7 @@ process.stdout.write(`${JSON.stringify({
   inventoryIncludeAllChecks,
   privateSensitiveChecks,
   unsafeUrlMethodChecks,
+  selectTargetChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,

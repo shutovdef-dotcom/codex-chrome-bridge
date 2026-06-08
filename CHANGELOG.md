@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Expanded CLI and MCP local-tool fake bridge checks so `select` rejects missing `value`/`label`/`index` targets and still accepts option index `0` without touching live Chrome.
 - Added explicit offline regression coverage for freshly bridge-created session tab groups so they are marked unsaved when Chrome exposes saved-group support, remembered only in Chrome session storage, and closed without creating new saved closed group chips.
 
 ## 0.4.1 - 2026-06-08

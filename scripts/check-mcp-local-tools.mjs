@@ -347,6 +347,7 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
 let inventoryIncludeAllChecks = 0;
 let privateSensitiveChecks = 0;
 let unsafeUrlMethodChecks = 0;
+let selectTargetChecks = 0;
 let groupScopePayloadChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const groupTitle = 'Codex Bridge MCP Group Scope';
@@ -499,6 +500,43 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
       unsafeUrlMethodChecks += 1;
     }
 
+    check(COMMAND_PAYLOAD_SCHEMAS.select?.includes('index'), 'select schema must allow index before MCP behavior checks');
+    const beforeMissingSelectTarget = receivedCommands.length;
+    try {
+      const rejected = await client.callTool({
+        name: 'chrome_bridge_select',
+        arguments: { selector: '#country', confirmed: true },
+      });
+      const rejectedText = rejected?.content?.find((item) => item?.type === 'text')?.text || '';
+      check(rejected?.isError === true, 'MCP select without value, label, or index must return a tool error');
+      check(
+        rejectedText.includes('select requires value, label, or index'),
+        'MCP select missing target tool error must explain value, label, or index',
+      );
+    } catch (error) {
+      check(
+        String(error?.message || error).includes('select requires value, label, or index'),
+        'MCP select missing target rejection must explain value, label, or index',
+      );
+    }
+    check(
+      receivedCommands.length === beforeMissingSelectTarget,
+      'MCP select missing target must not be accepted by fake command bridge',
+    );
+    selectTargetChecks += 1;
+
+    const beforeSelectIndex = receivedCommands.length;
+    const selectIndexParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_select',
+      arguments: { selector: '#country', index: 0, confirmed: true },
+    }), 'MCP select index 0 fake command bridge');
+    const selectIndexPayload = receivedCommands[beforeSelectIndex]?.payload || selectIndexParsed?.payload;
+    check(receivedCommands[beforeSelectIndex]?.action === 'select', 'MCP select with index 0 must dispatch select');
+    check(selectIndexPayload?.selector === '#country', 'MCP select with index 0 must forward selector');
+    check(selectIndexPayload?.index === 0, 'MCP select with index 0 must forward numeric index 0');
+    check(selectIndexPayload?.confirmed === true, 'MCP select with index 0 must forward confirmed');
+    selectTargetChecks += 1;
+
     for (const testCase of cases) {
       check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupTitle'), `${testCase.action} schema must allow groupTitle before MCP behavior checks`);
       check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupColor'), `${testCase.action} schema must allow groupColor before MCP behavior checks`);
@@ -537,5 +575,6 @@ process.stdout.write(`${JSON.stringify({
   inventoryIncludeAllChecks,
   privateSensitiveChecks,
   unsafeUrlMethodChecks,
+  selectTargetChecks,
   groupScopePayloadChecks,
 }, null, 2)}\n`);
