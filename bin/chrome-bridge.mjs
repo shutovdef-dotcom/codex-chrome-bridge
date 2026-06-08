@@ -2279,7 +2279,7 @@ tool_timeout_sec = 60
     printJson(await command('historySearch', {
       ...confirmationPayload(args),
       query: args.query || '',
-      limit: args.limit ? Number(args.limit) : undefined,
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 200),
     }, 30_000));
     return;
   }
@@ -2289,7 +2289,7 @@ tool_timeout_sec = 60
     printJson(await command('bookmarksSearch', {
       ...confirmationPayload(args),
       query: args.query || '',
-      limit: args.limit ? Number(args.limit) : undefined,
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 200),
     }, 30_000));
     return;
   }
@@ -2302,7 +2302,7 @@ tool_timeout_sec = 60
       domain: args.domain,
       name: args.name,
       includeValues: Boolean(args['include-values']),
-      limit: args.limit ? Number(args.limit) : undefined,
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 500),
     }, 30_000));
     return;
   }
