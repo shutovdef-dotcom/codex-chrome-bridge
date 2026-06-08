@@ -95,7 +95,7 @@ npm run runtime-smoke
 
 `npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan` and prints the required smoke checklist without contacting Chrome or the live bridge. Use it while another Codex session is actively using the bridge; its `nextCommand`, `verification.finalCommands`, and `verification.finalMcpCalls` fields show the live sequence to run after the bridge is free: run `node ./bin/chrome-bridge.mjs reload-extension --confirm`, run `node ./bin/chrome-bridge.mjs doctor --live-checks`, then run `npm run runtime-smoke`.
 
-If the later live smoke is skipped because the bridge server or extension version is stale, the structured JSON output keeps the same `verification.finalCommands` and `verification.finalMcpCalls` recovery sequence, so CLI and MCP agents can proceed without reconstructing the upgrade flow.
+If the later live smoke is skipped because the bridge server or extension version is stale, the structured JSON output includes `verification.nextCommand` / `verification.nextAction` plus the same `verification.finalCommands` and `verification.finalMcpCalls` recovery sequence, so CLI and MCP agents can proceed without reconstructing the upgrade flow.
 
 The smoke test opens temporary `127.0.0.1` fixture tabs, checks existing-tab adoption, scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction, querySelector/nth-of-type selector fallback, screenshots, PDF export, dialog handling, file input upload, interactions, tracing, browser-data safety gates, and cleanup metadata including `savedClosedGroupChipPrevention`.
 

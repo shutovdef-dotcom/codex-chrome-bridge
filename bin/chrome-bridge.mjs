@@ -1099,11 +1099,35 @@ const RUNTIME_SMOKE_FINAL_MCP_CALLS = Object.freeze([
   { tool: 'chrome_bridge_runtime_smoke', arguments: {} },
 ]);
 
+const RUNTIME_SMOKE_RELOAD_EXTENSION_ACTION = 'Reload the unpacked Codex Chrome Bridge extension, then run chrome-bridge doctor --live-checks.';
+const RUNTIME_SMOKE_RESTART_BRIDGE_ACTION = 'Restart the local Chrome Bridge server, then run chrome-bridge doctor --live-checks.';
+const RUNTIME_SMOKE_RERUN_ACTION = 'Review the smoke failures, fix the issue, then run chrome-bridge runtime-smoke again.';
+
 function runtimeSmokeFinalMcpCalls() {
   return RUNTIME_SMOKE_FINAL_MCP_CALLS.map((call) => ({
     tool: call.tool,
     arguments: { ...call.arguments },
   }));
+}
+
+function runtimeSmokeNextStep({ status, bridgeVersion, extensionVersion } = {}) {
+  if (status === 'passed') return { nextCommand: null, nextAction: null };
+  if (bridgeVersion && bridgeVersion !== EXPECTED_EXTENSION_VERSION) {
+    return {
+      nextCommand: 'chrome-bridge doctor --live-checks',
+      nextAction: RUNTIME_SMOKE_RESTART_BRIDGE_ACTION,
+    };
+  }
+  if (extensionVersion && extensionVersion !== EXPECTED_EXTENSION_VERSION) {
+    return {
+      nextCommand: 'chrome-bridge reload-extension --confirm',
+      nextAction: RUNTIME_SMOKE_RELOAD_EXTENSION_ACTION,
+    };
+  }
+  return {
+    nextCommand: 'chrome-bridge runtime-smoke',
+    nextAction: RUNTIME_SMOKE_RERUN_ACTION,
+  };
 }
 
 function redactDebugBundleValue(value) {
@@ -1146,6 +1170,8 @@ function runtimeSmokeCoveragePlan(startedAt) {
     verification: {
       status: 'not-run',
       liveVerificationRequired: true,
+      nextCommand: 'chrome-bridge reload-extension --confirm',
+      nextAction: RUNTIME_SMOKE_RELOAD_EXTENSION_ACTION,
       finalCommands: [...RUNTIME_SMOKE_FINAL_COMMANDS],
       finalMcpCalls: runtimeSmokeFinalMcpCalls(),
       successCriteria: {
@@ -1162,9 +1188,12 @@ function runtimeSmokeCoveragePlan(startedAt) {
 
 function runtimeSmokeLiveVerification({ status, bridgeVersion = null, extensionVersion = null, failures = [], coverage = null } = {}) {
   const effectiveStatus = status || (failures.length === 0 && coverage?.ok ? 'passed' : 'failed');
+  const nextStep = runtimeSmokeNextStep({ status: effectiveStatus, bridgeVersion, extensionVersion });
   return {
     status: effectiveStatus,
     liveVerificationRequired: effectiveStatus !== 'passed',
+    nextCommand: nextStep.nextCommand,
+    nextAction: nextStep.nextAction,
     finalCommands: [...RUNTIME_SMOKE_FINAL_COMMANDS],
     finalMcpCalls: runtimeSmokeFinalMcpCalls(),
     successCriteria: {
