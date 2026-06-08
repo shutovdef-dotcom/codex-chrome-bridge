@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { MCP_TOOLS } from '../shared/command-registry.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mcpPath = path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs');
@@ -67,6 +68,15 @@ async function withMcpClient(fn) {
 await withMcpClient(async (client) => {
   const tools = await client.listTools();
   const toolNames = new Set((tools.tools || []).map((tool) => tool.name));
+  const registryToolNames = new Set(MCP_TOOLS);
+  for (const tool of MCP_TOOLS) {
+    check(toolNames.has(tool), `MCP listTools output is missing registry tool: ${tool}`);
+  }
+  for (const tool of toolNames) {
+    check(registryToolNames.has(tool), `MCP listTools output includes unexpected MCP tool: ${tool}`);
+  }
+  check(toolNames.size === MCP_TOOLS.length, 'MCP listTools output count must match registry MCP_TOOLS count');
+
   check(toolNames.has('chrome_bridge_doctor'), 'MCP tools list must expose chrome_bridge_doctor');
   check(toolNames.has('chrome_bridge_extension_path'), 'MCP tools list must expose chrome_bridge_extension_path');
   check(toolNames.has('chrome_bridge_codex_config'), 'MCP tools list must expose chrome_bridge_codex_config');
@@ -119,6 +129,8 @@ if (failures.length) {
 
 process.stdout.write(`${JSON.stringify({
   ok: true,
+  registryToolCount: MCP_TOOLS.length,
+  listedToolCount: MCP_TOOLS.length,
   checkedTools: ['chrome_bridge_doctor', 'chrome_bridge_extension_path', 'chrome_bridge_codex_config', 'chrome_bridge_command_catalog'],
   doctorOfflineByDefault: true,
 }, null, 2)}\n`);
