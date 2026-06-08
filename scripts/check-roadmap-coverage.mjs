@@ -246,6 +246,18 @@ check(roadmapText.includes('savedClosedGroupChipPrevention'), 'Roadmap execution
 
 const coveragePlan = await runCoveragePlan();
 const requiredCoverage = coveragePlan?.coverage?.required || [];
+const deferredLiveVerification = coveragePlan ? {
+  status: coveragePlan.verification?.status || 'unknown',
+  liveBridge: coveragePlan.liveBridge === true,
+  liveVerificationRequired: coveragePlan.verification?.liveVerificationRequired === true,
+  nextCommand: coveragePlan.nextCommand || coveragePlan.verification?.nextCommand || null,
+  nextAction: coveragePlan.nextAction || coveragePlan.verification?.nextAction || null,
+  finalCommands: coveragePlan.verification?.finalCommands || [],
+  finalMcpCalls: coveragePlan.verification?.finalMcpCalls || [],
+  successCriteria: coveragePlan.verification?.successCriteria || {},
+  requiredCoverageCount: coveragePlan.coverage?.requiredCount || requiredCoverage.length,
+  requiredCoverage,
+} : null;
 if (coveragePlan) {
   check(coveragePlan.ok === true, 'offline coverage plan must succeed');
   check(coveragePlan.liveBridge === false, 'offline coverage plan must not touch the live bridge');
@@ -257,6 +269,11 @@ if (coveragePlan) {
   check(coveragePlan.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'), 'offline coverage plan must include the first recovery action');
   check(coveragePlan.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'), 'offline coverage plan must include final live CLI commands');
   check(coveragePlan.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_runtime_smoke'), 'offline coverage plan must include final live MCP calls');
+  check(deferredLiveVerification?.status === 'not-run', 'roadmap output must expose pending deferred live verification status');
+  check(deferredLiveVerification?.liveBridge === false, 'roadmap output must expose offline live-bridge state');
+  check(deferredLiveVerification?.nextCommand === 'chrome-bridge reload-extension --confirm', 'roadmap output must expose first live recovery command');
+  check(deferredLiveVerification?.finalCommands?.includes('chrome-bridge runtime-smoke'), 'roadmap output must expose final CLI runtime smoke command');
+  check(deferredLiveVerification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_runtime_smoke'), 'roadmap output must expose final MCP runtime smoke call');
   for (const coverageItem of [
     'set strict smoke workspace',
     'adopt existing smoke tab',
@@ -291,4 +308,5 @@ process.stdout.write(`${JSON.stringify({
   runtimeSmokeDeferred: true,
   recoveryMetadata: Boolean(coveragePlan?.nextCommand && coveragePlan?.nextAction && coveragePlan?.verification?.nextCommand && coveragePlan?.verification?.finalMcpCalls?.length),
   requiredLiveCoverageCount: coveragePlan?.coverage?.requiredCount || null,
+  deferredLiveVerification,
 }, null, 2)}\n`);
