@@ -19,6 +19,7 @@ The `extension/` directory contains a Manifest V3 extension:
 - `page-interactions.js` owns page mutation, trusted input, dialog, and file-upload actions.
 - `page-read-actions.js` owns page inspection and read actions such as observe, extract, text, HTML, select-option discovery, and storage snapshots.
 - `page-scripts.js` contains self-contained functions injected into web pages through `chrome.scripting.executeScript`.
+- `runtime-actions.js` owns extension runtime actions such as confirmed extension reload.
 - `safety-gates.js` owns confirmation and sensitive-confirmation runtime guards.
 - `tab-cleanup.js` owns tab close cleanup, including ungroup-before-close mitigation for saved closed tab groups.
 - `tab-info.js` owns tab and tab-group response serialization.

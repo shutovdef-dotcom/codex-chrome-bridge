@@ -45,7 +45,7 @@ import {
   recordDebuggerDetach,
   recordDebuggerEvent,
 } from './debugger-session.js';
-import { requireConfirmed } from './safety-gates.js';
+import { reloadExtension } from './runtime-actions.js';
 import {
   traceEvents,
   traceStart,
@@ -216,13 +216,4 @@ async function dispatch(action, payload) {
     default:
       throw new Error(`Unknown action: ${action}`);
   }
-}
-
-async function reloadExtension(payload = {}) {
-  requireConfirmed(payload, 'reloadExtension');
-  setTimeout(() => chrome.runtime.reload(), 100);
-  return {
-    reloading: true,
-    message: 'Codex Chrome Bridge extension reload requested',
-  };
 }

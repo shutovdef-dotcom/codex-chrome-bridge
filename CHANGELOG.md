@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Split confirmed extension runtime actions into `extension/runtime-actions.js`.
 - Split trace command wrappers into `extension/trace-actions.js`.
 - Split page interaction, trusted input, dialog, and file-upload actions into `extension/page-interactions.js`.
 - Split navigation, workspace, tab inventory, and scoped close actions into `extension/navigation-actions.js`.
