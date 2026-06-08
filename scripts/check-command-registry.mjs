@@ -638,6 +638,7 @@ check(packageJson.scripts?.['check:tab-group-persistence'] && packageText.includ
 check(readmeText.includes('npm run runtime-smoke:plan') && readmeText.includes('runtime-smoke --coverage-plan'), 'README must document offline runtime smoke coverage plan');
 check(readmeText.includes('npm run check:roadmap'), 'README must document roadmap coverage contract check');
 check(readmeText.includes('deferredLiveVerification'), 'README must document the check:roadmap deferred live verification gate output');
+check(readmeText.includes('finalVerificationComplete'), 'README must document runtime smoke final completion marker');
 check(readmeText.includes('npm run check:cli-local-tools'), 'README must document CLI local tools contract check');
 check(readmeText.includes('npm run check:mcp-runtime-smoke'), 'README must document MCP runtime smoke contract check');
 check(readmeText.includes('npm run check:mcp-local-tools'), 'README must document MCP local tools contract check');
@@ -657,6 +658,7 @@ check(readmeSmokeSummary.includes('savedClosedGroupChipPrevention'), 'README smo
 check(publishingText.includes('npm run runtime-smoke:plan'), 'publishing checklist must use the canonical offline runtime smoke plan script');
 check(publishingText.includes('npm run check:roadmap'), 'publishing checklist must include roadmap coverage contract check');
 check(publishingText.includes('deferredLiveVerification'), 'publishing docs must document the check:roadmap deferred live verification gate output');
+check(publishingText.includes('finalVerificationComplete'), 'publishing docs must document runtime smoke final completion marker');
 check(publishingText.includes('npm run check:cli-local-tools'), 'publishing checklist must include CLI local tools contract check');
 check(publishingText.includes('npm run check:mcp-runtime-smoke'), 'publishing checklist must include MCP runtime smoke contract check');
 check(publishingText.includes('npm run check:mcp-local-tools'), 'publishing checklist must include MCP local tools contract check');
@@ -772,6 +774,7 @@ if (isRepositoryCheckout || codexChromeBridgeSkillText) {
   check(codexChromeBridgeSkillText.includes('verification.nextCommand') && codexChromeBridgeSkillText.includes('verification.nextAction'), 'bundled Codex chrome-bridge skill must document runtime smoke recovery hints');
   check(codexChromeBridgeSkillText.includes('top-level `nextCommand` / `nextAction`'), 'bundled Codex chrome-bridge skill must document top-level runtime smoke recovery hints');
   check(codexChromeBridgeSkillText.includes('deferredLiveVerification'), 'bundled Codex chrome-bridge skill must document check:roadmap deferred live gate output');
+  check(codexChromeBridgeSkillText.includes('finalVerificationComplete'), 'bundled Codex chrome-bridge skill must document runtime smoke final completion marker');
 }
 check(llmsText.includes('runtime-smoke:plan'), 'llms metadata must mention offline runtime smoke plan');
 check(llmsText.includes('check:tab-group-persistence'), 'llms metadata must mention tab-group persistence behavior check');
@@ -782,6 +785,7 @@ check(llmsText.includes('verification.status: "passed"'), 'llms metadata must me
 check(llmsText.includes('verification.nextCommand') && llmsText.includes('verification.nextAction'), 'llms metadata must mention runtime smoke recovery hints');
 check(llmsText.includes('top-level `nextCommand` / `nextAction`'), 'llms metadata must mention top-level runtime smoke recovery hints');
 check(llmsText.includes('deferredLiveVerification'), 'llms metadata must mention check:roadmap deferred live gate output');
+check(llmsText.includes('finalVerificationComplete'), 'llms metadata must mention runtime smoke final completion marker');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(LOCAL_COMMAND_METADATA.doctor?.mcp?.includes('chrome_bridge_doctor'), 'registry local doctor command must expose an MCP tool');
 check(LOCAL_COMMAND_METADATA['extension-path']?.mcp?.includes('chrome_bridge_extension_path'), 'registry local extension-path command must expose an MCP tool');
