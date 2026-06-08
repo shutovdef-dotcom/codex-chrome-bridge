@@ -593,6 +593,8 @@ check(pullRequestTemplateText.includes('npm run check:cli-local-tools'), 'pull r
 check(pullRequestTemplateText.includes('npm run check:mcp-runtime-smoke'), 'pull request template must include MCP runtime smoke contract check');
 check(pullRequestTemplateText.includes('npm run check:mcp-local-tools'), 'pull request template must include MCP local tools contract check');
 check(pullRequestTemplateText.includes('npm run check:tab-group-persistence'), 'pull request template must include tab-group persistence behavior check');
+check(pullRequestTemplateText.includes('npm run check:privacy'), 'pull request template must include privacy scan check');
+check(pullRequestTemplateText.includes('npm run check:audit'), 'pull request template must include canonical audit check script');
 check(pullRequestTemplateText.includes('verification.status: "passed"'), 'pull request template must document live runtime smoke success criteria');
 check(contributingText.includes('npm run check:runtime-smoke-plan'), 'contributing guide must include offline runtime smoke plan check');
 check(contributingText.includes('npm run check:roadmap'), 'contributing guide must include roadmap coverage check');
@@ -600,6 +602,8 @@ check(contributingText.includes('npm run check:cli-local-tools'), 'contributing 
 check(contributingText.includes('npm run check:mcp-runtime-smoke'), 'contributing guide must include MCP runtime smoke contract check');
 check(contributingText.includes('npm run check:mcp-local-tools'), 'contributing guide must include MCP local tools contract check');
 check(contributingText.includes('npm run check:tab-group-persistence'), 'contributing guide must include tab-group persistence behavior check');
+check(contributingText.includes('npm run check:privacy'), 'contributing guide must include privacy scan check');
+check(contributingText.includes('npm run check:audit'), 'contributing guide must include canonical audit check script');
 check(contributingText.includes('verification.status: "passed"'), 'contributing guide must document live runtime smoke success criteria');
 check(codexChromeBridgeSkillText.includes('runtime-smoke --coverage-plan'), 'bundled Codex chrome-bridge skill must recommend offline runtime smoke plan before live smoke');
 check(codexChromeBridgeSkillText.includes('verification.status: "passed"'), 'bundled Codex chrome-bridge skill must document live runtime smoke success criteria');
