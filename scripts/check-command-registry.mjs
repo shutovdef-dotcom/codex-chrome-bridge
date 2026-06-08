@@ -46,6 +46,7 @@ const [
   runtimeActionsText,
   safetyGatesText,
   tabCleanupText,
+  tabGroupPersistenceText,
   tabInfoText,
   tabLoadingText,
   traceActionsText,
@@ -75,6 +76,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/runtime-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/tab-group-persistence.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/tab-info.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/tab-loading.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/trace-actions.js'), 'utf8').catch(() => ''),
@@ -169,6 +171,7 @@ check(packageJson.scripts?.['check:pack'] === 'node ./scripts/check-package-cont
 check(packageJson.scripts?.['check:privacy'] === 'node ./scripts/check-privacy-scan.mjs', 'check:privacy must run the privacy scanner');
 check(packageJson.scripts?.check?.includes('npm run check:privacy'), 'npm run check must include check:privacy');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-cleanup.js'), 'npm run check must syntax-check extension/tab-cleanup.js');
+check(packageJson.scripts?.check?.includes('node --check ./extension/tab-group-persistence.js'), 'npm run check must syntax-check extension/tab-group-persistence.js');
 check(checkWorkflowText.includes('node-version:'), 'GitHub check workflow must use a Node.js version matrix');
 for (const nodeVersion of ['20', '22', '24']) {
   check(new RegExp(`-\\s*${nodeVersion}\\b`).test(checkWorkflowText), `GitHub check workflow must include Node.js ${nodeVersion}`);
@@ -188,6 +191,7 @@ for (const requiredPackageFile of [
   'extension/page-artifacts.js',
   'extension/page-read-actions.js',
   'extension/tab-cleanup.js',
+  'extension/tab-group-persistence.js',
   'extension/safety-gates.js',
   'extension/workspace-policy.js',
   'docs/COMMAND-CATALOG.md',
@@ -713,9 +717,17 @@ check(functionBlock(pageInteractionsText, 'click').includes("throw new Error('cl
 check(functionBlock(pageInteractionsText, 'fillForm').includes("if (!dryRun) requireConfirmed(payload, 'fillForm')"), 'extension fillForm must keep dry-run-first confirmation behavior');
 check(functionBlock(pageInteractionsText, 'uploadFile').includes("requireConfirmed(payload, 'uploadFile')"), 'extension uploadFile must require confirmation');
 check(navigationActionsText.includes("import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';"), 'extension navigation actions must import tab cleanup helper from extension/tab-cleanup.js');
+check(workspaceTabsText.includes("from './tab-group-persistence.js';"), 'extension workspace tabs must import tab-group persistence helpers');
+check(tabCleanupText.includes("from './tab-group-persistence.js';"), 'extension tab cleanup must import tab-group persistence helpers');
 check(!backgroundText.includes('function tabIdForClose'), 'extension background must not own tab cleanup helper internals');
 check(!backgroundText.includes('async function closeTabsWithGroupPersistenceMitigation'), 'extension background must not own tab cleanup helper internals');
+check(tabGroupPersistenceText.includes('export async function disableSavedTabGroupIfSupported'), 'extension tab-group persistence module must export disableSavedTabGroupIfSupported');
+check(tabGroupPersistenceText.includes('export async function disableSavedTabGroupsForTabs'), 'extension tab-group persistence module must export disableSavedTabGroupsForTabs');
+check(functionBlock(tabGroupPersistenceText, 'disableSavedTabGroupIfSupported').includes("'saved'"), 'extension tab-group persistence must detect Chrome saved-group support without assuming it exists');
+check(functionBlock(tabGroupPersistenceText, 'disableSavedTabGroupIfSupported').includes('saved: false'), 'extension tab-group persistence must disable saved groups when Chrome exposes that API');
+check(functionBlock(workspaceTabsText, 'ensureCodexGroupForTab').includes('disableSavedTabGroupIfSupported(group)'), 'extension workspace grouping must mark Codex groups ephemeral when Chrome supports it');
 const tabCloseMitigationBlock = functionBlock(tabCleanupText, 'closeTabsWithGroupPersistenceMitigation');
+check(tabCloseMitigationBlock.includes('disableSavedTabGroupsForTabs(tabs)'), 'extension tab cleanup must try saved-group disablement before ungroup-before-close');
 check(tabCloseMitigationBlock.includes('chrome.tabs.ungroup'), 'extension tab cleanup must ungroup grouped bridge tabs before removing them');
 check(tabCloseMitigationBlock.includes('chrome.tabs.remove'), 'extension tab cleanup mitigation must own tab removal');
 check(
