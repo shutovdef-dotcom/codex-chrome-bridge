@@ -37,7 +37,7 @@ Codex Chrome Bridge is for logged-in, human-owned Chrome workflows:
 - Scoped by default: keeps work inside a `Codex Bridge` Chrome tab group.
 - Workspace policy: local named workspace defaults expose the active group title/color and support scoped or strict outside-tab policy.
 - Existing-tab adoption: can pull an already-open Chrome tab into the scoped group.
-- Clean group lifecycle: bridge-owned groups are swept on startup, watched on create/update, and marked unsaved when Chrome exposes that API, then bridge-owned tabs are ungrouped before closing to avoid creating new saved closed `Codex Bridge` tab-group chips.
+- Clean group lifecycle: bridge-owned groups are swept on startup, watched on create/update, and marked unsaved when Chrome exposes that API. The guard recognizes `Codex Bridge ...` session titles and remembered bridge-created workspace titles, then bridge-owned tabs are ungrouped before closing to avoid creating new saved closed tab-group chips.
 - CLI and MCP: usable from a terminal or any MCP-capable client.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
 - Agent discovery: ranked read-only `observe` output for actionable elements and selectors.

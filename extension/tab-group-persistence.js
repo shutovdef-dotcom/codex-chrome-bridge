@@ -1,5 +1,13 @@
 import { DEFAULT_GROUP_TITLE, groupOptions } from './workspace-policy.js';
 
+const BRIDGE_MANAGED_TITLE_PREFIXES = [
+  `${DEFAULT_GROUP_TITLE} `,
+  `${DEFAULT_GROUP_TITLE}-`,
+  `${DEFAULT_GROUP_TITLE}:`,
+  `${DEFAULT_GROUP_TITLE}/`,
+  `${DEFAULT_GROUP_TITLE}#`,
+];
+
 function errorMessage(error) {
   return String(error?.message || error);
 }
@@ -14,6 +22,12 @@ function integerSet(values) {
 
 function titleSet(values) {
   return new Set(values.map(normalizedString).filter(Boolean));
+}
+
+function isBridgeManagedTitle(title) {
+  const normalized = normalizedString(title);
+  return normalized === DEFAULT_GROUP_TITLE
+    || BRIDGE_MANAGED_TITLE_PREFIXES.some((prefix) => normalized.startsWith(prefix));
 }
 
 function savedState(group, propertyName = 'saved') {
@@ -85,14 +99,19 @@ async function managedGroupContext() {
   const stored = await chrome.storage.local.get([
     'codexGroupId',
     'codexGroupTitle',
+    'codexManagedGroupTitles',
     'codexWorkspaceGroupTitle',
   ]).catch(() => ({}));
   const options = await groupOptions().catch(() => ({ title: DEFAULT_GROUP_TITLE }));
+  const rememberedTitles = Array.isArray(stored.codexManagedGroupTitles)
+    ? stored.codexManagedGroupTitles
+    : [];
 
   return {
     groupIds: integerSet([stored.codexGroupId]),
     groupTitles: titleSet([
       DEFAULT_GROUP_TITLE,
+      ...rememberedTitles,
       stored.codexGroupTitle,
       stored.codexWorkspaceGroupTitle,
       options.title,
@@ -104,7 +123,7 @@ async function isManagedCodexGroup(group) {
   if (!group || typeof group !== 'object') return false;
   const context = await managedGroupContext();
   const title = normalizedString(group.title);
-  if (context.groupTitles.has(title)) return true;
+  if (context.groupTitles.has(title) || isBridgeManagedTitle(title)) return true;
   return !title && context.groupIds.has(group.id);
 }
 

@@ -6,6 +6,7 @@
 - Expanded `runtime-smoke` required coverage to exercise existing-tab adoption by moving a temporary already-open smoke tab into the scoped `Codex Bridge` group.
 - Added `check:roadmap` to verify merged Phase 0-4 roadmap coverage against registry, source, docs, and offline runtime-smoke coverage metadata without touching Chrome.
 - Added a background startup sweep plus tab-group create/update listeners so managed `Codex Bridge` groups are automatically marked unsaved when Chrome exposes saved-tab-group API support, reducing future saved closed group chips beyond command-driven cleanup.
+- Broadened saved tab-group persistence mitigation so startup sweeps and tab-group listeners treat `Codex Bridge ...` session titles plus remembered bridge-created workspace titles as managed groups.
 - Preserved structured CLI JSON in the MCP `runtime-smoke` wrapper when the smoke command exits nonzero, so failed or skipped verification metadata remains machine-readable for MCP clients.
 - Added `check:mcp-runtime-smoke` to exercise the MCP runtime-smoke tool over stdio against fake bridge URLs, proving coverage-plan and stale-extension outputs stay structured without touching Chrome.
 - Added `chrome_bridge_doctor` and `check:mcp-local-tools` so MCP clients can inspect offline setup diagnostics while proving live checks stay opt-in.

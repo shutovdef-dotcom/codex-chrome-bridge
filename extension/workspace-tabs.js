@@ -20,6 +20,20 @@ export async function storageRemove(keys) {
   return chrome.storage.local.remove(keys);
 }
 
+function normalizedTitle(value) {
+  return String(value || '').trim();
+}
+
+async function rememberedManagedGroupTitles(title) {
+  const normalized = normalizedTitle(title);
+  const stored = await storageGet(['codexManagedGroupTitles']).catch(() => ({}));
+  const existing = Array.isArray(stored.codexManagedGroupTitles)
+    ? stored.codexManagedGroupTitles
+    : [];
+  const titles = [...existing, normalized].map(normalizedTitle).filter(Boolean);
+  return [...new Set(titles)].slice(-32);
+}
+
 async function getStoredCodexTab(payload = {}) {
   const { codexTabId, codexWindowId } = await storageGet(['codexTabId', 'codexWindowId']);
 
@@ -154,12 +168,14 @@ export async function ensureCodexGroupForTab(tab, payload = {}) {
     collapsed: false,
   });
   await disableSavedTabGroupIfSupported(group);
+  const codexManagedGroupTitles = await rememberedManagedGroupTitles(options.title);
 
   await storageSet({
     codexGroupId: group.id,
     codexGroupWindowId: group.windowId,
     codexGroupTitle: options.title,
     codexGroupColor: options.color,
+    codexManagedGroupTitles,
     codexTabId: tab.id,
     codexWindowId: tab.windowId,
   });

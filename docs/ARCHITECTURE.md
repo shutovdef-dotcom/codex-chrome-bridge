@@ -22,13 +22,13 @@ The `extension/` directory contains a Manifest V3 extension:
 - `runtime-actions.js` owns extension runtime actions such as confirmed extension reload.
 - `safety-gates.js` owns confirmation and sensitive-confirmation runtime guards.
 - `tab-cleanup.js` owns tab close cleanup, including ungroup-before-close mitigation for saved closed tab groups.
-- `tab-group-persistence.js` owns feature-detected saved-tab-group disablement for current no-op/future Chrome API support, plus startup sweeping and create/update listeners that keep managed Codex groups ephemeral when that surface exists.
+- `tab-group-persistence.js` owns feature-detected saved-tab-group disablement for current no-op/future Chrome API support, plus startup sweeping and create/update listeners that keep managed Codex groups ephemeral when that surface exists. It treats default, `Codex Bridge ...` session, and remembered bridge-created workspace titles as managed.
 - `tab-info.js` owns tab and tab-group response serialization.
 - `tab-loading.js` owns tab-load completion polling helpers.
 - `trace-actions.js` owns trace command wrappers around the debugger session helpers.
 - `user-prompts.js` owns human-in-the-loop prompt state, prompt tab lifecycle, and answer completion.
 - `workspace-policy.js` owns local workspace defaults and scoped policy normalization.
-- `workspace-tabs.js` owns scoped workspace tab/group targeting and extension-local workspace storage state.
+- `workspace-tabs.js` owns scoped workspace tab/group targeting and extension-local workspace storage state, including the bounded remembered-title list used by tab-group persistence sweeps.
 - `offscreen.html` and `offscreen.js` keep a WebSocket connection to the local bridge server.
 - `ask.html` and `ask.js` provide a local human-in-the-loop prompt page.
 
