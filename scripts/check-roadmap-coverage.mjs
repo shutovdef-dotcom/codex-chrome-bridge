@@ -238,6 +238,7 @@ if (coveragePlan) {
   check(coveragePlan.verification?.liveVerificationRequired === true, 'offline coverage plan must require final live verification');
   for (const coverageItem of [
     'set strict smoke workspace',
+    'adopt existing smoke tab',
     'session summary covers strict policy',
     'debug bundle default redaction',
     'observe actionable elements',
