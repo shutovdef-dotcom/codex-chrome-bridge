@@ -40,7 +40,7 @@ Codex Chrome Bridge is for logged-in, human-owned Chrome workflows:
 - Clean group lifecycle: bridge-owned groups are swept on startup, watched on create/update/removal plus tab membership changes, and marked unsaved when Chrome exposes that API. The guard recognizes `Codex Bridge ...` session titles and remembered bridge-created workspace titles, then bridge-owned tabs are ungrouped before bridge-driven closing to avoid creating new saved closed tab-group chips.
 - CLI and MCP: usable from a terminal or any MCP-capable client.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
-- Agent discovery: ranked read-only `observe` output for actionable elements and selectors.
+- Agent discovery: ranked read-only `observe` output for actionable elements and querySelector-verified selectors.
 - Structured extraction: read tables, form structure, lists, and key-value blocks as JSON without returning current form values.
 - Export helpers: save screenshots and print the current tab to PDF locally.
 - Controlled interactions: clicks, typing, keyboard, select boxes, hover, and scroll.

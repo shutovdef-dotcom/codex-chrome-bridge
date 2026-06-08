@@ -1,3 +1,55 @@
+function cssEscape(value) {
+  if (globalThis.CSS?.escape) return CSS.escape(String(value));
+  return String(value).replace(/["\\]/g, '\\$&');
+}
+
+function selectorMatchesElement(selector, element) {
+  try {
+    return document.querySelector(selector) === element;
+  } catch {
+    return false;
+  }
+}
+
+function stableSelectorFor(element, options = {}) {
+  const tag = element.tagName.toLowerCase();
+  const candidateAttributes = [
+    element.id ? `#${cssEscape(element.id)}` : null,
+    element.getAttribute('data-testid') ? `[data-testid="${cssEscape(element.getAttribute('data-testid'))}"]` : null,
+    element.getAttribute('data-test') ? `[data-test="${cssEscape(element.getAttribute('data-test'))}"]` : null,
+    element.getAttribute('name') ? `${tag}[name="${cssEscape(element.getAttribute('name'))}"]` : null,
+    element.getAttribute('aria-label') ? `${tag}[aria-label="${cssEscape(element.getAttribute('aria-label'))}"]` : null,
+    options.includeHref && tag === 'a' && element.getAttribute('href')
+      ? `a[href="${cssEscape(element.getAttribute('href'))}"]`
+      : null,
+  ].filter(Boolean);
+
+  for (const selector of candidateAttributes) {
+    if (selectorMatchesElement(selector, element)) return selector;
+  }
+
+  const parts = [];
+  let current = element;
+  while (current?.nodeType === Node.ELEMENT_NODE && current !== document.documentElement) {
+    const currentTag = current.tagName.toLowerCase();
+    let part = currentTag;
+    const parent = current.parentElement;
+    if (parent) {
+      const sameTagSiblings = Array.from(parent.children)
+        .filter((sibling) => sibling.tagName === current.tagName);
+      if (sameTagSiblings.length > 1) {
+        part = `${part}:nth-of-type(${sameTagSiblings.indexOf(current) + 1})`;
+      }
+    }
+    parts.unshift(part);
+    const selector = parts.join(' > ');
+    if (selectorMatchesElement(selector, element)) return selector;
+    current = parent;
+  }
+
+  return parts.join(' > ') || tag;
+}
+
 export function collectText(options = {}) {
   const maxChars = Number(options.maxChars || 50_000);
   const text = (document.body?.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
@@ -297,18 +349,6 @@ export function collectObserve(options = {}) {
       && rect.width > 0
       && rect.height > 0;
   };
-  const selectorFor = (element) => {
-    if (element.id) return `#${CSS.escape(element.id)}`;
-    const testId = element.getAttribute('data-testid') || element.getAttribute('data-test');
-    if (testId) return `[data-testid="${CSS.escape(testId)}"]`;
-    const name = element.getAttribute('name');
-    if (name) return `${element.tagName.toLowerCase()}[name="${CSS.escape(name)}"]`;
-    const aria = element.getAttribute('aria-label');
-    if (aria) return `${element.tagName.toLowerCase()}[aria-label="${CSS.escape(aria)}"]`;
-    const href = element.getAttribute('href');
-    if (href && element.tagName.toLowerCase() === 'a') return `a[href="${CSS.escape(href)}"]`;
-    return element.tagName.toLowerCase();
-  };
   const accessibleLabel = (element) => {
     const labelledBy = element.getAttribute('aria-labelledby');
     if (labelledBy) {
@@ -408,7 +448,7 @@ export function collectObserve(options = {}) {
       const action = actionKind(element, role);
       return {
         index,
-        selector: selectorFor(element),
+        selector: stableSelectorFor(element, { includeHref: true }),
         tag: element.tagName.toLowerCase(),
         role,
         action,
@@ -479,12 +519,6 @@ export function collectExtract(options = {}) {
       && rect.width > 0
       && rect.height > 0;
   };
-  const selectorFor = (element) => {
-    if (element.id) return `#${CSS.escape(element.id)}`;
-    const name = element.getAttribute('name');
-    if (name) return `${element.tagName.toLowerCase()}[name="${CSS.escape(name)}"]`;
-    return element.tagName.toLowerCase();
-  };
   const shouldInclude = (target) => kind === 'all' || kind === target;
 
   const tables = shouldInclude('tables')
@@ -499,7 +533,7 @@ export function collectExtract(options = {}) {
             .map((cell) => clip(cell.innerText || cell.textContent)));
         return {
           index,
-          selector: selectorFor(table),
+          selector: stableSelectorFor(table),
           rows,
         };
       })
@@ -511,12 +545,12 @@ export function collectExtract(options = {}) {
       .slice(0, Math.min(maxItems, 50))
       .map((form, index) => ({
         index,
-        selector: selectorFor(form),
+        selector: stableSelectorFor(form),
         fields: Array.from(form.querySelectorAll('input,textarea,select'))
           .filter(isVisible)
           .slice(0, 100)
           .map((field) => ({
-            selector: selectorFor(field),
+            selector: stableSelectorFor(field),
             tag: field.tagName.toLowerCase(),
             name: field.getAttribute('name'),
             type: field.getAttribute('type'),
@@ -534,7 +568,7 @@ export function collectExtract(options = {}) {
       .slice(0, Math.min(maxItems, 50))
       .map((list, index) => ({
         index,
-        selector: selectorFor(list),
+        selector: stableSelectorFor(list),
         items: Array.from(list.querySelectorAll('li,[role="listitem"]'))
           .filter(isVisible)
           .slice(0, 100)
@@ -589,23 +623,11 @@ export function collectSnapshot(options = {}) {
       && rect.height > 0;
   };
   const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
-  const selectorFor = (element) => {
-    if (element.id) return `#${CSS.escape(element.id)}`;
-    const testId = element.getAttribute('data-testid') || element.getAttribute('data-test');
-    if (testId) return `[data-testid="${CSS.escape(testId)}"]`;
-    const aria = element.getAttribute('aria-label');
-    if (aria) return `${element.tagName.toLowerCase()}[aria-label="${CSS.escape(aria)}"]`;
-    const href = element.getAttribute('href');
-    if (href && element.tagName.toLowerCase() === 'a') {
-      return `a[href="${CSS.escape(href)}"]`;
-    }
-    return element.tagName.toLowerCase();
-  };
   const elementInfo = (element) => {
     const rect = element.getBoundingClientRect();
     return {
       tag: element.tagName.toLowerCase(),
-      selector: selectorFor(element),
+      selector: stableSelectorFor(element, { includeHref: true }),
       text: clean(element.innerText || element.textContent).slice(0, 300),
       ariaLabel: element.getAttribute('aria-label'),
       role: element.getAttribute('role'),

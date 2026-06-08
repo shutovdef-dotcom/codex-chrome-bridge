@@ -280,13 +280,13 @@ const ACTION_DOCS = Object.freeze({
   },
   observe: {
     category: 'read',
-    summary: 'Read ranked actionable elements without mutating page state.',
+    summary: 'Read ranked actionable elements with querySelector-verified selectors without mutating page state.',
     cli: ['observe'],
     mcp: ['chrome_bridge_observe'],
   },
   findElements: {
     category: 'read',
-    summary: 'Filter ranked actionable elements by role, text, nearby text, href, action, or risk.',
+    summary: 'Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk.',
     cli: ['find-elements'],
     mcp: ['chrome_bridge_find_elements'],
   },
@@ -298,7 +298,7 @@ const ACTION_DOCS = Object.freeze({
   },
   snapshot: {
     category: 'read',
-    summary: 'Read a bounded structured page snapshot.',
+    summary: 'Read a bounded structured page snapshot with querySelector-verified element selectors.',
     cli: ['snapshot'],
     mcp: ['chrome_bridge_snapshot'],
   },

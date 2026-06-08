@@ -37,10 +37,10 @@ The command metadata table below is generated from the shared registry by `npm r
 | `forward` | `goForward` | interaction | 30000 ms | no | yes | Navigate the selected tab forward. |
 | `reload` | `reloadTab` | interaction | 30000 ms | no | yes | Reload the selected tab. |
 | `wait` | `waitForSelector` | read | 30000 ms | no | yes | Wait for a selector to appear in the selected tab. |
-| `observe` | `observe` | read | 30000 ms | no | yes | Read ranked actionable elements without mutating page state. |
-| `find-elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements by role, text, nearby text, href, action, or risk. |
+| `observe` | `observe` | read | 30000 ms | no | yes | Read ranked actionable elements with querySelector-verified selectors without mutating page state. |
+| `find-elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | `extract` | `extractPage` | read | 30000 ms | no | yes | Extract structured tables, form structure, lists, and key-value blocks without current form values. |
-| `snapshot` | `snapshot` | read | 30000 ms | no | yes | Read a bounded structured page snapshot. |
+| `snapshot` | `snapshot` | read | 30000 ms | no | yes | Read a bounded structured page snapshot with querySelector-verified element selectors. |
 | `text` | `text` | read | 30000 ms | no | yes | Read bounded visible page text. |
 | `html` | `html` | read | 30000 ms | no | yes | Read bounded page HTML for a selector or the whole document. |
 | `screenshot` | `screenshot` | read | 30000 ms | no | yes | Capture a PNG screenshot of the selected tab, full page, or selector. |
@@ -176,7 +176,7 @@ chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
 ```
 <!-- END GENERATED CLI USAGE: page-reads -->
 
-`observe` is read-only. It returns ranked actionable elements with selectors, labels, roles, suggested action kinds, and risk hints so agents can choose targets before using confirmed interaction commands.
+`observe` is read-only. It returns ranked actionable elements with querySelector-verified selectors, labels, roles, suggested action kinds, and risk hints so agents can choose targets before using confirmed interaction commands. Short selectors use stable attributes when available; otherwise Chrome Bridge falls back to an `nth-of-type` path that resolves back to the observed element.
 
 `find-elements --near-text` filters candidates by nearby container text, which helps target controls next to a label, heading, or form section without requiring exact button text.
 
