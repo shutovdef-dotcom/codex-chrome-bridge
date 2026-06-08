@@ -464,7 +464,7 @@ async function selfTest() {
       ok: workspacePolicy.includes("['scoped', 'strict']")
         && usage().includes('--policy-mode scoped|strict')
         && mcp.includes("z.enum(['scoped', 'strict'])")
-        && background.includes("policyMode === 'strict'"),
+        && workspaceTabs.includes("policyMode === 'strict'"),
     },
     {
       label: 'registry',

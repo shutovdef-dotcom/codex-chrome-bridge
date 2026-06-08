@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Split scoped workspace tab/group targeting and extension-local workspace storage helpers into `extension/workspace-tabs.js`.
 - Split Chrome Debugger session lifecycle, per-tab serialization, and trace buffering into `extension/debugger-session.js`.
 - Split confirmation gate helpers into `extension/safety-gates.js`.
 - Split extension error-code classification into `extension/extension-errors.js`.

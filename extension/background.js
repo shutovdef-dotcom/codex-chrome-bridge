@@ -30,6 +30,16 @@ import {
 } from './debugger-session.js';
 import { requireConfirmed, requireSensitiveConfirmed } from './safety-gates.js';
 import { groupOptions } from './workspace-policy.js';
+import {
+  ensureCodexGroupForTab,
+  getCodexGroupTabs,
+  getLastFocusedTab,
+  getTargetTab,
+  listTabGroups,
+  storageGet,
+  storageRemove,
+  storageSet,
+} from './workspace-tabs.js';
 
 const MAX_USER_PROMPT_CHOICES = 8;
 
@@ -270,182 +280,6 @@ async function listWindows(payload = {}) {
     tabCount: windowInfos.reduce((sum, window) => sum + window.tabCount, 0),
     windows: windowInfos,
   };
-}
-
-async function listTabGroups(query = {}) {
-  if (!chrome.tabGroups) return [];
-  const groups = await chrome.tabGroups.query(query);
-  return groups.map(groupInfo);
-}
-
-async function storageGet(keys) {
-  return chrome.storage.local.get(keys);
-}
-
-async function storageSet(values) {
-  return chrome.storage.local.set(values);
-}
-
-async function storageRemove(keys) {
-  return chrome.storage.local.remove(keys);
-}
-
-async function getStoredCodexTab(payload = {}) {
-  const { codexTabId, codexWindowId } = await storageGet(['codexTabId', 'codexWindowId']);
-
-  if (codexTabId) {
-    try {
-      const tab = await chrome.tabs.get(codexTabId);
-      if (!codexWindowId || tab.windowId === codexWindowId) return tab;
-    } catch {
-      // Fall through to group recovery below.
-    }
-  }
-
-  const tabs = await getCodexGroupTabs(payload);
-  if (!tabs.length) return null;
-
-  const tab = tabs.find((candidate) => candidate.active) || tabs[0];
-  await storageSet({ codexTabId: tab.id, codexWindowId: tab.windowId });
-  return tab;
-}
-
-async function getLastFocusedTab() {
-  const tabs = await chrome.tabs.query({
-    active: true,
-    lastFocusedWindow: true,
-  });
-  const tab = tabs.find((candidate) => candidate.id);
-  if (!tab?.id) throw new Error('No active browser tab was found in the last focused window');
-  return tab;
-}
-
-async function getTargetTab(payload = {}, options = {}) {
-  if (payload.tabId) {
-    const policy = await groupOptions(payload);
-    if (payload.allowExternal && policy.policyMode === 'strict') {
-      throw new Error('allowExternal is blocked by strict workspace policy');
-    }
-    const tab = await chrome.tabs.get(Number(payload.tabId));
-    if (!payload.allowExternal) {
-      await assertCodexScopedTab(tab, payload);
-    }
-    return tab;
-  }
-
-  const stored = await getStoredCodexTab(payload);
-  if (stored) {
-    await ensureCodexGroupForTab(stored, payload);
-    return chrome.tabs.get(stored.id);
-  }
-
-  if (!options.create) {
-    throw new Error('No tabId supplied and no Codex tab has been created yet');
-  }
-
-  const created = await chrome.windows.create({
-    url: options.url || payload.url || 'about:blank',
-    focused: Boolean(payload.active),
-    width: 1280,
-    height: 900,
-    left: 80,
-    top: 80,
-    type: 'normal',
-  });
-
-  const tab = created.tabs?.[0];
-  if (!tab?.id) throw new Error('Failed to create a Codex tab');
-
-  await storageSet({ codexTabId: tab.id, codexWindowId: tab.windowId });
-  await ensureCodexGroupForTab(tab, payload);
-  return chrome.tabs.get(tab.id);
-}
-
-async function getStoredCodexGroup(payload = {}, windowId) {
-  if (!chrome.tabGroups) return null;
-  const options = await groupOptions(payload);
-  const stored = await storageGet(['codexGroupId', 'codexGroupWindowId']);
-
-  if (stored.codexGroupId) {
-    try {
-      const group = await chrome.tabGroups.get(stored.codexGroupId);
-      if ((!windowId || group.windowId === windowId) && group.title === options.title) {
-        return group;
-      }
-    } catch {
-      // Browser-session group IDs are not durable; recover by title below.
-    }
-  }
-
-  const groups = await chrome.tabGroups.query(windowId ? { windowId } : {});
-  return groups.find((group) => group.title === options.title) || null;
-}
-
-async function getCodexGroupTabs(payload = {}) {
-  const options = await groupOptions(payload);
-  const groups = await listTabGroups();
-  const groupIds = new Set(groups
-    .filter((group) => group.title === options.title)
-    .map((group) => group.id));
-  if (!groupIds.size) return [];
-  const tabs = await chrome.tabs.query({});
-  return tabs.filter((tab) => groupIds.has(tab.groupId));
-}
-
-async function ensureCodexGroupForTab(tab, payload = {}) {
-  if (!chrome.tabGroups || !chrome.tabs.group) {
-    throw new Error('chrome.tabGroups API is unavailable; reload the extension after granting the tabGroups permission');
-  }
-
-  const options = await groupOptions(payload);
-  let group = await getStoredCodexGroup(payload, tab.windowId);
-  let groupId = group?.id;
-
-  if (!groupId && Number.isInteger(tab.groupId) && tab.groupId >= 0) {
-    try {
-      const existing = await chrome.tabGroups.get(tab.groupId);
-      if (existing.windowId === tab.windowId && existing.title === options.title) {
-        groupId = existing.id;
-      }
-    } catch {
-      groupId = null;
-    }
-  }
-
-  if (groupId) {
-    await chrome.tabs.group({ groupId, tabIds: [tab.id] });
-  } else {
-    groupId = await chrome.tabs.group({ tabIds: [tab.id] });
-  }
-
-  group = await chrome.tabGroups.update(groupId, {
-    title: options.title,
-    color: options.color,
-    collapsed: false,
-  });
-
-  await storageSet({
-    codexGroupId: group.id,
-    codexGroupWindowId: group.windowId,
-    codexGroupTitle: options.title,
-    codexGroupColor: options.color,
-    codexTabId: tab.id,
-    codexWindowId: tab.windowId,
-  });
-
-  return group;
-}
-
-async function assertCodexScopedTab(tab, payload = {}) {
-  const options = await groupOptions(payload);
-  const group = await getStoredCodexGroup(payload, tab.windowId);
-  if (group && tab.groupId === group.id) return;
-
-  const groups = await listTabGroups({ windowId: tab.windowId });
-  const match = groups.find((candidate) => candidate.id === tab.groupId && candidate.title === options.title);
-  if (match) return;
-
-  throw new Error(`Tab ${tab.id} is outside the "${options.title}" group; pass allowExternal=true only for an explicitly user-approved tab`);
 }
 
 async function ensureCodexTab(payload) {
