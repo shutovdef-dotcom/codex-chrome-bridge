@@ -90,13 +90,17 @@ function printJson(value) {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
 
-function parseChromeIdArg(value, name) {
+function parseNonNegativeIntegerArg(value, name) {
   if (value === undefined) return undefined;
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 0) {
     throw new Error(`${name} must be a non-negative integer`);
   }
   return parsed;
+}
+
+function parseChromeIdArg(value, name) {
+  return parseNonNegativeIntegerArg(value, name);
 }
 
 function targetPayload(args) {
@@ -2133,7 +2137,7 @@ tool_timeout_sec = 60
       selector: args.selector,
       value: args.value,
       label: args.label,
-      index: args.index === undefined ? undefined : Number(args.index),
+      index: parseNonNegativeIntegerArg(args.index, '--index'),
     }, 30_000));
     return;
   }

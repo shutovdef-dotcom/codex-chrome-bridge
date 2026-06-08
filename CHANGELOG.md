@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Made CLI `select --index` parsing fail fast for non-integer or negative values before contacting the bridge, while preserving option index `0` as valid.
 - Made CLI `--tab` parsing fail fast for non-integer or negative values before contacting the bridge, while preserving Chrome tab ID `0` as valid.
 - Made the CLI `select` command fail fast before contacting the bridge when no `value`, `label`, or `index` target is supplied.
 - Expanded CLI and MCP local-tool fake bridge checks so `select` rejects missing `value`/`label`/`index` targets and still accepts option index `0` without touching live Chrome.
