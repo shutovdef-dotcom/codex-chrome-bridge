@@ -32,6 +32,7 @@ const [
   cliText,
   mcpText,
   backgroundText,
+  extensionErrorsText,
   offscreenLifecycleText,
   pageScriptsText,
   tabCleanupText,
@@ -45,6 +46,7 @@ const [
   fs.readFile(path.join(rootDir, 'bin/chrome-bridge.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/extension-errors.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
@@ -148,6 +150,7 @@ check(!checkWorkflowText.includes('runtime-smoke'), 'GitHub check workflow must 
 check(packageContentsCheckerText.includes('REQUIRED_PACKAGE_FILES'), 'package contents checker must declare required package files');
 for (const requiredPackageFile of [
   'shared/command-registry.mjs',
+  'extension/extension-errors.js',
   'extension/page-scripts.js',
   'extension/offscreen-lifecycle.js',
   'extension/tab-cleanup.js',
@@ -526,6 +529,11 @@ check(!listSelectOptionsBlock.includes('selected: option.selected'), 'select-opt
 check(functionBlock(backgroundText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
 check(functionBlock(backgroundText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
 check(functionBlock(backgroundText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
+check(backgroundText.includes("import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js';"), 'extension background must import error classification helpers from extension/extension-errors.js');
+check(!backgroundText.includes('function extensionErrorCode'), 'extension background must not own extension error helper internals');
+check(!backgroundText.includes('function extensionErrorDetails'), 'extension background must not own extension error helper internals');
+check(functionBlock(extensionErrorsText, 'extensionErrorCode').includes('TAB_SCOPE_VIOLATION'), 'extension error module must classify tab-scope violations');
+check(functionBlock(extensionErrorsText, 'extensionErrorDetails').includes('details.name'), 'extension error module must preserve safe error details');
 check(backgroundText.includes("import { startBridge } from './offscreen-lifecycle.js';"), 'extension background must import offscreen lifecycle helper from extension/offscreen-lifecycle.js');
 check(!backgroundText.includes('function ensureOffscreen'), 'extension background must not own offscreen lifecycle internals');
 check(!backgroundText.includes('async function startBridge'), 'extension background must not own offscreen lifecycle internals');

@@ -281,6 +281,7 @@ async function selfTest() {
   const paths = {
     manifest: path.join(rootDir, 'extension/manifest.json'),
     background: path.join(rootDir, 'extension/background.js'),
+    extensionErrors: path.join(rootDir, 'extension/extension-errors.js'),
     offscreenLifecycle: path.join(rootDir, 'extension/offscreen-lifecycle.js'),
     pageScripts: path.join(rootDir, 'extension/page-scripts.js'),
     tabCleanup: path.join(rootDir, 'extension/tab-cleanup.js'),
@@ -304,6 +305,7 @@ async function selfTest() {
   const [
     manifestText,
     background,
+    extensionErrors,
     offscreenLifecycle,
     pageScripts,
     tabCleanup,
@@ -321,6 +323,7 @@ async function selfTest() {
   ] = await Promise.all([
     fs.readFile(paths.manifest, 'utf8'),
     fs.readFile(paths.background, 'utf8'),
+    fs.readFile(paths.extensionErrors, 'utf8'),
     fs.readFile(paths.offscreenLifecycle, 'utf8'),
     fs.readFile(paths.pageScripts, 'utf8'),
     fs.readFile(paths.tabCleanup, 'utf8'),
@@ -343,6 +346,7 @@ async function selfTest() {
 
   const syntaxChecks = await Promise.all([
     tryExec(process.execPath, ['--check', paths.background]),
+    tryExec(process.execPath, ['--check', paths.extensionErrors]),
     tryExec(process.execPath, ['--check', paths.offscreenLifecycle]),
     tryExec(process.execPath, ['--check', paths.pageScripts]),
     tryExec(process.execPath, ['--check', paths.tabCleanup]),
@@ -370,6 +374,8 @@ async function selfTest() {
     { label: 'manifest version', item: EXPECTED_EXTENSION_VERSION, ok: manifest.version === EXPECTED_EXTENSION_VERSION },
     { label: 'offscreen version', item: EXPECTED_EXTENSION_VERSION, ok: offscreen.includes(`EXTENSION_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
     { label: 'ask page script', item: 'codex-bridge-user-answer', ok: ask.includes('codex-bridge-user-answer') },
+    { label: 'extension module', item: 'extension error imports', ok: background.includes("from './extension-errors.js'") },
+    { label: 'extension module', item: 'extension error exports', ok: extensionErrors.includes('export function extensionErrorCode') },
     { label: 'extension module', item: 'offscreen lifecycle imports', ok: background.includes("from './offscreen-lifecycle.js'") },
     { label: 'extension module', item: 'offscreen lifecycle exports', ok: offscreenLifecycle.includes('export async function startBridge') },
     { label: 'extension module', item: 'page script imports', ok: background.includes("from './page-scripts.js'") },
@@ -560,7 +566,7 @@ async function selfTest() {
     {
       label: 'observability',
       item: 'extension error codes propagate through bridge',
-      ok: background.includes('function extensionErrorCode')
+      ok: extensionErrors.includes('function extensionErrorCode')
         && offscreen.includes('code: response?.code')
         && server.includes('body.code ||')
         && cli.includes('error.details = json.details')
@@ -573,6 +579,7 @@ async function selfTest() {
       label: 'syntax',
       item: [
         paths.background,
+        paths.extensionErrors,
         paths.offscreenLifecycle,
         paths.pageScripts,
         paths.tabCleanup,
