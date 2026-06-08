@@ -231,6 +231,8 @@ async function doctor(args) {
   }
 
   const extensionConnected = includeLiveChecks ? Boolean(health?.extension?.connected) : null;
+  const bridgeVersion = health?.bridge?.version || null;
+  const bridgeCurrent = includeLiveChecks ? bridgeVersion === EXPECTED_EXTENSION_VERSION : null;
   const extensionVersion = health?.extension?.info?.version || null;
   const extensionCurrent = includeLiveChecks ? extensionVersion === EXPECTED_EXTENSION_VERSION : null;
   const appleEventsJsEnabled = includeLiveChecks ? appleEvents.ok : null;
@@ -241,6 +243,9 @@ async function doctor(args) {
     liveChecks: includeLiveChecks,
     health,
     checks: {
+      expectedBridgeVersion: EXPECTED_EXTENSION_VERSION,
+      bridgeVersion,
+      bridgeCurrent,
       extensionConnected,
       expectedExtensionVersion: EXPECTED_EXTENSION_VERSION,
       extensionVersion,
@@ -254,6 +259,9 @@ async function doctor(args) {
       'Run chrome-bridge runtime-smoke --coverage-plan for the offline live-smoke checklist.',
       'Pass --live-checks only when no other Codex session is actively using the bridge.',
       'Run chrome-bridge health and runtime-smoke later for final live verification.',
+    ] : bridgeCurrent === false ? [
+      `Restart the local Chrome Bridge server; expected ${EXPECTED_EXTENSION_VERSION}, got ${bridgeVersion || 'unknown'}.`,
+      'Run chrome-bridge doctor --live-checks again after restarting the bridge server.',
     ] : extensionConnected && extensionCurrent ? [
       'Run chrome-bridge runtime-smoke for full local runtime verification.',
       'Run ensure-tab/open/snapshot/screenshot commands for task-specific work.',

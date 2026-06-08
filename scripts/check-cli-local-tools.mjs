@@ -111,6 +111,7 @@ if (doctorJson) {
   check(doctorJson.nextActions.some((action) => action.includes('runtime-smoke --coverage-plan')), 'CLI doctor offline nextActions must recommend coverage-plan');
 }
 
+let liveDoctorBridgeCurrent = null;
 await withFakeLiveDoctor(async ({ bridgeUrl, pathEnv }) => {
   const liveDoctorResult = await runCli(['doctor', '--live-checks'], {
     CHROME_BRIDGE_URL: bridgeUrl,
@@ -126,6 +127,7 @@ await withFakeLiveDoctor(async ({ bridgeUrl, pathEnv }) => {
   check(liveDoctorJson.checks?.bridgeVersion === BRIDGE_VERSION, 'CLI doctor live checks must report observed bridge version');
   check(liveDoctorJson.checks?.bridgeCurrent === true, 'CLI doctor live checks must confirm bridge version is current');
   check(liveDoctorJson.checks?.appleEventsJsEnabled === true, 'CLI doctor live check fixture must use fake osascript');
+  liveDoctorBridgeCurrent = liveDoctorJson.checks?.bridgeCurrent;
 });
 
 const extensionPathResult = await runCli(['extension-path']);
@@ -164,6 +166,7 @@ process.stdout.write(`${JSON.stringify({
   ok: true,
   checkedCommands: ['doctor', 'extension-path', 'codex-config', 'command-catalog'],
   doctorOfflineByDefault: true,
+  doctorLiveBridgeCurrent: liveDoctorBridgeCurrent,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
 }, null, 2)}\n`);

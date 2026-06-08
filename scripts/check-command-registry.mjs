@@ -510,6 +510,8 @@ check(cliText.includes('function normalizeHttpMethod(value)'), 'CLI must normali
 check(functionBlock(cliText, 'doctor').includes("Boolean(args['live-checks'])"), 'CLI doctor must keep live checks behind --live-checks');
 check(functionBlock(cliText, 'doctor').includes('Pass --live-checks'), 'CLI doctor offline mode must explain how to opt into live checks');
 check(functionBlock(cliText, 'doctor').includes('runtime-smoke --coverage-plan'), 'CLI doctor offline mode must recommend the offline runtime smoke coverage plan');
+check(functionBlock(cliText, 'doctor').includes('expectedBridgeVersion'), 'CLI doctor live checks must report expected bridge version');
+check(functionBlock(cliText, 'doctor').includes('bridgeCurrent'), 'CLI doctor live checks must report whether the bridge server version is current');
 check(cliText.includes('function tomlString(value)'), 'CLI codex-config must escape TOML strings');
 check(cliText.includes('command = ${tomlString(process.execPath)}'), 'CLI codex-config must use the current Node executable');
 check(!cliText.includes('/opt/homebrew/bin/node'), 'CLI codex-config must not hardcode a Homebrew Node path');

@@ -39,7 +39,7 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 
 `check:roadmap` verifies the merged Phase 0-4 roadmap against registry metadata, source boundaries, docs, and the offline runtime-smoke coverage plan without touching Chrome.
 
-`check:cli-local-tools` exercises CLI setup diagnostics and command-catalog output against a dead bridge URL, proving those local commands stay offline by default.
+`check:cli-local-tools` exercises CLI setup diagnostics and command-catalog output against a dead bridge URL, proving those local commands stay offline by default. It also runs `doctor --live-checks` against a fake `/health` server and fake `osascript` binary to prove live doctor reports current bridge-server version metadata without touching Chrome.
 
 `check:mcp-runtime-smoke` starts the MCP server over stdio against fake bridge URLs, calls `chrome_bridge_runtime_smoke`, and verifies coverage-plan plus stale-extension metadata stays structured for MCP clients without touching Chrome.
 
