@@ -186,7 +186,9 @@ check((packageJson.files || []).includes('shared/'), 'package.json files must in
 check((packageJson.files || []).includes('docs/'), 'package.json files must include docs/');
 check(packageJson.scripts?.['check:pack'] === 'node ./scripts/check-package-contents.mjs', 'check:pack must verify exact package contents');
 check(packageJson.scripts?.['check:privacy'] === 'node ./scripts/check-privacy-scan.mjs', 'check:privacy must run the privacy scanner');
+check(packageJson.scripts?.['check:roadmap'] === 'node ./scripts/check-roadmap-coverage.mjs', 'check:roadmap must verify merged roadmap coverage');
 check(packageJson.scripts?.check?.includes('npm run check:privacy'), 'npm run check must include check:privacy');
+check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include check:roadmap');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-cleanup.js'), 'npm run check must syntax-check extension/tab-cleanup.js');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-group-persistence.js'), 'npm run check must syntax-check extension/tab-group-persistence.js');
 check(checkWorkflowText.includes('node-version:'), 'GitHub check workflow must use a Node.js version matrix');
@@ -216,6 +218,7 @@ for (const requiredPackageFile of [
   'scripts/check-command-registry.mjs',
   'scripts/check-bridge-contract.mjs',
   'scripts/check-docs-coverage.mjs',
+  'scripts/check-roadmap-coverage.mjs',
   'scripts/check-package-contents.mjs',
   'scripts/check-privacy-scan.mjs',
 ]) {
@@ -514,27 +517,33 @@ check(cliText.includes("if (!args.confirm) throw new Error('reload-extension req
 check(CLI_USAGE_LINES.includes('chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]'), 'runtime-smoke CLI usage must expose offline coverage-plan mode');
 check(packageJson.scripts?.['runtime-smoke:plan'] === 'node ./bin/chrome-bridge.mjs runtime-smoke --coverage-plan', 'package scripts must expose offline runtime smoke coverage plan');
 check(packageJson.scripts?.['check:runtime-smoke-plan'] === 'node ./scripts/check-runtime-smoke-plan.mjs', 'package scripts must expose runtime smoke plan contract check');
+check(packageJson.scripts?.['check:roadmap'] === 'node ./scripts/check-roadmap-coverage.mjs', 'package scripts must expose roadmap coverage contract check');
 check(packageJson.scripts?.['check:cli-local-tools'] === 'node ./scripts/check-cli-local-tools.mjs', 'package scripts must expose CLI local tools contract check');
 check(packageJson.scripts?.['check:mcp-runtime-smoke'] === 'node ./scripts/check-mcp-runtime-smoke.mjs', 'package scripts must expose MCP runtime smoke contract check');
 check(packageJson.scripts?.['check:mcp-local-tools'] === 'node ./scripts/check-mcp-local-tools.mjs', 'package scripts must expose MCP local tools contract check');
 check(packageJson.scripts?.check?.includes('npm run check:runtime-smoke-plan'), 'npm run check must include runtime smoke plan contract check');
+check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include roadmap coverage contract check');
 check(packageJson.scripts?.check?.includes('npm run check:cli-local-tools'), 'npm run check must include CLI local tools contract check');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-runtime-smoke'), 'npm run check must include MCP runtime smoke contract check');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-local-tools'), 'npm run check must include MCP local tools contract check');
 check(packageJson.scripts?.['check:runtime-smoke-plan'] && packageText.includes('check:runtime-smoke-plan'), 'package metadata must keep runtime smoke plan checker discoverable');
+check(packageJson.scripts?.['check:roadmap'] && packageText.includes('check:roadmap'), 'package metadata must keep roadmap coverage checker discoverable');
 check(packageJson.scripts?.['check:cli-local-tools'] && packageText.includes('check:cli-local-tools'), 'package metadata must keep CLI local tools checker discoverable');
 check(packageJson.scripts?.['check:mcp-runtime-smoke'] && packageText.includes('check:mcp-runtime-smoke'), 'package metadata must keep MCP runtime smoke checker discoverable');
 check(packageJson.scripts?.['check:mcp-local-tools'] && packageText.includes('check:mcp-local-tools'), 'package metadata must keep MCP local tools checker discoverable');
 check(readmeText.includes('npm run runtime-smoke:plan') && readmeText.includes('runtime-smoke --coverage-plan'), 'README must document offline runtime smoke coverage plan');
+check(readmeText.includes('npm run check:roadmap'), 'README must document roadmap coverage contract check');
 check(readmeText.includes('npm run check:cli-local-tools'), 'README must document CLI local tools contract check');
 check(readmeText.includes('npm run check:mcp-runtime-smoke'), 'README must document MCP runtime smoke contract check');
 check(readmeText.includes('npm run check:mcp-local-tools'), 'README must document MCP local tools contract check');
 check(publishingText.includes('npm run runtime-smoke:plan'), 'publishing checklist must use the canonical offline runtime smoke plan script');
+check(publishingText.includes('npm run check:roadmap'), 'publishing checklist must include roadmap coverage contract check');
 check(publishingText.includes('npm run check:cli-local-tools'), 'publishing checklist must include CLI local tools contract check');
 check(publishingText.includes('npm run check:mcp-runtime-smoke'), 'publishing checklist must include MCP runtime smoke contract check');
 check(publishingText.includes('npm run check:mcp-local-tools'), 'publishing checklist must include MCP local tools contract check');
 check(roadmapText.includes('npm run runtime-smoke:plan'), 'deferred runtime roadmap must use the canonical offline runtime smoke plan script');
 check(packageContentsCheckerText.includes("'scripts/check-runtime-smoke-plan.mjs'"), 'package contents must include runtime smoke plan checker');
+check(packageContentsCheckerText.includes("'scripts/check-roadmap-coverage.mjs'"), 'package contents must include roadmap coverage checker');
 check(packageContentsCheckerText.includes("'scripts/check-cli-local-tools.mjs'"), 'package contents must include CLI local tools checker');
 check(packageContentsCheckerText.includes("'scripts/check-mcp-runtime-smoke.mjs'"), 'package contents must include MCP runtime smoke checker');
 check(packageContentsCheckerText.includes("'scripts/check-mcp-local-tools.mjs'"), 'package contents must include MCP local tools checker');
@@ -555,11 +564,13 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs')
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('catalogParsed?.mcpTools'), 'MCP local tools checker must verify command catalog MCP tool list');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('catalogParsed?.cliCommands'), 'MCP local tools checker must verify command catalog CLI command list');
 check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
+check(pullRequestTemplateText.includes('npm run check:roadmap'), 'pull request template must include roadmap coverage check');
 check(pullRequestTemplateText.includes('npm run check:cli-local-tools'), 'pull request template must include CLI local tools contract check');
 check(pullRequestTemplateText.includes('npm run check:mcp-runtime-smoke'), 'pull request template must include MCP runtime smoke contract check');
 check(pullRequestTemplateText.includes('npm run check:mcp-local-tools'), 'pull request template must include MCP local tools contract check');
 check(pullRequestTemplateText.includes('verification.status: "passed"'), 'pull request template must document live runtime smoke success criteria');
 check(contributingText.includes('npm run check:runtime-smoke-plan'), 'contributing guide must include offline runtime smoke plan check');
+check(contributingText.includes('npm run check:roadmap'), 'contributing guide must include roadmap coverage check');
 check(contributingText.includes('npm run check:cli-local-tools'), 'contributing guide must include CLI local tools contract check');
 check(contributingText.includes('npm run check:mcp-runtime-smoke'), 'contributing guide must include MCP runtime smoke contract check');
 check(contributingText.includes('npm run check:mcp-local-tools'), 'contributing guide must include MCP local tools contract check');
