@@ -6,6 +6,7 @@
 
 - Added explicit `savedClosedGroupChipPrevention` cleanup metadata so bridge-driven tab closing reports when `ungroup-before-close` prevented new saved closed group chips.
 - Expanded `check:tab-group-persistence` with fake saved closed group chips simulation so the prevention path is verified offline without touching live Chrome.
+- Hardened direct command validation so workspace `groupColor` must be one of Chrome's supported tab group colors instead of silently normalizing invalid values.
 - Expanded `runtime-smoke` required coverage with a querySelector/nth-of-type selector fallback check for anonymous actionable elements.
 - Expanded `runtime-smoke` required coverage to exercise confirmed JavaScript dialog handling and Chrome Debugger file input upload against the local fixture page.
 - Expanded `runtime-smoke` required coverage to exercise existing-tab adoption by moving a temporary already-open smoke tab into the scoped `Codex Bridge` group.

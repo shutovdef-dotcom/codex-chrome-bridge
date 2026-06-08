@@ -14,6 +14,7 @@ export const MANIFEST_PERMISSIONS = [
   'tabs',
 ];
 
+export const TAB_GROUP_COLORS = ['grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'];
 export const TARGET_KEYS = ['tabId', 'allowExternal'];
 export const CONFIRMATION_KEYS = ['confirmed', 'confirmSensitive'];
 
@@ -1335,6 +1336,7 @@ export function validateCommandPayload(action, payload = {}) {
   ensureChoices(normalizedPayload, action);
   ensureRecordValues(normalizedPayload, 'fields', action, ['string', 'number', 'boolean']);
   ensureRecordValues(normalizedPayload, 'headers', action, ['string']);
+  ensureEnum(normalizedPayload, 'groupColor', action, TAB_GROUP_COLORS);
   ensureEnum(normalizedPayload, 'policyMode', action, ['scoped', 'strict']);
   ensureEnum(normalizedPayload, 'kind', action, ['all', 'tables', 'forms', 'lists', 'keyValues']);
   ensureEnum(normalizedPayload, 'credentials', action, ['omit', 'include']);

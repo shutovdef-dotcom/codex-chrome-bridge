@@ -153,6 +153,17 @@ await check('rejects malformed command payloads before extension dispatch', asyn
   });
 });
 
+await check('rejects invalid workspace group colors before extension dispatch', async () => {
+  await withBridge({}, async ({ baseUrl }) => {
+    const { response, json } = await requestJson(baseUrl, '/command', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'setWorkspace', payload: { groupColor: 'violet', confirmed: true } }),
+    });
+    assert(response.status === 400, `expected 400, got ${response.status}`);
+    assert(json.code === 'INVALID_PAYLOAD', `expected INVALID_PAYLOAD, got ${json.code}`);
+  });
+});
+
 await check('rejects JSON POST bodies without application/json content type', async () => {
   await withBridge({}, async ({ baseUrl }) => {
     const { response, json } = await requestJson(baseUrl, '/command', {
