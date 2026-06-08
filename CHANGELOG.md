@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Split confirmation gate helpers into `extension/safety-gates.js`.
 - Split extension error-code classification into `extension/extension-errors.js`.
 - Split MV3 offscreen document startup into `extension/offscreen-lifecycle.js`.
 - Split tab close cleanup into `extension/tab-cleanup.js` so ungroup-before-close mitigation lives in a focused extension module.

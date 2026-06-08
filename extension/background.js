@@ -17,6 +17,7 @@ import {
 import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js';
 import { startBridge } from './offscreen-lifecycle.js';
 import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';
+import { requireConfirmed, requireSensitiveConfirmed } from './safety-gates.js';
 import { groupOptions } from './workspace-policy.js';
 
 const DEBUGGER_PROTOCOL_VERSION = '1.3';
@@ -617,16 +618,6 @@ async function clearWorkspace(payload = {}) {
     'codexGroupWindowId',
   ]);
   return workspaceStatus({ includeTabs: true });
-}
-
-function requireConfirmed(payload, action) {
-  if (!payload.confirmed) throw new Error(`${action} requires confirmed=true`);
-}
-
-function requireSensitiveConfirmed(payload, action) {
-  if (!payload.confirmSensitive) {
-    throw new Error(`${action} requires confirmSensitive=true because it can expose private browser data`);
-  }
 }
 
 async function activateTab(payload) {

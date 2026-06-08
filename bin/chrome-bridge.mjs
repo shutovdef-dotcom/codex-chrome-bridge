@@ -500,8 +500,8 @@ async function selfTest() {
   const pressBlock = /if \(cmd === 'press'\) \{[\s\S]*?\n  \}/.exec(cli)?.[0] || '';
 
   const safetyChecks = [
-    { label: 'safety gate', item: 'requireConfirmed', ok: background.includes('function requireConfirmed') },
-    { label: 'safety gate', item: 'requireSensitiveConfirmed', ok: background.includes('function requireSensitiveConfirmed') },
+    { label: 'safety gate', item: 'requireConfirmed', ok: safetyGates.includes('function requireConfirmed') },
+    { label: 'safety gate', item: 'requireSensitiveConfirmed', ok: safetyGates.includes('function requireSensitiveConfirmed') },
     { label: 'safety gate', item: 'whole cookie jar confirmSensitive', ok: background.includes("cookiesList without url/domain/name") },
     { label: 'safety gate', item: 'credentialed request confirmSensitive', ok: background.includes("credentials === 'include'") },
     { label: 'bridge guard', item: 'unsupported action rejection', ok: server.includes('Unsupported action:') },
