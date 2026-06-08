@@ -81,6 +81,39 @@ node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" text --max-chars 60000
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" screenshot --out /tmp/chrome-bridge.png
 ```
 
+## Cheap-First Workflow
+
+Prefer metadata and snippets before asking for full page payloads:
+
+```bash
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" status --token-budget
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" tabs --summary-only
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" grep-page --pattern "payout|geo|error"
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" links --selector "main"
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" tables --selector "main"
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" last-artifact
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" read-artifact --path /tmp/page.txt --head 40 --grep "payout"
+```
+
+Use artifact-backed reads for large pages:
+
+```bash
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" text --full-page --summary-only --out /tmp/page.txt
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" snapshot --full-page --summary-only --out /tmp/page.json
+```
+
+Structured CPA offer extraction keeps stdout small and writes raw text/html only to local artifacts:
+
+```bash
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" extract --preset cpa-offer --network leads_su --out /tmp/offer.json
+```
+
+Guard large screenshots:
+
+```bash
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" screenshot --out /tmp/page.png --full-page --max-pixels 50000000 --fallback viewport --timeout-ms 60000
+```
+
 ## Human-in-the-Loop
 
 ```bash

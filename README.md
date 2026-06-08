@@ -119,6 +119,19 @@ node ./bin/chrome-bridge.mjs pdf --out /tmp/chrome-bridge.pdf
 node ./bin/chrome-bridge.mjs text --max-chars 60000
 ```
 
+Cheap-first reads:
+
+```bash
+node ./bin/chrome-bridge.mjs status --token-budget
+node ./bin/chrome-bridge.mjs tabs --summary-only
+node ./bin/chrome-bridge.mjs grep-page --pattern "payout|geo|error"
+node ./bin/chrome-bridge.mjs links --selector "main"
+node ./bin/chrome-bridge.mjs tables --selector "main"
+node ./bin/chrome-bridge.mjs read-artifact --path /tmp/page.txt --head 40 --grep "payout"
+node ./bin/chrome-bridge.mjs extract --preset cpa-offer --network leads_su --out /tmp/offer.json
+node ./bin/chrome-bridge.mjs screenshot --out /tmp/page.png --full-page --max-pixels 50000000 --fallback viewport
+```
+
 Workspace defaults:
 
 ```bash
