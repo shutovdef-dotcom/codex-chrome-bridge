@@ -106,6 +106,7 @@ const [
 const manifest = JSON.parse(manifestText);
 const packageJson = JSON.parse(packageText);
 const cliUsageBlock = /function usage\(\) \{\n  return \[\n[\s\S]*?\n  \]\.join\('\\n'\);\n\}/.exec(cliText)?.[0] || '';
+const readmeSmokeSummary = /^The smoke test opens .*$/m.exec(readmeText)?.[0] || '';
 
 function check(condition, message) {
   if (!condition) failures.push(message);
@@ -547,6 +548,10 @@ check(readmeText.includes('structured JSON output'), 'README must document struc
 check(readmeText.includes('CLI-exit preservation'), 'README must document CLI-exit preservation verifier evidence');
 check(readmeText.includes('node ./bin/chrome-bridge.mjs reload-extension --confirm'), 'README must document exact live extension reload command');
 check(readmeText.includes('node ./bin/chrome-bridge.mjs doctor --live-checks'), 'README must document exact live doctor command');
+check(readmeSmokeSummary.includes('existing-tab adoption'), 'README smoke summary must mention existing-tab adoption coverage');
+check(readmeSmokeSummary.includes('dialog handling'), 'README smoke summary must mention dialog handling coverage');
+check(readmeSmokeSummary.includes('file input upload'), 'README smoke summary must mention file input upload coverage');
+check(readmeSmokeSummary.includes('savedClosedGroupChipPrevention'), 'README smoke summary must mention savedClosedGroupChipPrevention cleanup metadata');
 check(publishingText.includes('npm run runtime-smoke:plan'), 'publishing checklist must use the canonical offline runtime smoke plan script');
 check(publishingText.includes('npm run check:roadmap'), 'publishing checklist must include roadmap coverage contract check');
 check(publishingText.includes('npm run check:cli-local-tools'), 'publishing checklist must include CLI local tools contract check');
