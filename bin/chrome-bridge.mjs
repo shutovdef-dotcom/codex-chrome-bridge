@@ -1592,7 +1592,7 @@ async function runtimeSmoke(args = {}) {
       focusWindow: true,
     }, 10_000), {
       assert: (result) => {
-        if (result.tab?.id !== tabId || !result.tab?.active) throw new Error('dialog smoke tab was not activated');
+        if (result.id !== tabId || !result.active) throw new Error('dialog smoke tab was not activated');
       },
     });
     const dialogTarget = await run('wait for dialog target', () => command('waitForSelector', {
