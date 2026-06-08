@@ -245,6 +245,8 @@ if (coveragePlan) {
     'find-elements near text filtered',
     'extract forms',
     'pdf export',
+    'handle dialog prompt',
+    'upload file input',
     'trace events',
     'safety: credentialed request requires confirmSensitive',
     'strict policy rejects outside tab even with allowExternal',
