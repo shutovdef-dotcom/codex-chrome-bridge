@@ -35,6 +35,7 @@ const [
   extensionErrorsText,
   offscreenLifecycleText,
   pageScriptsText,
+  safetyGatesText,
   tabCleanupText,
   packageContentsCheckerText,
   privacyScannerText,
@@ -49,6 +50,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/extension-errors.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
@@ -154,6 +156,7 @@ for (const requiredPackageFile of [
   'extension/page-scripts.js',
   'extension/offscreen-lifecycle.js',
   'extension/tab-cleanup.js',
+  'extension/safety-gates.js',
   'extension/workspace-policy.js',
   'docs/COMMAND-CATALOG.md',
   'docs/COMPETITIVE-ROADMAP.md',
@@ -529,6 +532,11 @@ check(!listSelectOptionsBlock.includes('selected: option.selected'), 'select-opt
 check(functionBlock(backgroundText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
 check(functionBlock(backgroundText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
 check(functionBlock(backgroundText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
+check(backgroundText.includes("import { requireConfirmed, requireSensitiveConfirmed } from './safety-gates.js';"), 'extension background must import safety gates from extension/safety-gates.js');
+check(!backgroundText.includes('function requireConfirmed'), 'extension background must not own confirmation gate internals');
+check(!backgroundText.includes('function requireSensitiveConfirmed'), 'extension background must not own confirmation gate internals');
+check(functionBlock(safetyGatesText, 'requireConfirmed').includes('confirmed=true'), 'safety gates module must enforce mutation confirmation');
+check(functionBlock(safetyGatesText, 'requireSensitiveConfirmed').includes('confirmSensitive=true'), 'safety gates module must enforce sensitive confirmation');
 check(backgroundText.includes("import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js';"), 'extension background must import error classification helpers from extension/extension-errors.js');
 check(!backgroundText.includes('function extensionErrorCode'), 'extension background must not own extension error helper internals');
 check(!backgroundText.includes('function extensionErrorDetails'), 'extension background must not own extension error helper internals');
