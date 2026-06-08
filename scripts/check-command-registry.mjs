@@ -589,7 +589,10 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs')
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('catalogParsed?.cliCommands'), 'MCP local tools checker must verify command catalog CLI command list');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('createFakeChrome'), 'tab-group persistence checker must use fake Chrome APIs');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('savedGroupPersistence'), 'tab-group persistence checker must assert removal persistence metadata');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('savedClosedGroupChips'), 'tab-group persistence checker must simulate saved closed group chips');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-roadmap-coverage.mjs'), 'utf8').catch(() => '')).includes('check-tab-group-persistence.mjs'), 'roadmap coverage must include the tab-group persistence behavior checker');
+check(readmeText.includes('fake saved closed group chips'), 'README must document fake saved closed group chip prevention coverage');
+check(publishingText.includes('fake saved closed group chips'), 'publishing docs must document fake saved closed group chip prevention coverage');
 check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
 check(pullRequestTemplateText.includes('npm run check:roadmap'), 'pull request template must include roadmap coverage check');
 check(pullRequestTemplateText.includes('npm run check:cli-local-tools'), 'pull request template must include CLI local tools contract check');
@@ -692,6 +695,7 @@ for (const smokeStep of [
 check(runtimeSmokeBlock.includes("debugBundle({") && runtimeSmokeBlock.includes('readJsonFile'), 'runtime-smoke must inspect debug-bundle files without enabling page artifacts');
 check(runtimeSmokeBlock.includes('assertTabCleanupMitigation'), 'runtime-smoke must assert tab cleanup mitigation metadata');
 check(runtimeSmokeBlock.includes('savedGroupPersistence'), 'runtime-smoke must assert saved tab-group persistence metadata');
+check(runtimeSmokeBlock.includes('savedClosedGroupChipPrevention'), 'runtime-smoke must assert saved closed group chip prevention metadata');
 check(runtimeSmokeBlock.includes('RUNTIME_SMOKE_REQUIRED_COVERAGE'), 'runtime-smoke must declare required coverage names');
 check(runtimeSmokeBlock.indexOf("args['coverage-plan']") >= 0, 'runtime-smoke must support offline coverage-plan mode');
 check(
@@ -962,6 +966,7 @@ check(backgroundText.includes('enforceManagedTabGroupPersistence().catch(() => {
 check(functionBlock(workspaceTabsText, 'ensureCodexGroupForTab').includes('disableSavedTabGroupIfSupported(group)'), 'extension workspace grouping must mark Codex groups ephemeral when Chrome supports it');
 const tabCloseMitigationBlock = functionBlock(tabCleanupText, 'closeTabsWithGroupPersistenceMitigation');
 check(tabCloseMitigationBlock.includes('disableSavedTabGroupsForTabs(tabs)'), 'extension tab cleanup must try saved-group disablement before ungroup-before-close');
+check(tabCloseMitigationBlock.includes('savedClosedGroupChipPrevention'), 'extension tab cleanup must report saved closed group chip prevention metadata');
 check(tabCloseMitigationBlock.includes('chrome.tabs.ungroup'), 'extension tab cleanup must ungroup grouped bridge tabs before removing them');
 check(tabCloseMitigationBlock.includes('chrome.tabs.remove'), 'extension tab cleanup mitigation must own tab removal');
 check(
