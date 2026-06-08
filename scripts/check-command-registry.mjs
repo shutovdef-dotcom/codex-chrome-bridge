@@ -134,6 +134,7 @@ check((packageJson.files || []).includes('docs/'), 'package.json files must incl
 check(packageJson.scripts?.['check:pack'] === 'node ./scripts/check-package-contents.mjs', 'check:pack must verify exact package contents');
 check(packageJson.scripts?.['check:privacy'] === 'node ./scripts/check-privacy-scan.mjs', 'check:privacy must run the privacy scanner');
 check(packageJson.scripts?.check?.includes('npm run check:privacy'), 'npm run check must include check:privacy');
+check(packageJson.scripts?.check?.includes('node --check ./extension/tab-cleanup.js'), 'npm run check must syntax-check extension/tab-cleanup.js');
 check(checkWorkflowText.includes('node-version:'), 'GitHub check workflow must use a Node.js version matrix');
 for (const nodeVersion of ['20', '22', '24']) {
   check(new RegExp(`-\\s*${nodeVersion}\\b`).test(checkWorkflowText), `GitHub check workflow must include Node.js ${nodeVersion}`);

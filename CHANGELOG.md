@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Split tab close cleanup into `extension/tab-cleanup.js` so ungroup-before-close mitigation lives in a focused extension module.
 - Expanded `runtime-smoke` to cover strict workspace policy, outside-tab blocking, session-summary recommendations, and debug-bundle default redaction/omission checks.
 - Added a generated CLI command metadata table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
 - Expanded the generated MCP reference block from a plain tool list into a registry-derived table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
