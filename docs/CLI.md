@@ -21,6 +21,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | --- | --- | --- | --- | --- | --- | --- |
 | `server` | `server` | system | - | no | no | Start the local Chrome Bridge HTTP/WebSocket server. |
 | `health` | `health` | read | 10000 ms | no | yes | Read local bridge health and extension connection status. |
+| `status` | `status` | read | 30000 ms | no | yes | Print cheap-first bridge status and token-budget recommendations. |
 | `windows` | `windows` | read | 10000 ms | conditional | yes | List Chrome windows, scoped to the configured bridge group by default; includeAll requires confirmation. |
 | `group` | `group` | read | 10000 ms | no | yes | Show the current scoped Chrome tab group and its tabs. |
 | `tabs` | `tabs` | read | 10000 ms | conditional | yes | List Chrome tabs, scoped to the configured bridge group by default; includeAll requires confirmation. |
@@ -43,6 +44,9 @@ The command metadata table below is generated from the shared registry by `npm r
 | `snapshot` | `snapshot` | read | 30000 ms | no | yes | Read a bounded structured page snapshot with optional full-page rendered text coverage. |
 | `text` | `text` | read | 30000 ms | no | yes | Read bounded visible page text with optional full-page scroll-walk coverage. |
 | `html` | `html` | read | 30000 ms | no | yes | Read bounded page HTML for a selector or the whole document. |
+| `grep-page` | `grep-page` | read | 30000 ms | no | yes | Read page text into an artifact and print regex-matching snippets only. |
+| `links` | `links` | read | 30000 ms | no | yes | Read selector HTML into an artifact and print extracted links only. |
+| `tables` | `tables` | read | 30000 ms | no | yes | Read selector HTML into an artifact and print extracted tables only. |
 | `screenshot` | `screenshot` | read | 30000 ms | no | yes | Capture a PNG screenshot of the selected tab, full page, or selector. |
 | `pdf` | `printPdf` | read | 60000 ms | no | yes | Print the selected tab to a local PDF artifact. |
 | `scroll` | `scroll` | interaction | 10000 ms | no | yes | Scroll the selected tab. |
@@ -70,6 +74,8 @@ The command metadata table below is generated from the shared registry by `npm r
 | `debug-bundle` | `debug-bundle` | read | 60000 ms | no | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
 | `with-temp-tab` | `with-temp-tab` | interaction | 120000 ms | no | yes | Open a run-owned temporary scoped tab, run a bounded read command, and clean up the tab automatically. |
 | `cleanup-run-tabs` | `cleanup-run-tabs` | interaction | 30000 ms | no | yes | Close tabs recorded as owned by a run id and remove them from local run state. |
+| `last-artifact` | `last-artifact` | read | 5000 ms | no | no | Print metadata for the latest artifact recorded by metadata-first read outputs. |
+| `read-artifact` | `read-artifact` | read | 5000 ms | no | no | Read a small head and grep slice from a local artifact without dumping the full file. |
 | `command-catalog` | `command-catalog` | read | 5000 ms | no | no | Print this shared command registry as JSON or Markdown. |
 | `reload-extension` | `reloadExtension` | system | 5000 ms | yes | yes | Ask the unpacked extension to reload itself after local file edits; requires confirmation. |
 | `self-test` | `self-test` | read | 10000 ms | no | no | Run static project parity checks without touching Chrome. |
@@ -98,11 +104,14 @@ The command blocks below are generated from the shared registry by `npm run docs
 ```bash
 chrome-bridge server [--port 17376]
 chrome-bridge health
+chrome-bridge status [--token-budget]
 chrome-bridge windows [--all --confirm] [--group-title <title>] [--group-color <color>]
 chrome-bridge doctor [--live-checks] [--copy-path] [--open-extensions]
 chrome-bridge extension-path
 chrome-bridge codex-config
 chrome-bridge command-catalog [--markdown]
+chrome-bridge last-artifact [--artifact-dir <dir>]
+chrome-bridge read-artifact --path <file> [--head <n>] [--grep <regex>] [--max-matches <n>]
 chrome-bridge reload-extension --confirm
 chrome-bridge self-test
 chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]
@@ -114,7 +123,7 @@ chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]
 <!-- BEGIN GENERATED CLI USAGE: tabs-navigation -->
 ```bash
 chrome-bridge group [--tabs] [--group-title <title>] [--group-color <color>]
-chrome-bridge tabs [--all --confirm] [--group-title <title>] [--group-color <color>]
+chrome-bridge tabs [--json --summary-only] [--all --confirm] [--group-title <title>] [--group-color <color>]
 chrome-bridge workspace [--tabs]
 chrome-bridge set-workspace [--name <name>] [--group-title <title>] [--group-color <color>] [--policy-mode scoped|strict] --confirm
 chrome-bridge clear-workspace --confirm
@@ -174,6 +183,9 @@ chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-of
 chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
+chrome-bridge grep-page --pattern <regex> [--tab <id>] [--artifact-dir <dir>] [--max-matches 20] [--viewport-only] [--allow-external]
+chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
+chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
 chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]

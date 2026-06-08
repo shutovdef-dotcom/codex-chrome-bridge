@@ -6,6 +6,7 @@ import path from 'node:path';
 export const OUTPUT_CONTRACT_VERSION = 'metadata-first/v1';
 export const DEFAULT_MAX_INLINE_CHARS = 4_000;
 export const DEFAULT_ARTIFACT_DIR = path.join(os.tmpdir(), 'chrome-bridge-artifacts');
+export const DEFAULT_ARTIFACT_INDEX_BASENAME = 'index.jsonl';
 
 const JSON_READ_ACTIONS = new Set(['snapshot', 'traceEvents', 'traceStop']);
 
@@ -22,6 +23,10 @@ function positiveInteger(value, fallback) {
 function generatedArtifactPath(action, extension, artifactDir = DEFAULT_ARTIFACT_DIR) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   return path.join(artifactDir, `${timestamp}-${action}-${crypto.randomUUID()}.${extension}`);
+}
+
+export function artifactIndexPath(artifactDir = DEFAULT_ARTIFACT_DIR) {
+  return path.join(artifactDir || DEFAULT_ARTIFACT_DIR, DEFAULT_ARTIFACT_INDEX_BASENAME);
 }
 
 function tabMeta(result = {}) {
@@ -149,6 +154,98 @@ function commonEnvelope({ action, result, options, now, contentType, artifactPat
   };
 }
 
+export async function recordArtifactIndex(envelope = {}, options = {}) {
+  if (options.recordArtifact === false || !envelope.artifactPath) return null;
+  const indexPath = artifactIndexPath(options.artifactDir || DEFAULT_ARTIFACT_DIR);
+  const entry = {
+    generatedAt: envelope.generatedAt,
+    action: envelope.action,
+    contentType: envelope.contentType,
+    artifactPath: envelope.artifactPath,
+    tabId: envelope.tabId,
+    url: envelope.url,
+    title: envelope.title,
+    charCount: envelope.charCount,
+    byteCount: envelope.byteCount,
+    sha256: envelope.sha256,
+  };
+  await fs.mkdir(path.dirname(indexPath), { recursive: true });
+  await fs.appendFile(indexPath, `${JSON.stringify(entry)}\n`);
+  return { indexPath, entry };
+}
+
+export async function readArtifactIndex({ artifactDir = DEFAULT_ARTIFACT_DIR, limit = 100 } = {}) {
+  const indexPath = artifactIndexPath(artifactDir);
+  const text = await fs.readFile(indexPath, 'utf8').catch((error) => {
+    if (error?.code === 'ENOENT') return '';
+    throw error;
+  });
+  const entries = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+  return {
+    ok: true,
+    indexPath,
+    count: entries.length,
+    entries: entries.slice(Math.max(0, entries.length - limit)),
+  };
+}
+
+export async function lastArtifact({ artifactDir = DEFAULT_ARTIFACT_DIR } = {}) {
+  const index = await readArtifactIndex({ artifactDir, limit: 1 });
+  const latest = index.entries[index.entries.length - 1] || null;
+  return {
+    ok: Boolean(latest),
+    indexPath: index.indexPath,
+    ...latest,
+  };
+}
+
+export async function readArtifactPreview({
+  artifactPath,
+  head = 20,
+  grep,
+  maxMatches = 20,
+} = {}) {
+  if (!artifactPath) throw new Error('read-artifact requires --path <file>');
+  const resolved = path.resolve(artifactPath);
+  const buffer = await fs.readFile(resolved);
+  const text = buffer.toString('utf8');
+  const lines = text.replace(/\r/g, '').split('\n');
+  const headCount = positiveInteger(head, 20);
+  let matcher = null;
+  if (grep) {
+    matcher = new RegExp(String(grep), 'i');
+  }
+  const headLines = lines
+    .slice(0, headCount)
+    .map((line, index) => ({ line: index + 1, text: line }));
+  const matches = matcher
+    ? lines
+      .map((line, index) => ({ line: index + 1, text: line }))
+      .filter((entry) => matcher.test(entry.text))
+      .slice(0, positiveInteger(maxMatches, 20))
+    : [];
+  return {
+    ok: true,
+    artifactPath: resolved,
+    byteCount: buffer.byteLength,
+    lineCount: lines.length,
+    head: headLines,
+    grep: grep || null,
+    matches,
+  };
+}
+
 export async function formatReadOutput({ action, result = {}, options = {}, now } = {}) {
   if (!action) throw new Error('formatReadOutput requires action');
 
@@ -157,7 +254,7 @@ export async function formatReadOutput({ action, result = {}, options = {}, now 
     const artifactPath = path.resolve(options.out || generatedArtifactPath(action, 'png', options.artifactDir));
     await fs.mkdir(path.dirname(artifactPath), { recursive: true });
     await fs.writeFile(artifactPath, buffer);
-    return {
+    const envelope = {
       ...commonEnvelope({
         action,
         result,
@@ -179,6 +276,8 @@ export async function formatReadOutput({ action, result = {}, options = {}, now 
         truncated: false,
       },
     };
+    await recordArtifactIndex(envelope, options);
+    return envelope;
   }
 
   const payload = textPayload(action, result);
@@ -207,5 +306,6 @@ export async function formatReadOutput({ action, result = {}, options = {}, now 
   }
   if (result.selector) envelope.selector = result.selector;
   if (inline.content !== undefined) envelope.content = inline.content;
+  await recordArtifactIndex(envelope, options);
   return envelope;
 }

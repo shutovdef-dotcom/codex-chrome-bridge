@@ -114,11 +114,13 @@ async function withFakeBridge(fn) {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({
         ok: true,
-        scope: 'codex-group',
-        tabs: [
-          { id: 5, title: 'Current CPA dashboard', url: longUrl, active: true, status: 'complete' },
-          { id: 6, title: 'Compact docs', url: 'https://example.test/docs', active: false, status: 'complete' },
-        ],
+        result: {
+          scope: 'codex-group',
+          tabs: [
+            { id: 5, title: 'Current CPA dashboard', url: longUrl, active: true, status: 'complete' },
+            { id: 6, title: 'Compact docs', url: 'https://example.test/docs', active: false, status: 'complete' },
+          ],
+        },
       }));
       return;
     }
@@ -127,11 +129,13 @@ async function withFakeBridge(fn) {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({
         ok: true,
-        group: { id: 10, title: 'Codex Bridge', color: 'purple' },
-        tabs: [
-          { id: 5, title: 'Current CPA dashboard', url: longUrl },
-          { id: 6, title: 'Compact docs', url: 'https://example.test/docs' },
-        ],
+        result: {
+          group: { id: 10, title: 'Codex Bridge', color: 'purple' },
+          tabs: [
+            { id: 5, title: 'Current CPA dashboard', url: longUrl },
+            { id: 6, title: 'Compact docs', url: 'https://example.test/docs' },
+          ],
+        },
       }));
       return;
     }
@@ -140,13 +144,15 @@ async function withFakeBridge(fn) {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({
         ok: true,
-        workspace: { title: 'Codex Bridge' },
-        policy: { mode: 'scoped' },
-        counts: { tabs: 2 },
-        tabs: [
-          { id: 5, title: 'Current CPA dashboard', url: longUrl },
-          { id: 6, title: 'Compact docs', url: 'https://example.test/docs' },
-        ],
+        result: {
+          workspace: { title: 'Codex Bridge' },
+          policy: { mode: 'scoped' },
+          counts: { tabs: 2 },
+          tabs: [
+            { id: 5, title: 'Current CPA dashboard', url: longUrl },
+            { id: 6, title: 'Compact docs', url: 'https://example.test/docs' },
+          ],
+        },
       }));
       return;
     }

@@ -8,7 +8,11 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { parseBridgePort, startBridgeServer } from '../server/bridge-server.mjs';
 import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
-import { formatReadOutput } from '../shared/output-envelope.mjs';
+import {
+  formatReadOutput,
+  lastArtifact,
+  readArtifactPreview,
+} from '../shared/output-envelope.mjs';
 import {
   createRunId,
   readRunState,
@@ -218,6 +222,132 @@ function screenshotPayload(args) {
 function screenshotTimeoutMs(args) {
   return parseNumberRangeArg(args['timeout-ms'], '--timeout-ms', 0, 300_000)
     ?? (args['full-page'] || args.selector ? 60_000 : 30_000);
+}
+
+function truncateText(value, maxChars = 160) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return text.length > maxChars ? `${text.slice(0, Math.max(0, maxChars - 3))}...` : text;
+}
+
+function summarizeTabs(result = {}) {
+  const tabs = Array.isArray(result.tabs) ? result.tabs : [];
+  return {
+    ok: result.ok !== false,
+    scope: result.scope || null,
+    summaryOnly: true,
+    counts: {
+      tabs: tabs.length,
+      active: tabs.filter((tab) => tab.active).length,
+    },
+    tabs: tabs.map((tab) => ({
+      id: tab.id,
+      title: truncateText(tab.title, 120),
+      url: truncateText(tab.url, 160),
+      active: Boolean(tab.active),
+      status: tab.status || null,
+    })),
+  };
+}
+
+function decodeHtmlEntities(value) {
+  return String(value || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+function stripHtml(value) {
+  return decodeHtmlEntities(String(value || '').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+}
+
+function htmlLinks(html = '', baseUrl = '') {
+  const links = [];
+  const anchorPattern = /<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi;
+  for (const match of html.matchAll(anchorPattern)) {
+    try {
+      links.push({
+        href: new URL(decodeHtmlEntities(match[2]), baseUrl || undefined).href,
+        text: stripHtml(match[3]).slice(0, 300),
+      });
+    } catch {
+      // Ignore malformed links in helper output.
+    }
+  }
+  return [...new Map(links.map((link) => [link.href, link])).values()];
+}
+
+function htmlTables(html = '') {
+  return [...String(html || '').matchAll(/<table\b[\s\S]*?<\/table>/gi)].map((tableMatch, tableIndex) => {
+    const rows = [...tableMatch[0].matchAll(/<tr\b[\s\S]*?<\/tr>/gi)].map((rowMatch) => (
+      [...rowMatch[0].matchAll(/<t[dh]\b[\s\S]*?<\/t[dh]>/gi)].map((cellMatch) => stripHtml(cellMatch[0]))
+    )).filter((row) => row.length);
+    return {
+      index: tableIndex,
+      rows,
+    };
+  }).filter((table) => table.rows.length);
+}
+
+function grepLines(text = '', pattern, maxMatches = 20) {
+  if (!pattern) throw new Error('grep-page requires --pattern <regex>');
+  const matcher = new RegExp(String(pattern), 'i');
+  return String(text || '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line, index) => ({ line: index + 1, text: line.trim() }))
+    .filter((entry) => entry.text && matcher.test(entry.text))
+    .slice(0, maxMatches);
+}
+
+async function tokenBudgetStatus() {
+  const [health, group, workspace, latestArtifact] = await Promise.all([
+    bridgeFetch('/health').catch((error) => ({ ok: false, error: String(error?.message || error) })),
+    command('group', {}, 10_000).catch((error) => ({ ok: false, error: String(error?.message || error), tabs: [] })),
+    command('workspace', { includeTabs: true }, 10_000).catch((error) => ({ ok: false, error: String(error?.message || error), tabs: [] })),
+    lastArtifact().catch(() => null),
+  ]);
+  const tabs = Array.isArray(group?.tabs) ? group.tabs : (Array.isArray(workspace?.tabs) ? workspace.tabs : []);
+  return {
+    ok: health.ok !== false,
+    generatedAt: new Date().toISOString(),
+    tokenBudget: {
+      mode: 'cheap-first',
+      defaultReadFlow: [
+        'status --token-budget',
+        'tabs --summary-only',
+        'grep-page --pattern <regex>',
+        'links --selector main',
+        'tables --selector main',
+        'read-artifact --head <n> --grep <pattern>',
+      ],
+      stdoutPolicy: 'metadata, snippets, links, and tables only; raw text/html stays in local artifacts',
+    },
+    health: {
+      bridgeVersion: health.bridge?.version || null,
+      extensionConnected: Boolean(health.extension?.connected),
+      extensionVersion: health.extension?.info?.version || null,
+    },
+    workspace: {
+      title: workspace?.workspace?.title || group?.group?.title || null,
+      policyMode: workspace?.policy?.mode || null,
+    },
+    counts: {
+      tabs: tabs.length || workspace?.counts?.tabs || 0,
+    },
+    tabs: summarizeTabs({ tabs }).tabs,
+    lastArtifact: latestArtifact?.ok ? {
+      action: latestArtifact.action,
+      artifactPath: latestArtifact.artifactPath,
+      generatedAt: latestArtifact.generatedAt,
+    } : null,
+    recommendations: [
+      'Start with `tabs --summary-only` before reading page content.',
+      'Use `grep-page --pattern <regex>` for snippets instead of full `text --include-content`.',
+      'Use `read-artifact --head <n> --grep <pattern>` to inspect saved raw artifacts in small slices.',
+    ],
+  };
 }
 
 function errorJson(error) {
@@ -2243,8 +2373,34 @@ tool_timeout_sec = 60
     return;
   }
 
+  if (cmd === 'last-artifact') {
+    printJson(await lastArtifact({
+      artifactDir: args['artifact-dir'],
+    }));
+    return;
+  }
+
+  if (cmd === 'read-artifact') {
+    printJson(await readArtifactPreview({
+      artifactPath: args.path || first,
+      head: parseNumberRangeArg(args.head, '--head', 0, 10_000) ?? 20,
+      grep: args.grep,
+      maxMatches: parseNumberRangeArg(args['max-matches'], '--max-matches', 1, 1_000) ?? 20,
+    }));
+    return;
+  }
+
   if (cmd === 'health') {
     printJson(await bridgeFetch('/health'));
+    return;
+  }
+
+  if (cmd === 'status') {
+    if (args['token-budget']) {
+      printJson(await tokenBudgetStatus());
+      return;
+    }
+    printJson(await sessionSummary());
     return;
   }
 
@@ -2256,11 +2412,12 @@ tool_timeout_sec = 60
 
   if (cmd === 'tabs') {
     if (args.all && !args.confirm) throw new Error('tabs --all requires --confirm');
-    printJson(await command('tabs', {
+    const result = await command('tabs', {
       includeAll: Boolean(args.all),
       ...groupScopePayload(args),
       ...confirmationPayload(args),
-    }));
+    });
+    printJson(args['summary-only'] ? summarizeTabs(result) : result);
     return;
   }
 
@@ -2469,6 +2626,72 @@ tool_timeout_sec = 60
       result,
       options: readOutputOptions(args),
     }));
+    return;
+  }
+
+  if (cmd === 'grep-page') {
+    const result = await command('text', {
+      ...targetPayload(args),
+      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 200_000) ?? 200_000,
+      ...fullPageReadPayload({ ...args, 'full-page': args['viewport-only'] ? false : true }),
+    }, 30_000);
+    const envelope = await formatReadOutput({
+      action: 'text',
+      result,
+      options: {
+        ...readOutputOptions(args),
+        summaryOnly: true,
+      },
+    });
+    const matches = grepLines(result.text, args.pattern, parseNumberRangeArg(args['max-matches'], '--max-matches', 1, 1_000) ?? 20);
+    printJson({
+      ok: true,
+      action: 'grep-page',
+      pattern: args.pattern,
+      matchCount: matches.length,
+      matches,
+      artifactPath: envelope.artifactPath,
+      diagnostics: envelope.diagnostics,
+    });
+    return;
+  }
+
+  if (cmd === 'links' || cmd === 'tables') {
+    const result = await command('html', {
+      ...targetPayload(args),
+      selector: args.selector || 'main',
+      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 500_000) ?? 500_000,
+      outer: true,
+    }, 30_000);
+    const envelope = await formatReadOutput({
+      action: 'html',
+      result,
+      options: {
+        ...readOutputOptions(args),
+        summaryOnly: true,
+      },
+    });
+    if (cmd === 'links') {
+      const links = htmlLinks(result.html, result.url || result.tab?.url || '');
+      printJson({
+        ok: true,
+        action: 'links',
+        selector: result.selector || args.selector || 'main',
+        count: links.length,
+        links,
+        artifactPath: envelope.artifactPath,
+      });
+      return;
+    }
+    const tables = htmlTables(result.html);
+    printJson({
+      ok: true,
+      action: 'tables',
+      selector: result.selector || args.selector || 'main',
+      count: tables.length,
+      tables,
+      artifactPath: envelope.artifactPath,
+    });
     return;
   }
 

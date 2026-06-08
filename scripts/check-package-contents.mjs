@@ -60,6 +60,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'scripts/check-tab-group-persistence.mjs',
   'scripts/check-cpa-offer-preset.mjs',
   'scripts/check-size-aware-screenshot.mjs',
+  'scripts/check-output-hygiene-helpers.mjs',
   'scripts/check-package-contents.mjs',
   'scripts/check-privacy-scan.mjs',
   'scripts/install-launch-agent.mjs',

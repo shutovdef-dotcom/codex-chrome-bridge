@@ -57,10 +57,16 @@ Version: 0.4.1
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | server | service | system | - | server | - | no | Start the local Chrome Bridge HTTP/WebSocket server. |
 | health | diagnostic | read | 10000 ms | health | chrome_bridge_health | yes | Read local bridge health and extension connection status. |
+| status | diagnostic | read | 30000 ms | status | - | yes | Print cheap-first bridge status and token-budget recommendations. |
 | session-summary | diagnostic | read | 30000 ms | session-summary | chrome_bridge_session_summary | yes | Summarize bridge health, workspace policy, scoped group state, and recommendations. |
 | debug-bundle | debug | read | 60000 ms | debug-bundle | chrome_bridge_debug_bundle | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
 | with-temp-tab | navigation | interaction | 120000 ms | with-temp-tab | - | yes | Open a run-owned temporary scoped tab, run a bounded read command, and clean up the tab automatically. |
 | cleanup-run-tabs | navigation | interaction | 30000 ms | cleanup-run-tabs | - | yes | Close tabs recorded as owned by a run id and remove them from local run state. |
+| last-artifact | artifact | read | 5000 ms | last-artifact | - | no | Print metadata for the latest artifact recorded by metadata-first read outputs. |
+| read-artifact | artifact | read | 5000 ms | read-artifact | - | no | Read a small head and grep slice from a local artifact without dumping the full file. |
+| grep-page | read | read | 30000 ms | grep-page | - | yes | Read page text into an artifact and print regex-matching snippets only. |
+| links | read | read | 30000 ms | links | - | yes | Read selector HTML into an artifact and print extracted links only. |
+| tables | read | read | 30000 ms | tables | - | yes | Read selector HTML into an artifact and print extracted tables only. |
 | command-catalog | diagnostic | read | 5000 ms | command-catalog | chrome_bridge_command_catalog | no | Print this shared command registry as JSON or Markdown. |
 | self-test | verification | read | 10000 ms | self-test | chrome_bridge_self_test | no | Run static project parity checks without touching Chrome. |
 | runtime-smoke | verification | interaction | 180000 ms | runtime-smoke | chrome_bridge_runtime_smoke | yes | Run the real-browser fixture smoke test against the live bridge. |
@@ -75,7 +81,7 @@ chrome-bridge server [--port 17376]
 chrome-bridge health
 chrome-bridge windows [--all --confirm] [--group-title <title>] [--group-color <color>]
 chrome-bridge group [--tabs] [--group-title <title>] [--group-color <color>]
-chrome-bridge tabs [--all --confirm] [--group-title <title>] [--group-color <color>]
+chrome-bridge tabs [--json --summary-only] [--all --confirm] [--group-title <title>] [--group-color <color>]
 chrome-bridge workspace [--tabs]
 chrome-bridge set-workspace [--name <name>] [--group-title <title>] [--group-color <color>] [--policy-mode scoped|strict] --confirm
 chrome-bridge clear-workspace --confirm
@@ -95,6 +101,9 @@ chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-of
 chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
+chrome-bridge grep-page --pattern <regex> [--tab <id>] [--artifact-dir <dir>] [--max-matches 20] [--viewport-only] [--allow-external]
+chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
+chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
 chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
@@ -122,6 +131,9 @@ chrome-bridge session-summary
 chrome-bridge debug-bundle --out <dir> [--tab <id>] [--allow-external] [--include-snapshot] [--include-observe] [--include-screenshot] [--include-trace-events]
 chrome-bridge with-temp-tab <url> [--run-id <id>] [--active] [--keep-tab] [--group-title <title>] [--group-color <color>] -- <text|snapshot|html|screenshot> [read flags]
 chrome-bridge cleanup-run-tabs --run-id <id>
+chrome-bridge status [--token-budget]
+chrome-bridge last-artifact [--artifact-dir <dir>]
+chrome-bridge read-artifact --path <file> [--head <n>] [--grep <regex>] [--max-matches <n>]
 chrome-bridge command-catalog [--markdown]
 chrome-bridge reload-extension --confirm
 chrome-bridge self-test
