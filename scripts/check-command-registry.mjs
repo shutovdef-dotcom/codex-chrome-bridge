@@ -560,8 +560,8 @@ check(
 check(runtimeSmokeCoveragePlanBlock.includes("status: 'not-run'"), 'runtime-smoke coverage-plan output must mark live verification as not-run');
 check(runtimeSmokeCoveragePlanBlock.includes('liveVerificationRequired: true'), 'runtime-smoke coverage-plan output must explicitly require final live verification');
 check(runtimeSmokeCoveragePlanBlock.includes('coverageOk: true'), 'runtime-smoke coverage-plan output must document coverage.ok success criteria');
-check(runtimeSmokeLiveVerificationBlock.includes("status: 'passed'") && runtimeSmokeLiveVerificationBlock.includes("status: 'failed'"), 'runtime-smoke live output must include explicit passed/failed verification states');
-check(runtimeSmokeLiveVerificationBlock.includes("status: 'skipped'"), 'runtime-smoke stale-extension output must include explicit skipped verification state');
+check(runtimeSmokeLiveVerificationBlock.includes("'passed'") && runtimeSmokeLiveVerificationBlock.includes("'failed'") && runtimeSmokeLiveVerificationBlock.includes('status: effectiveStatus'), 'runtime-smoke live output must include explicit passed/failed verification states');
+check(runtimeSmokeBlock.includes("runtimeSmokeLiveVerification({ status: 'skipped'"), 'runtime-smoke stale-extension output must include explicit skipped verification state');
 check(runtimeSmokeBlock.includes('verification: runtimeSmokeLiveVerification({'), 'runtime-smoke final output must include machine-readable live verification metadata');
 check(runtimeSmokeBlock.includes("runtimeSmokeLiveVerification({ status: 'skipped'"), 'runtime-smoke version mismatch skip must include verification metadata');
 for (const coverageStep of [
@@ -585,7 +585,7 @@ for (const coverageStep of [
   check(runtimeSmokeRequiredCoverageBlock.includes(`'${coverageStep}'`), `runtime-smoke required coverage must include ${coverageStep}`);
 }
 check(runtimeSmokeBlock.includes('const coverage = runtimeSmokeCoverage(steps)'), 'runtime-smoke must compute machine-readable coverage from completed steps');
-check(runtimeSmokeBlock.includes('ok: failures.length === 0 && coverage.ok'), 'runtime-smoke ok must fail when required coverage is missing');
+check(runtimeSmokeBlock.includes('const ok = failures.length === 0 && coverage.ok') && runtimeSmokeBlock.includes('ok,'), 'runtime-smoke ok must fail when required coverage is missing');
 check(runtimeSmokeCoverageBlock.includes('requiredCount') && runtimeSmokeCoverageBlock.includes('coveredCount') && runtimeSmokeCoverageBlock.includes('missingCount'), 'runtime-smoke coverage must include machine-readable coverage counts');
 check(runtimeSmokeBlock.includes('coverage,'), 'runtime-smoke result must include machine-readable coverage');
 check(debuggerSessionText.includes('const debuggerLocks = new Map()'), 'extension must maintain per-tab debugger locks');

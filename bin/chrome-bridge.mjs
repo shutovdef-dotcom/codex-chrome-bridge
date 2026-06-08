@@ -1025,6 +1025,27 @@ function runtimeSmokeCoveragePlan(startedAt) {
   };
 }
 
+function runtimeSmokeLiveVerification({ status, extensionVersion = null, failures = [], coverage = null } = {}) {
+  const effectiveStatus = status || (failures.length === 0 && coverage?.ok ? 'passed' : 'failed');
+  return {
+    status: effectiveStatus,
+    liveVerificationRequired: effectiveStatus !== 'passed',
+    successCriteria: {
+      ok: true,
+      coverageOk: true,
+      extensionVersion: EXPECTED_EXTENSION_VERSION,
+      requiredCoverageCount: RUNTIME_SMOKE_REQUIRED_COVERAGE.length,
+    },
+    observed: {
+      extensionVersion,
+      failures: failures.length,
+      coverageOk: coverage?.ok ?? false,
+      coveredCount: coverage?.coveredCount ?? 0,
+      missingCount: coverage?.missingCount ?? RUNTIME_SMOKE_REQUIRED_COVERAGE.length,
+    },
+  };
+}
+
 async function debugBundle(args = {}) {
   if (!args.out) throw new Error('debug-bundle requires --out <dir>');
   const outputDir = path.resolve(args.out);
@@ -1137,6 +1158,7 @@ async function runtimeSmoke(args = {}) {
       extensionVersion,
       skipped: true,
       reason: `Reload the unpacked extension first; live extension version is ${extensionVersion || 'unknown'}`,
+      verification: runtimeSmokeLiveVerification({ status: 'skipped', extensionVersion }),
     };
   }
 
@@ -1546,8 +1568,9 @@ async function runtimeSmoke(args = {}) {
 
   const failures = steps.filter((step) => !step.ok);
   const coverage = runtimeSmokeCoverage(steps);
+  const ok = failures.length === 0 && coverage.ok;
   return {
-    ok: failures.length === 0 && coverage.ok,
+    ok,
     startedAt,
     finishedAt: new Date().toISOString(),
     expectedVersion: EXPECTED_EXTENSION_VERSION,
@@ -1560,6 +1583,12 @@ async function runtimeSmoke(args = {}) {
       failures: failures.length,
     },
     coverage,
+    verification: runtimeSmokeLiveVerification({
+      status: ok ? 'passed' : 'failed',
+      extensionVersion,
+      failures,
+      coverage,
+    }),
     failures,
     steps,
   };
