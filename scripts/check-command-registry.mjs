@@ -33,6 +33,7 @@ const [
   mcpText,
   backgroundText,
   pageScriptsText,
+  tabCleanupText,
   packageContentsCheckerText,
   privacyScannerText,
   checkWorkflowText,
@@ -44,6 +45,7 @@ const [
   fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, '.github/workflows/check.yml'), 'utf8'),
@@ -144,6 +146,7 @@ check(packageContentsCheckerText.includes('REQUIRED_PACKAGE_FILES'), 'package co
 for (const requiredPackageFile of [
   'shared/command-registry.mjs',
   'extension/page-scripts.js',
+  'extension/tab-cleanup.js',
   'extension/workspace-policy.js',
   'docs/COMMAND-CATALOG.md',
   'docs/COMPETITIVE-ROADMAP.md',
@@ -519,10 +522,14 @@ check(!listSelectOptionsBlock.includes('selected: option.selected'), 'select-opt
 check(functionBlock(backgroundText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
 check(functionBlock(backgroundText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
 check(functionBlock(backgroundText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
-const tabCloseMitigationBlock = functionBlock(backgroundText, 'closeTabsWithGroupPersistenceMitigation');
+check(backgroundText.includes("import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';"), 'extension background must import tab cleanup helper from extension/tab-cleanup.js');
+check(!backgroundText.includes('function tabIdForClose'), 'extension background must not own tab cleanup helper internals');
+check(!backgroundText.includes('async function closeTabsWithGroupPersistenceMitigation'), 'extension background must not own tab cleanup helper internals');
+const tabCloseMitigationBlock = functionBlock(tabCleanupText, 'closeTabsWithGroupPersistenceMitigation');
 check(tabCloseMitigationBlock.includes('chrome.tabs.ungroup'), 'extension tab cleanup must ungroup grouped bridge tabs before removing them');
 check(tabCloseMitigationBlock.includes('chrome.tabs.remove'), 'extension tab cleanup mitigation must own tab removal');
-check((backgroundText.match(/chrome\.tabs\.remove/g) || []).length === 1, 'extension must remove tabs only through closeTabsWithGroupPersistenceMitigation');
+check((backgroundText.match(/chrome\.tabs\.remove/g) || []).length === 0, 'extension background must not remove tabs directly');
+check((tabCleanupText.match(/chrome\.tabs\.remove/g) || []).length === 1, 'extension tab cleanup module must remove tabs only through closeTabsWithGroupPersistenceMitigation');
 check(functionBlock(backgroundText, 'closeTab').includes('closeTabsWithGroupPersistenceMitigation([tab])'), 'closeTab must use ungroup-before-close mitigation');
 check(functionBlock(backgroundText, 'closeGroup').includes('closeTabsWithGroupPersistenceMitigation(tabs)'), 'closeGroup must use ungroup-before-close mitigation');
 check(

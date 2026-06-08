@@ -13,6 +13,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'extension/background.js',
   'extension/offscreen.js',
   'extension/page-scripts.js',
+  'extension/tab-cleanup.js',
   'extension/workspace-policy.js',
   'extension/ask.html',
   'extension/ask.js',
