@@ -6,7 +6,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { BRIDGE_VERSION, CLI_COMMANDS, MCP_TOOLS } from '../shared/command-registry.mjs';
+import {
+  BRIDGE_VERSION,
+  CLI_COMMANDS,
+  COMMAND_PAYLOAD_SCHEMAS,
+  MCP_TOOLS,
+} from '../shared/command-registry.mjs';
 
 const execFileAsync = promisify(execFile);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -141,6 +146,57 @@ async function withFakeStaleSummaryBridge(fn) {
   }
 }
 
+async function withFakeCommandBridge(fn) {
+  const receivedCommands = [];
+  const server = http.createServer(async (req, res) => {
+    if (req.url !== '/command' || req.method !== 'POST') {
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unexpected path' }));
+      return;
+    }
+
+    let body = '';
+    for await (const chunk of req) {
+      body += chunk;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'invalid json' }));
+      return;
+    }
+
+    receivedCommands.push(parsed);
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      result: {
+        action: parsed.action,
+        payload: parsed.payload,
+        timeoutMs: parsed.timeoutMs,
+      },
+    }));
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  try {
+    const { port } = server.address();
+    return await fn({
+      bridgeUrl: `http://127.0.0.1:${port}`,
+      receivedCommands,
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 function parseJsonOutput(result, label) {
   try {
     return JSON.parse(result.stdout || '{}');
@@ -195,6 +251,35 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
   check(sessionSummaryStaleBridgeRecommendation, 'CLI session-summary must recommend restarting stale bridge server');
 });
 
+let groupScopePayloadChecks = 0;
+await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
+  const groupTitle = 'Codex Bridge CLI Group Scope';
+  const groupColor = 'cyan';
+  const cases = [
+    { action: 'windows', args: ['windows', '--group-title', groupTitle, '--group-color', groupColor] },
+    { action: 'tabs', args: ['tabs', '--group-title', groupTitle, '--group-color', groupColor] },
+    { action: 'group', args: ['group', '--tabs', '--group-title', groupTitle, '--group-color', groupColor] },
+    { action: 'ensureTab', args: ['ensure-tab', 'https://example.com', '--group-title', groupTitle, '--group-color', groupColor] },
+    { action: 'adoptTab', args: ['adopt-tab', '--tab', '123', '--group-title', groupTitle, '--group-color', groupColor, '--confirm'] },
+    { action: 'open', args: ['open', 'https://example.com', '--new', '--group-title', groupTitle, '--group-color', groupColor] },
+    { action: 'closeGroup', args: ['close-group', '--group-title', groupTitle, '--group-color', groupColor, '--confirm'] },
+  ];
+
+  for (const testCase of cases) {
+    check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupTitle'), `${testCase.action} schema must allow groupTitle before CLI behavior checks`);
+    check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupColor'), `${testCase.action} schema must allow groupColor before CLI behavior checks`);
+    const before = receivedCommands.length;
+    const result = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(result.ok, `CLI ${testCase.args[0]} must succeed against fake command bridge`);
+    const parsed = parseJsonOutput(result, `CLI ${testCase.args[0]} fake command bridge`);
+    const commandPayload = receivedCommands[before]?.payload || parsed?.payload;
+    check(receivedCommands[before]?.action === testCase.action, `CLI ${testCase.args[0]} must dispatch ${testCase.action}`);
+    check(commandPayload?.groupTitle === groupTitle, `CLI ${testCase.args[0]} must forward groupTitle`);
+    check(commandPayload?.groupColor === groupColor, `CLI ${testCase.args[0]} must forward groupColor`);
+    groupScopePayloadChecks += 1;
+  }
+});
+
 const extensionPathResult = await runCli(['extension-path']);
 check(extensionPathResult.ok, 'CLI extension-path must succeed offline');
 check(extensionPathResult.stdout.trim().endsWith('/extension'), 'CLI extension-path must return the unpacked extension path');
@@ -233,6 +318,7 @@ process.stdout.write(`${JSON.stringify({
   doctorOfflineByDefault: true,
   doctorLiveBridgeCurrent: liveDoctorBridgeCurrent,
   sessionSummaryStaleBridgeRecommendation,
+  groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
 }, null, 2)}\n`);
