@@ -16,6 +16,7 @@ import {
 } from './page-scripts.js';
 import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js';
 import { startBridge } from './offscreen-lifecycle.js';
+import { execute } from './page-execution.js';
 import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';
 import { groupInfo, tabInfo } from './tab-info.js';
 import { waitForTabComplete } from './tab-loading.js';
@@ -528,16 +529,6 @@ async function traceSummaryCommand(payload) {
 async function traceStop(payload) {
   const tab = await getTargetTab(payload);
   return stopTraceForTab(tab, payload);
-}
-
-async function execute(tabId, func, args = [], options = {}) {
-  const frames = await chrome.scripting.executeScript({
-    target: { tabId },
-    func,
-    args,
-    world: options.world || 'ISOLATED',
-  });
-  return frames?.[0]?.result;
 }
 
 async function observe(payload) {

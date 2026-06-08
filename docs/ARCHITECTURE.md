@@ -13,6 +13,7 @@ The `extension/` directory contains a Manifest V3 extension:
 - `extension-errors.js` classifies extension-side command failures into stable bridge error codes.
 - `keyboard-events.js` owns Chrome Debugger key-event payload mapping for trusted keyboard input.
 - `offscreen-lifecycle.js` owns creation and retry-safe startup of the MV3 offscreen bridge document.
+- `page-execution.js` owns the `chrome.scripting.executeScript` execution boundary for injected page helpers.
 - `page-scripts.js` contains self-contained functions injected into web pages through `chrome.scripting.executeScript`.
 - `safety-gates.js` owns confirmation and sensitive-confirmation runtime guards.
 - `tab-cleanup.js` owns tab close cleanup, including ungroup-before-close mitigation for saved closed tab groups.
