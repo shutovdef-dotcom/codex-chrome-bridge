@@ -272,6 +272,7 @@ let inventoryIncludeAllChecks = 0;
 let privateSensitiveChecks = 0;
 let unsafeUrlMethodChecks = 0;
 let selectTargetChecks = 0;
+let tabIdChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -408,6 +409,32 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
   check(selectIndexPayload?.confirmed === true, 'CLI select with index 0 must forward confirmed');
   selectTargetChecks += 1;
 
+  for (const invalidTab of ['nope', '-1']) {
+    const beforeInvalidTab = receivedCommands.length;
+    const beforeInvalidTabRejects = invalidPayloadRequests.length;
+    const rejected = await runCli(['snapshot', '--tab', invalidTab], { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI snapshot --tab ${invalidTab} must fail`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes('--tab must be a non-negative integer'),
+      `CLI snapshot --tab ${invalidTab} rejection must explain non-negative integer`,
+    );
+    check(receivedCommands.length === beforeInvalidTab, `CLI snapshot --tab ${invalidTab} must not be accepted by fake command bridge`);
+    check(
+      invalidPayloadRequests.length === beforeInvalidTabRejects,
+      `CLI snapshot --tab ${invalidTab} must fail fast before contacting fake command bridge`,
+    );
+    tabIdChecks += 1;
+  }
+
+  const beforeZeroTab = receivedCommands.length;
+  const zeroTab = await runCli(['snapshot', '--tab', '0'], { CHROME_BRIDGE_URL: bridgeUrl });
+  check(zeroTab.ok, 'CLI snapshot --tab 0 must succeed against fake command bridge');
+  const zeroTabParsed = parseJsonOutput(zeroTab, 'CLI snapshot --tab 0 fake command bridge');
+  const zeroTabPayload = receivedCommands[beforeZeroTab]?.payload || zeroTabParsed?.payload;
+  check(receivedCommands[beforeZeroTab]?.action === 'snapshot', 'CLI snapshot --tab 0 must dispatch snapshot');
+  check(zeroTabPayload?.tabId === 0, 'CLI snapshot --tab 0 must forward numeric tabId 0');
+  tabIdChecks += 1;
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -477,6 +504,7 @@ process.stdout.write(`${JSON.stringify({
   privateSensitiveChecks,
   unsafeUrlMethodChecks,
   selectTargetChecks,
+  tabIdChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
