@@ -1222,6 +1222,14 @@ function ensureNumberRange(payload, key, action, min, max) {
   }
 }
 
+function ensureNonNegativeInteger(payload, key, action) {
+  ensureNumber(payload, key, action);
+  if (payload[key] === undefined) return;
+  if (!Number.isInteger(payload[key]) || payload[key] < 0) {
+    throw payloadError(`${action}.${key} must be a non-negative integer`);
+  }
+}
+
 function ensureArray(payload, key, action) {
   if (payload[key] !== undefined && !Array.isArray(payload[key])) {
     throw payloadError(`${action}.${key} must be an array`);
@@ -1326,6 +1334,7 @@ export function validateCommandPayload(action, payload = {}) {
   for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents']) {
     ensureNumber(normalizedPayload, key, action);
   }
+  ensureNonNegativeInteger(normalizedPayload, 'tabId', action);
   for (const key of ['includeAll', 'includeTabs', 'active', 'newTab', 'allowExternal', 'focusWindow', 'confirmed', 'confirmSensitive', 'bypassCache', 'visible', 'outer', 'fullPage', 'landscape', 'printBackground', 'preferCssPageSize', 'trusted', 'ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'network', 'console', 'includeExtensionEvents', 'includeValues', 'allowText', 'closeOnAnswer', 'dryRun', 'accept']) {
     ensureBoolean(normalizedPayload, key, action);
   }

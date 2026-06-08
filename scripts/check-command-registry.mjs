@@ -762,6 +762,8 @@ check(functionBlock(mcpText, 'localDoctor').includes("if (args.liveChecks) cliAr
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpDocsText.includes('chrome_bridge_doctor') && mcpDocsText.includes('liveChecks: true'), 'MCP docs must include doctor liveChecks in the live verification sequence');
 check(mcpText.includes('TAB_GROUP_COLORS') && mcpText.includes('groupColor: z.enum(TAB_GROUP_COLORS).optional()'), 'MCP workspace groupColor schema must use the shared tab group color enum');
+check(mcpText.includes('const chromeIdSchema = z.number().int().nonnegative()'), 'MCP tools must define a non-negative integer Chrome id schema');
+check(!mcpText.includes('tabId: z.number().optional()'), 'MCP tools must not accept unconstrained numeric tabId values');
 for (const toolName of [
   'chrome_bridge_windows',
   'chrome_bridge_tabs',

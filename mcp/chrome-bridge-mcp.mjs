@@ -39,6 +39,8 @@ const webUrlSchema = z.string().refine(
   'URL must use http: or https:',
 );
 
+const chromeIdSchema = z.number().int().nonnegative();
+
 async function bridgeFetch(pathname, options = {}) {
   const response = await fetch(`${BRIDGE_URL}${pathname}`, options);
   const text = await response.text();
@@ -494,7 +496,7 @@ server.tool(
   'chrome_bridge_adopt_tab',
   'Adopt the current active tab, or a specified tabId, into the Codex Bridge group. Requires confirmed=true because it changes tab grouping in the user browser.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     groupTitle: z.string().optional(),
     groupColor: z.enum(TAB_GROUP_COLORS).optional(),
     confirmed: z.boolean(),
@@ -507,7 +509,7 @@ server.tool(
   'Open a URL in the Codex Bridge Chrome tab group. By default this reuses the dedicated tab; pass newTab to create another grouped tab.',
   {
     url: navigationUrlSchema,
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     active: z.boolean().optional(),
     newTab: z.boolean().optional(),
     groupTitle: z.string().optional(),
@@ -521,7 +523,7 @@ server.tool(
   'chrome_bridge_activate_tab',
   'Activate a tab in the Codex Bridge group. Pass allowExternal only for explicitly approved outside tabs.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     focusWindow: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
   },
@@ -532,7 +534,7 @@ server.tool(
   'chrome_bridge_close_tab',
   'Close a tab in the Codex Bridge group. Requires confirmed=true.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
   },
@@ -554,7 +556,7 @@ server.tool(
   'chrome_bridge_back',
   'Navigate the current Codex Bridge tab backward.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     allowExternal: z.boolean().optional(),
     timeoutMs: z.number().optional(),
   },
@@ -565,7 +567,7 @@ server.tool(
   'chrome_bridge_forward',
   'Navigate the current Codex Bridge tab forward.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     allowExternal: z.boolean().optional(),
     timeoutMs: z.number().optional(),
   },
@@ -576,7 +578,7 @@ server.tool(
   'chrome_bridge_reload_tab',
   'Reload the current Codex Bridge tab.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     bypassCache: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
     timeoutMs: z.number().optional(),
@@ -589,7 +591,7 @@ server.tool(
   'Wait for a selector to appear in the selected tab.',
   {
     selector: z.string(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     timeoutMs: z.number().optional(),
     visible: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
@@ -601,7 +603,7 @@ server.tool(
   'chrome_bridge_observe',
   'Read a ranked, bounded list of actionable elements from the selected tab without clicking or mutating page state.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     limit: z.number().min(1).max(300).optional(),
     maxTextChars: z.number().min(20).max(1000).optional(),
     allowExternal: z.boolean().optional(),
@@ -613,7 +615,7 @@ server.tool(
   'chrome_bridge_find_elements',
   'Read ranked actionable elements filtered by role, text, nearby text, placeholder, href, action kind, or risk hint.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     role: z.string().optional(),
     text: z.string().optional(),
     nearText: z.string().optional(),
@@ -632,7 +634,7 @@ server.tool(
   'chrome_bridge_extract',
   'Extract structured JSON from the selected tab: tables, forms, lists, and key-value blocks.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     kind: z.enum(['all', 'tables', 'forms', 'lists', 'keyValues']).optional(),
     maxItems: z.number().min(1).max(500).optional(),
     maxTextChars: z.number().min(50).max(2000).optional(),
@@ -645,7 +647,7 @@ server.tool(
   'chrome_bridge_snapshot',
   'Read a structured snapshot from a Chrome tab: title, URL, headings, visible controls, tables, JSON-LD, and bounded visible text.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     maxChars: z.number().min(1000).max(200000).optional(),
     allowExternal: z.boolean().optional(),
   },
@@ -656,7 +658,7 @@ server.tool(
   'chrome_bridge_text',
   'Read bounded visible text from a Chrome tab.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     maxChars: z.number().min(1000).max(200000).optional(),
     allowExternal: z.boolean().optional(),
   },
@@ -667,7 +669,7 @@ server.tool(
   'chrome_bridge_html',
   'Read bounded HTML from the selected tab or selector.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     selector: z.string().optional(),
     maxChars: z.number().min(1000).max(500000).optional(),
     outer: z.boolean().optional(),
@@ -681,7 +683,7 @@ server.tool(
   'Capture a PNG screenshot of the dedicated or selected Chrome tab and save it to a local path. Supports viewport, fullPage, or selector screenshots.',
   {
     out: z.string(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     fullPage: z.boolean().optional(),
     selector: z.string().optional(),
     allowExternal: z.boolean().optional(),
@@ -707,7 +709,7 @@ server.tool(
   'Export the selected Chrome tab as a PDF and save it to a local path.',
   {
     out: z.string(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     landscape: z.boolean().optional(),
     printBackground: z.boolean().optional(),
     pageRanges: z.string().optional(),
@@ -738,7 +740,7 @@ server.tool(
   {
     x: z.number(),
     y: z.number(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     button: z.string().optional(),
     trusted: z.boolean().optional(),
     confirmed: z.boolean(),
@@ -754,7 +756,7 @@ server.tool(
     selector: z.string().optional(),
     x: z.number().optional(),
     y: z.number().optional(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     trusted: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
   },
@@ -766,7 +768,7 @@ server.tool(
   'Click a selector in the selected tab. Requires confirmed=true.',
   {
     selector: z.string(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
   },
@@ -779,7 +781,7 @@ server.tool(
   {
     selector: z.string(),
     text: z.string(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     trusted: z.boolean().optional(),
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
@@ -794,7 +796,7 @@ server.tool(
     key: z.string(),
     code: z.string().optional(),
     selector: z.string().optional(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     trusted: z.boolean().optional(),
     ctrlKey: z.boolean().optional(),
     metaKey: z.boolean().optional(),
@@ -814,7 +816,7 @@ server.tool(
     value: z.string().optional(),
     label: z.string().optional(),
     index: z.number().optional(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
   },
@@ -826,7 +828,7 @@ server.tool(
   'Read options from a select element without changing page state.',
   {
     selector: z.string(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     allowExternal: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('listSelectOptions', args, 30_000)),
@@ -838,7 +840,7 @@ server.tool(
   {
     fields: z.record(z.union([z.string(), z.number(), z.boolean()])),
     dryRun: z.boolean().optional(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     confirmed: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
   },
@@ -852,7 +854,7 @@ server.tool(
   'chrome_bridge_handle_dialog',
   'Accept or dismiss the currently open JavaScript dialog in the selected tab. Requires confirmed=true.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     accept: z.boolean().optional(),
     promptText: z.string().optional(),
     confirmed: z.boolean(),
@@ -868,7 +870,7 @@ server.tool(
     selector: z.string(),
     file: z.string().optional(),
     files: z.array(z.string()).optional(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
   },
@@ -879,7 +881,7 @@ server.tool(
   'chrome_bridge_scroll',
   'Scroll a Chrome tab. This is a local navigation action and should be used only on the selected work tab.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     x: z.number().optional(),
     y: z.number().optional(),
     allowExternal: z.boolean().optional(),
@@ -891,7 +893,7 @@ server.tool(
   'chrome_bridge_trace_start',
   'Start bounded console/network tracing for the selected tab. Requires confirmed=true; headers and bodies are not captured.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     maxEvents: z.number().min(50).max(2000).optional(),
     network: z.boolean().optional(),
     console: z.boolean().optional(),
@@ -906,7 +908,7 @@ server.tool(
   'chrome_bridge_trace_summary',
   'Read trace session metadata without returning console or network event logs.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     allowExternal: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('traceSummary', args, 30_000)),
@@ -916,7 +918,7 @@ server.tool(
   'chrome_bridge_trace_events',
   'Read recent bounded console/network trace events for the selected tab.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     limit: z.number().min(1).max(2000).optional(),
     allowExternal: z.boolean().optional(),
   },
@@ -927,7 +929,7 @@ server.tool(
   'chrome_bridge_trace_stop',
   'Stop console/network tracing for the selected tab and return recent events.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     limit: z.number().min(1).max(2000).optional(),
     allowExternal: z.boolean().optional(),
   },
@@ -977,7 +979,7 @@ server.tool(
   'chrome_bridge_storage_snapshot',
   'Read localStorage/sessionStorage keys for the selected page. Requires confirmed=true; values require includeValues and confirmSensitive.',
   {
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     includeValues: z.boolean().optional(),
     maxValueChars: z.number().min(50).max(5000).optional(),
     confirmed: z.boolean(),
@@ -1034,7 +1036,7 @@ server.tool(
   'Write a redacted local debug bundle with health, session summary, and trace summary metadata. Page artifacts and full trace events require explicit opt-in flags.',
   {
     out: z.string(),
-    tabId: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
     allowExternal: z.boolean().optional(),
     includeSnapshot: z.boolean().optional(),
     includeObserve: z.boolean().optional(),
