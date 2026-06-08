@@ -995,6 +995,21 @@ function runtimeSmokeCoverage(steps) {
   };
 }
 
+function runtimeSmokeCoveragePlan(startedAt) {
+  return {
+    ok: true,
+    mode: 'coverage-plan',
+    liveBridge: false,
+    skipped: true,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    expectedVersion: EXPECTED_EXTENSION_VERSION,
+    reason: 'Coverage plan only; no bridge or Chrome checks were run.',
+    nextCommand: 'chrome-bridge runtime-smoke',
+    coverage: runtimeSmokeCoverage([]),
+  };
+}
+
 async function debugBundle(args = {}) {
   if (!args.out) throw new Error('debug-bundle requires --out <dir>');
   const outputDir = path.resolve(args.out);
@@ -1093,6 +1108,9 @@ async function runtimeSmoke(args = {}) {
   const startedAt = new Date().toISOString();
   if (!RUNTIME_SMOKE_REQUIRED_COVERAGE.length) {
     throw new Error('runtime-smoke required coverage list must not be empty');
+  }
+  if (args['coverage-plan']) {
+    return runtimeSmokeCoveragePlan(startedAt);
   }
   const health = await bridgeFetch('/health');
   const extensionVersion = health?.extension?.info?.version || null;

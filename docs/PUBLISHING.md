@@ -14,12 +14,15 @@ npm run check:bridge-contract
 npm run check:privacy
 npm run check:audit
 npm run check:pack
+node ./bin/chrome-bridge.mjs runtime-smoke --coverage-plan
 npm run server
 node ./bin/chrome-bridge.mjs health
 node ./bin/chrome-bridge.mjs runtime-smoke
 ```
 
 Run the live `health`, `doctor --live-checks`, and `runtime-smoke` checks only when no other Codex session is actively using the bridge.
+
+`runtime-smoke --coverage-plan` is offline and can be run while another session is using the bridge. It prints the required coverage checklist without calling `/health`, opening Chrome tabs, or reloading the extension.
 
 `runtime-smoke` opens temporary local fixture tabs and covers scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, screenshots, PDF export, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata. Its JSON output includes a counted `coverage` summary, and top-level `ok` is true only when every required coverage item passed.
 

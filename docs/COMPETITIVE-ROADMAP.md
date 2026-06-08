@@ -298,7 +298,8 @@ That sequence proves the now-modular browser surface in Chrome before expanding 
 
 The current implementation can be statically verified while another session is using the live bridge. Final completion still requires a real-browser pass after the bridge is free:
 
-1. Reload or restart the unpacked extension and local bridge server.
-2. Run `npm run runtime-smoke`.
-3. Confirm the smoke output reports `coverage.ok: true` for scoped tabs, `setWorkspace` strict policy, `session-summary`, default `debug-bundle`, `observe`, `find-elements` including nearby text, `extract`, screenshots, `pdf`, interactions, tracing, successful browser-data reads, browser-data safety gates, strict outside-tab blocking, and cleanup metadata.
-4. If a release needs human UX assurance, manually spot-check one scoped tab workflow after the automated smoke pass.
+1. Run `npm run runtime-smoke -- --coverage-plan` if you need the offline checklist while another session is using the bridge.
+2. Reload or restart the unpacked extension and local bridge server.
+3. Run `npm run runtime-smoke`.
+4. Confirm the smoke output reports `coverage.ok: true` for scoped tabs, `setWorkspace` strict policy, `session-summary`, default `debug-bundle`, `observe`, `find-elements` including nearby text, `extract`, screenshots, `pdf`, interactions, tracing, successful browser-data reads, browser-data safety gates, strict outside-tab blocking, and cleanup metadata.
+5. If a release needs human UX assurance, manually spot-check one scoped tab workflow after the automated smoke pass.

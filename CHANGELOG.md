@@ -27,6 +27,7 @@
 - Added counted `runtime-smoke` coverage fields for faster live verification review.
 - Expanded required `runtime-smoke` coverage to include scoped tabs, screenshots, interactions, tracing, successful browser-data reads, and browser-data safety gates.
 - Expanded `runtime-smoke` to cover strict workspace policy, outside-tab blocking, session-summary recommendations, and debug-bundle default redaction/omission checks.
+- Added offline `runtime-smoke --coverage-plan` / MCP `coveragePlan` mode to inspect the required live-smoke checklist without touching Chrome.
 - Added a generated CLI command metadata table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
 - Added generated CLI and MCP safety notes for confirmation, sensitive-confirmation, conditional inventory confirmation, and live bridge interruption guidance.
 - Expanded the generated MCP reference block from a plain tool list into a registry-derived table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.

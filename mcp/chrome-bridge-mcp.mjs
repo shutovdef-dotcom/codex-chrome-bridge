@@ -101,6 +101,7 @@ async function localRuntimeSmoke(args = {}) {
       'runtime-smoke',
     ];
     if (args.keepTab) cliArgs.push('--keep-tab');
+    if (args.coveragePlan) cliArgs.push('--coverage-plan');
     const result = await execFileAsync(process.execPath, cliArgs, { timeout: 180_000 });
     return JSON.parse(result.stdout || '{}');
   } catch (error) {
@@ -311,9 +312,10 @@ server.tool(
 
 server.tool(
   'chrome_bridge_runtime_smoke',
-  'Run a safe local runtime smoke test in real Chrome after extension v0.4.0 is loaded. Opens a temporary 127.0.0.1 fixture tab in the Codex Bridge group and verifies read/actions/screenshots/trace/browser-data safety gates.',
+  'Run a safe local runtime smoke test in real Chrome after extension v0.4.0 is loaded. Pass coveragePlan=true to print the required coverage checklist offline without touching Chrome.',
   {
     keepTab: z.boolean().optional(),
+    coveragePlan: z.boolean().optional(),
   },
   async (args) => textResult(await localRuntimeSmoke(args)),
 );

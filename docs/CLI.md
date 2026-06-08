@@ -103,7 +103,7 @@ chrome-bridge codex-config
 chrome-bridge command-catalog [--markdown]
 chrome-bridge reload-extension --confirm
 chrome-bridge self-test
-chrome-bridge runtime-smoke [--keep-tab]
+chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]
 ```
 <!-- END GENERATED CLI USAGE: server-diagnostics -->
 
