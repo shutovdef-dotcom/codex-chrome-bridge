@@ -41,6 +41,7 @@ const [
   tabCleanupText,
   tabInfoText,
   tabLoadingText,
+  userPromptsText,
   workspaceTabsText,
   packageContentsCheckerText,
   privacyScannerText,
@@ -61,6 +62,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-info.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/tab-loading.js'), 'utf8').catch(() => ''),
+  fs.readFile(path.join(rootDir, 'extension/user-prompts.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/workspace-tabs.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
@@ -579,6 +581,23 @@ check(!backgroundText.includes('function waitForTabComplete'), 'extension backgr
 check(!backgroundText.includes('function delay'), 'extension background must not own tab loading delay internals');
 check(functionBlock(tabLoadingText, 'waitForTabComplete').includes("tab.status === 'complete'"), 'extension tab loading module must wait for complete tab status');
 check(functionBlock(tabLoadingText, 'waitForTabComplete').includes('chrome.tabs.get'), 'extension tab loading module must poll Chrome tab state');
+check(backgroundText.includes("from './user-prompts.js';"), 'extension background must import user prompt lifecycle helpers from extension/user-prompts.js');
+check(!backgroundText.includes('pendingUserPrompts'), 'extension background must not own user prompt state');
+check(!backgroundText.includes('function normalizePromptChoices'), 'extension background must not own user prompt choice normalization');
+check(!functionBlock(backgroundText, 'createPromptTab'), 'extension background must not own user prompt tab creation');
+check(!functionBlock(backgroundText, 'restoreStoredCodexTarget'), 'extension background must not own user prompt target restoration');
+check(!functionBlock(backgroundText, 'completeUserPrompt'), 'extension background must not own user prompt completion');
+check(userPromptsText.includes('const pendingUserPrompts = new Map()'), 'extension user prompt module must own pending prompt state');
+check(userPromptsText.includes('export async function askUser'), 'extension user prompt module must export askUser');
+check(userPromptsText.includes('export function completeUserPrompt'), 'extension user prompt module must export completeUserPrompt');
+check(userPromptsText.includes('export function userPromptResponse'), 'extension user prompt module must export userPromptResponse for ask page reads');
+check(userPromptsText.includes('export function handlePromptTabRemoved'), 'extension user prompt module must export prompt tab removal cleanup');
+check(functionBlock(userPromptsText, 'askUser').includes('chrome.runtime.getURL'), 'extension user prompt module must open local ask page URLs');
+check(
+  functionBlock(userPromptsText, 'askUser').includes('closeTabsWithGroupPersistenceMitigation([tab], { ignoreMissing: true })')
+    && functionBlock(userPromptsText, 'completeUserPrompt').includes('closeTabsWithGroupPersistenceMitigation([prompt.tabId], { ignoreMissing: true })'),
+  'extension user prompt module must keep ungroup-before-close cleanup mitigation',
+);
 check(backgroundText.includes("from './workspace-tabs.js';"), 'extension background must import workspace tab helpers from extension/workspace-tabs.js');
 for (const helperName of ['storageGet', 'storageSet', 'storageRemove', 'getTargetTab', 'getStoredCodexGroup', 'getCodexGroupTabs', 'ensureCodexGroupForTab', 'assertCodexScopedTab']) {
   check(!functionBlock(backgroundText, helperName), `extension background must not own workspace tab helper internals: ${helperName}`);
