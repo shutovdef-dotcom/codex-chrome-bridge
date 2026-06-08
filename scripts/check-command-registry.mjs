@@ -892,6 +892,8 @@ check(functionBlock(tabGroupPersistenceText, 'disableSavedTabGroupIfSupported').
 const tabGroupPersistenceSweepBlock = functionBlock(tabGroupPersistenceText, 'enforceManagedTabGroupPersistence');
 check(tabGroupPersistenceSweepBlock.includes('chrome.tabGroups.query({})'), 'extension tab-group persistence startup sweep must inspect open groups');
 check(tabGroupPersistenceSweepBlock.includes('handleManagedTabGroupChange(group)'), 'extension tab-group persistence startup sweep must guard and mark managed groups unsaved');
+check(tabGroupPersistenceText.includes('BRIDGE_MANAGED_TITLE_PREFIXES'), 'extension tab-group persistence must define managed Codex Bridge title prefixes for session groups');
+check(functionBlock(tabGroupPersistenceText, 'isManagedCodexGroup').includes('isBridgeManagedTitle(title)'), 'extension tab-group persistence managed-group guard must recognize Codex Bridge session title families');
 const tabGroupPersistenceListenersBlock = functionBlock(tabGroupPersistenceText, 'installTabGroupPersistenceListeners');
 check(tabGroupPersistenceListenersBlock.includes('chrome.tabGroups.onCreated'), 'extension tab-group persistence listeners must watch created Codex groups');
 check(tabGroupPersistenceListenersBlock.includes('chrome.tabGroups.onUpdated'), 'extension tab-group persistence listeners must watch updated Codex groups');
