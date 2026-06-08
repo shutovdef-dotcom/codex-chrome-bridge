@@ -738,6 +738,7 @@ if (isRepositoryCheckout || pullRequestTemplateText) {
   check(pullRequestTemplateText.includes('npm run runtime-smoke'), 'pull request template must use the canonical runtime-smoke script');
   check(!pullRequestTemplateText.includes('node ./bin/chrome-bridge.mjs runtime-smoke'), 'pull request template must not use raw node runtime-smoke command');
   check(pullRequestTemplateText.includes('verification.status: "passed"'), 'pull request template must document live runtime smoke success criteria');
+  check(pullRequestTemplateText.includes('verification.nextCommand') && pullRequestTemplateText.includes('verification.nextAction'), 'pull request template must document runtime smoke recovery hints');
   check(pullRequestTemplateText.includes('reload-extension --confirm'), 'pull request template must include live extension reload before runtime smoke');
   check(pullRequestTemplateText.includes('doctor --live-checks'), 'pull request template must include live doctor check before runtime smoke');
 }
@@ -750,6 +751,7 @@ check(contributingText.includes('npm run check:tab-group-persistence'), 'contrib
 check(contributingText.includes('npm run check:privacy'), 'contributing guide must include privacy scan check');
 check(contributingText.includes('npm run check:audit'), 'contributing guide must include canonical audit check script');
 check(contributingText.includes('verification.status: "passed"'), 'contributing guide must document live runtime smoke success criteria');
+check(contributingText.includes('verification.nextCommand') && contributingText.includes('verification.nextAction'), 'contributing guide must document runtime smoke recovery hints');
 check(contributingText.includes('reload-extension --confirm'), 'contributing guide must include live extension reload before runtime smoke');
 check(contributingText.includes('doctor --live-checks'), 'contributing guide must include live doctor check before runtime smoke');
 check(publishingText.includes('node ./bin/chrome-bridge.mjs reload-extension --confirm'), 'publishing checklist must include exact live extension reload command');
@@ -762,6 +764,7 @@ if (isRepositoryCheckout || codexChromeBridgeSkillText) {
   check(codexChromeBridgeSkillText.includes('reload-extension --confirm'), 'bundled Codex chrome-bridge skill must include the live upgrade reload step');
   check(codexChromeBridgeSkillText.includes('doctor --live-checks'), 'bundled Codex chrome-bridge skill must include the live doctor upgrade check');
   check(codexChromeBridgeSkillText.includes('verification.status: "passed"'), 'bundled Codex chrome-bridge skill must document live runtime smoke success criteria');
+  check(codexChromeBridgeSkillText.includes('verification.nextCommand') && codexChromeBridgeSkillText.includes('verification.nextAction'), 'bundled Codex chrome-bridge skill must document runtime smoke recovery hints');
 }
 check(llmsText.includes('runtime-smoke:plan'), 'llms metadata must mention offline runtime smoke plan');
 check(llmsText.includes('check:tab-group-persistence'), 'llms metadata must mention tab-group persistence behavior check');
@@ -769,6 +772,7 @@ check(llmsText.includes('check:privacy'), 'llms metadata must mention privacy sc
 check(llmsText.includes('reload-extension --confirm'), 'llms metadata must mention live extension reload before runtime smoke');
 check(llmsText.includes('doctor --live-checks'), 'llms metadata must mention live doctor check before runtime smoke');
 check(llmsText.includes('verification.status: "passed"'), 'llms metadata must mention live runtime smoke success criteria');
+check(llmsText.includes('verification.nextCommand') && llmsText.includes('verification.nextAction'), 'llms metadata must mention runtime smoke recovery hints');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(LOCAL_COMMAND_METADATA.doctor?.mcp?.includes('chrome_bridge_doctor'), 'registry local doctor command must expose an MCP tool');
 check(LOCAL_COMMAND_METADATA['extension-path']?.mcp?.includes('chrome_bridge_extension_path'), 'registry local extension-path command must expose an MCP tool');
