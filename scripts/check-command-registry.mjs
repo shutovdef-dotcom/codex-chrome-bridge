@@ -449,6 +449,7 @@ check(cliText.includes("args['include-trace-events']") && mcpText.includes('incl
 check(COMMAND_METADATA.traceSummary?.summary?.includes('metadata'), 'registry must expose a traceSummary metadata-only action');
 const cliDebugBundleBlock = functionBlock(cliText, 'debugBundle');
 const mcpDebugBundleBlock = functionBlock(mcpText, 'debugBundle');
+const runtimeSmokeBlock = functionBlock(cliText, 'runtimeSmoke');
 const listSelectOptionsBlock = functionBlock(pageScriptsText, 'listSelectOptionsInPage');
 check(
   cliDebugBundleBlock.includes("command('traceSummary'")
@@ -465,6 +466,17 @@ check(
 check(cliText.includes("addJson('session-summary.json', redactDebugBundleValue(summary))"), 'CLI debug bundle session summary must be redacted');
 check(mcpText.includes("addJson('session-summary.json', redactDebugBundleValue(summary))"), 'MCP debug bundle session summary must be redacted');
 check(!LOCAL_COMMAND_METADATA['debug-bundle'].summary.includes('screenshot'), 'debug-bundle catalog summary must not imply screenshot capture by default');
+for (const smokeStep of [
+  'workspace includes smoke tab',
+  'set strict smoke workspace',
+  'strict policy rejects outside tab even with allowExternal',
+  'session summary covers strict policy',
+  'debug bundle default redaction',
+  'clear strict smoke workspace',
+]) {
+  check(runtimeSmokeBlock.includes(smokeStep), `runtime-smoke must cover deferred roadmap step: ${smokeStep}`);
+}
+check(runtimeSmokeBlock.includes("debugBundle({") && runtimeSmokeBlock.includes('readJsonFile'), 'runtime-smoke must inspect debug-bundle files without enabling page artifacts');
 check(backgroundText.includes('const debuggerLocks = new Map()'), 'extension must maintain per-tab debugger locks');
 check(functionBlock(backgroundText, 'withTabLock').includes('debuggerLocks.set(tabId, next)'), 'withTabLock must serialize debugger work per tab');
 check(functionBlock(backgroundText, 'withDebugger').includes('return withTabLock(tabId'), 'withDebugger must run under the per-tab debugger lock');
