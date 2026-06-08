@@ -273,6 +273,7 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - derive CLI reference usage groups from the shared registry
   - derive the CLI reference metadata table from the shared registry
   - derive the MCP reference tool table from the shared registry
+  - derive CLI and MCP safety notes from the shared registry, including confirmation, sensitive-confirmation, conditional inventory confirmation, and live bridge interruption guidance
   - expose the shared command catalog through CLI and MCP for agents that need local risk, timeout, direct payload-key, local diagnostic/tooling command, live-bridge, and confirmation metadata
   - generate `docs/COMMAND-CATALOG.md` from that registry, including CLI usage signatures, and fail self-test on catalog drift
   - add docs coverage checks so CLI exact usage signatures and MCP generated tool metadata cannot silently omit registry-defined commands/tools
@@ -289,8 +290,7 @@ This repository iteration implements the merged Phase 0-4 roadmap:
 After this change set lands cleanly, the highest-value next implementation is:
 
 1. running the deferred real-browser verification once the live bridge is free
-2. using the command catalog to generate more of the CLI/MCP reference prose
-3. adding additional policy modes only after `scoped` and `strict` both have runtime coverage
+2. adding additional policy modes only after `scoped` and `strict` both have runtime coverage
 
 That sequence proves the now-modular browser surface in Chrome before expanding policy behavior further.
 

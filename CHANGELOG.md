@@ -24,6 +24,7 @@
 - Made grouped tab cleanup fail closed when Chrome cannot ungroup tabs before close, preventing bridge-driven cleanup from creating new saved closed group chips on ungroup errors.
 - Expanded `runtime-smoke` to cover strict workspace policy, outside-tab blocking, session-summary recommendations, and debug-bundle default redaction/omission checks.
 - Added a generated CLI command metadata table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
+- Added generated CLI and MCP safety notes for confirmation, sensitive-confirmation, conditional inventory confirmation, and live bridge interruption guidance.
 - Expanded the generated MCP reference block from a plain tool list into a registry-derived table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
 - Ungroup bridge-owned tabs before closing them in `close-tab`, `close-group`, prompt cleanup, and runtime smoke cleanup so Chrome does not create new saved closed `Codex Bridge` group chips.
 - Added `adopt-tab` / `chrome_bridge_adopt_tab` to pull an already-open Chrome tab into the scoped `Codex Bridge` group with explicit confirmation.

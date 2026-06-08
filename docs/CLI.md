@@ -77,6 +77,17 @@ The command metadata table below is generated from the shared registry by `npm r
 | `codex-config` | `codex-config` | read | 5000 ms | no | no | Print a Codex MCP configuration snippet using the current Node executable. |
 <!-- END GENERATED CLI REFERENCE -->
 
+## Safety Notes
+
+<!-- BEGIN GENERATED CLI SAFETY NOTES -->
+The safety notes below are generated from the shared registry by `npm run docs:commands`.
+
+- `--confirm` is required for: `set-workspace`, `clear-workspace`, `adopt-tab`, `close-tab`, `close-group`, `click`, `click-at`, `type`, `press`, `select`, `fill-form`, `handle-dialog`, `upload-file`, `trace-start`, `history`, `bookmarks`, `reload-extension`.
+- `--confirm` is conditionally required for: `windows`, `tabs`; use it with `--all` on scoped inventory commands.
+- `--confirm-sensitive` is required in addition to `--confirm` for private-value requests exposed by: `cookies`, `storage`, `request`.
+- Live bridge caution: run `runtime-smoke`, `doctor --live-checks`, and `reload-extension --confirm` only when no other session is using the bridge.
+<!-- END GENERATED CLI SAFETY NOTES -->
+
 ## Server and Diagnostics
 
 The command blocks below are generated from the shared registry by `npm run docs:commands`.

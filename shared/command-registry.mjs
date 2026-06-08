@@ -995,6 +995,10 @@ export const MCP_TOOLS = Object.freeze([
 
 export const GENERATED_MCP_TOOLS_BEGIN = '<!-- BEGIN GENERATED MCP TOOLS -->';
 export const GENERATED_MCP_TOOLS_END = '<!-- END GENERATED MCP TOOLS -->';
+export const GENERATED_CLI_SAFETY_NOTES_BEGIN = '<!-- BEGIN GENERATED CLI SAFETY NOTES -->';
+export const GENERATED_CLI_SAFETY_NOTES_END = '<!-- END GENERATED CLI SAFETY NOTES -->';
+export const GENERATED_MCP_SAFETY_NOTES_BEGIN = '<!-- BEGIN GENERATED MCP SAFETY NOTES -->';
+export const GENERATED_MCP_SAFETY_NOTES_END = '<!-- END GENERATED MCP SAFETY NOTES -->';
 
 function commandSurfaceMetadata(surface, id) {
   const surfaceKey = surface === 'cli' ? 'cli' : 'mcp';
@@ -1069,6 +1073,60 @@ export function generatedMcpToolsBlock() {
     GENERATED_MCP_TOOLS_BEGIN,
     mcpToolReferenceMarkdown(),
     GENERATED_MCP_TOOLS_END,
+  ].join('\n');
+}
+
+function codeList(values) {
+  return values.map((value) => `\`${value}\``).join(', ');
+}
+
+function commandIdsByConfirmation(surface, ids, confirmation) {
+  return ids.filter((id) => commandSurfaceMetadata(surface, id).confirm === confirmation);
+}
+
+export function cliSafetyNotesMarkdown() {
+  const required = commandIdsByConfirmation('cli', CLI_COMMANDS, 'yes');
+  const conditional = commandIdsByConfirmation('cli', CLI_COMMANDS, 'conditional');
+  const sensitive = commandIdsByConfirmation('cli', CLI_COMMANDS, 'sensitive');
+
+  return [
+    'The safety notes below are generated from the shared registry by `npm run docs:commands`.',
+    '',
+    `- \`--confirm\` is required for: ${codeList(required)}.`,
+    `- \`--confirm\` is conditionally required for: ${codeList(conditional)}; use it with \`--all\` on scoped inventory commands.`,
+    `- \`--confirm-sensitive\` is required in addition to \`--confirm\` for private-value requests exposed by: ${codeList(sensitive)}.`,
+    '- Live bridge caution: run `runtime-smoke`, `doctor --live-checks`, and `reload-extension --confirm` only when no other session is using the bridge.',
+  ].join('\n');
+}
+
+export function generatedCliSafetyNotesBlock() {
+  return [
+    GENERATED_CLI_SAFETY_NOTES_BEGIN,
+    cliSafetyNotesMarkdown(),
+    GENERATED_CLI_SAFETY_NOTES_END,
+  ].join('\n');
+}
+
+export function mcpSafetyNotesMarkdown() {
+  const required = commandIdsByConfirmation('mcp', MCP_TOOLS, 'yes');
+  const conditional = commandIdsByConfirmation('mcp', MCP_TOOLS, 'conditional');
+  const sensitive = commandIdsByConfirmation('mcp', MCP_TOOLS, 'sensitive');
+
+  return [
+    'The safety notes below are generated from the shared registry by `npm run docs:commands`.',
+    '',
+    `- \`confirmed: true\` is required for: ${codeList(required)}.`,
+    `- \`confirmed: true\` is conditionally required for: ${codeList(conditional)}; use it when passing \`includeAll: true\`.`,
+    `- \`confirmSensitive: true\` is required in addition to \`confirmed: true\` for private-value requests exposed by: ${codeList(sensitive)}.`,
+    '- Live bridge caution: run `chrome_bridge_runtime_smoke` and `chrome_bridge_reload_extension` only when no other session is using the bridge.',
+  ].join('\n');
+}
+
+export function generatedMcpSafetyNotesBlock() {
+  return [
+    GENERATED_MCP_SAFETY_NOTES_BEGIN,
+    mcpSafetyNotesMarkdown(),
+    GENERATED_MCP_SAFETY_NOTES_END,
   ].join('\n');
 }
 

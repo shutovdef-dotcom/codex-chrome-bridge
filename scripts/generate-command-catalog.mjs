@@ -6,13 +6,19 @@ import {
   CLI_USAGE_GROUPS,
   GENERATED_CLI_REFERENCE_BEGIN,
   GENERATED_CLI_REFERENCE_END,
+  GENERATED_CLI_SAFETY_NOTES_BEGIN,
+  GENERATED_CLI_SAFETY_NOTES_END,
   GENERATED_MCP_TOOLS_BEGIN,
   GENERATED_MCP_TOOLS_END,
+  GENERATED_MCP_SAFETY_NOTES_BEGIN,
+  GENERATED_MCP_SAFETY_NOTES_END,
   commandCatalogMarkdown,
   generatedCliUsageBegin,
   generatedCliUsageBlock,
   generatedCliUsageEnd,
   generatedCliReferenceBlock,
+  generatedCliSafetyNotesBlock,
+  generatedMcpSafetyNotesBlock,
   generatedMcpToolsBlock,
 } from '../shared/command-registry.mjs';
 
@@ -40,6 +46,12 @@ await replaceManagedBlock(
   GENERATED_CLI_REFERENCE_END,
   generatedCliReferenceBlock(),
 );
+await replaceManagedBlock(
+  cliPath,
+  GENERATED_CLI_SAFETY_NOTES_BEGIN,
+  GENERATED_CLI_SAFETY_NOTES_END,
+  generatedCliSafetyNotesBlock(),
+);
 for (const group of CLI_USAGE_GROUPS) {
   await replaceManagedBlock(
     cliPath,
@@ -53,6 +65,12 @@ await replaceManagedBlock(
   GENERATED_MCP_TOOLS_BEGIN,
   GENERATED_MCP_TOOLS_END,
   generatedMcpToolsBlock(),
+);
+await replaceManagedBlock(
+  mcpPath,
+  GENERATED_MCP_SAFETY_NOTES_BEGIN,
+  GENERATED_MCP_SAFETY_NOTES_END,
+  generatedMcpSafetyNotesBlock(),
 );
 process.stdout.write(`Wrote ${catalogPath}\n`);
 process.stdout.write(`Updated ${cliPath}\n`);
