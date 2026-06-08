@@ -114,9 +114,29 @@ if (coveragePlanParsed) {
   check(coveragePlanParsed.ok === true, 'MCP coverage-plan runtime smoke must succeed');
   check(coveragePlanParsed.mode === 'coverage-plan', 'MCP coverage-plan runtime smoke must report mode=coverage-plan');
   check(coveragePlanParsed.liveBridge === false, 'MCP coverage-plan runtime smoke must not touch the live bridge');
+  check(
+    coveragePlanParsed.nextCommand === 'chrome-bridge reload-extension --confirm',
+    'MCP coverage-plan nextCommand must point at the first live verification prep step',
+  );
   check(coveragePlanParsed.verification?.status === 'not-run', 'MCP coverage-plan verification status must be not-run');
   check(coveragePlanParsed.verification?.liveVerificationRequired === true, 'MCP coverage-plan must require final live verification');
+  check(
+    coveragePlanParsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm'),
+    'MCP coverage-plan final commands must include confirmed extension reload before live smoke',
+  );
+  check(
+    coveragePlanParsed.verification?.finalCommands?.includes('chrome-bridge doctor --live-checks'),
+    'MCP coverage-plan final commands must include explicit live doctor check',
+  );
+  check(
+    coveragePlanParsed.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'),
+    'MCP coverage-plan final commands must include live runtime-smoke',
+  );
   check(coveragePlanParsed.coverage?.requiredCount > 0, 'MCP coverage-plan must include required coverage count');
+  check(
+    coveragePlanParsed.verification?.successCriteria?.requiredCoverageCount === coveragePlanParsed.coverage?.requiredCount,
+    'MCP coverage-plan success criteria must match required coverage count',
+  );
 }
 
 let staleParsed;
@@ -146,6 +166,8 @@ process.stdout.write(`${JSON.stringify({
   ok: true,
   coveragePlanStatus: coveragePlanParsed?.verification?.status,
   coveragePlanLiveBridge: coveragePlanParsed?.liveBridge,
+  coveragePlanNextCommand: coveragePlanParsed?.nextCommand,
+  coveragePlanFinalCommandCount: coveragePlanParsed?.verification?.finalCommands?.length || 0,
   staleExtensionStatus: staleParsed?.verification?.status,
   staleExtensionCliExitPreserved: Boolean(staleParsed?.cliExitError),
 }, null, 2)}\n`);
