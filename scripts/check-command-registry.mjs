@@ -41,6 +41,7 @@ const [
   pageExecutionText,
   pageArtifactsText,
   pageReadActionsText,
+  pageInteractionsText,
   pageScriptsText,
   safetyGatesText,
   tabCleanupText,
@@ -67,6 +68,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/page-execution.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-artifacts.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-read-actions.js'), 'utf8').catch(() => ''),
+  fs.readFile(path.join(rootDir, 'extension/page-interactions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
@@ -538,7 +540,9 @@ const debuggerActionFunctions = {
 };
 
 for (const action of DEBUGGER_SERIALIZED_ACTIONS) {
-  const source = ['screenshot', 'printPdf'].includes(action) ? pageArtifactsText : backgroundText;
+  const source = ['screenshot', 'printPdf'].includes(action)
+    ? pageArtifactsText
+    : (['clickAt', 'hover', 'type', 'press', 'handleDialog', 'uploadFile'].includes(action) ? pageInteractionsText : backgroundText);
   const block = functionBlock(source, debuggerActionFunctions[action]);
   check(block, `${action} debugger action function is missing`);
   if (action === 'traceStart') {
@@ -590,7 +594,7 @@ check(functionBlock(debuggerSessionText, 'withDebugger').includes('chrome.debugg
 check(functionBlock(debuggerSessionText, 'sendDebuggerCommand').includes('chrome.debugger.sendCommand'), 'extension debugger session module must own debugger commands');
 check(functionBlock(debuggerSessionText, 'recordDebuggerEvent').includes('Network.responseReceived'), 'extension debugger session module must record trace debugger events');
 check(debuggerSessionText.includes('traceSessions') && debuggerSessionText.includes('MAX_TRACE_EVENTS'), 'extension debugger session module must own trace session buffering');
-check(backgroundText.includes("import { keyEventPayload } from './keyboard-events.js';"), 'extension background must import trusted key event mapping from extension/keyboard-events.js');
+check(pageInteractionsText.includes("import { keyEventPayload } from './keyboard-events.js';"), 'extension page interactions must import trusted key event mapping from extension/keyboard-events.js');
 check(!backgroundText.includes('function keyEventPayload'), 'extension background must not own trusted key event mapping internals');
 check(!backgroundText.includes('function keyCodeFor'), 'extension background must not own trusted key code mapping internals');
 check(!backgroundText.includes('function virtualKeyCodeFor'), 'extension background must not own trusted virtual-key mapping internals');
@@ -678,6 +682,16 @@ for (const helperName of ['waitForSelector', 'observe', 'findElements', 'extract
 check(functionBlock(pageReadActionsText, 'observe').includes('collectObserve'), 'extension page read actions module must use page observation scripts');
 check(functionBlock(pageReadActionsText, 'findElements').includes('elementFilters'), 'extension page read actions module must preserve element filter echo');
 check(functionBlock(pageReadActionsText, 'storageSnapshot').includes("requireSensitiveConfirmed(payload, 'storageSnapshot includeValues')"), 'extension page read actions storage snapshot must require sensitive confirmation for values');
+check(backgroundText.includes("from './page-interactions.js';"), 'extension background must import page interactions from extension/page-interactions.js');
+for (const helperName of ['scroll', 'click', 'clickAt', 'hover', 'typeInto', 'pressKey', 'selectOption', 'fillForm', 'handleDialog', 'uploadFile']) {
+  check(!functionBlock(backgroundText, helperName), `extension background must not own page interaction internals: ${helperName}`);
+}
+for (const helperName of ['scroll', 'click', 'clickAt', 'hover', 'typeInto', 'pressKey', 'selectOption', 'fillForm', 'handleDialog', 'uploadFile']) {
+  check(pageInteractionsText.includes(`export async function ${helperName}`), `extension page interactions module must export ${helperName}`);
+}
+check(functionBlock(pageInteractionsText, 'click').includes("throw new Error('click requires confirmed=true')"), 'extension click interaction must require confirmation');
+check(functionBlock(pageInteractionsText, 'fillForm').includes("if (!dryRun) requireConfirmed(payload, 'fillForm')"), 'extension fillForm must keep dry-run-first confirmation behavior');
+check(functionBlock(pageInteractionsText, 'uploadFile').includes("requireConfirmed(payload, 'uploadFile')"), 'extension uploadFile must require confirmation');
 check(navigationActionsText.includes("import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';"), 'extension navigation actions must import tab cleanup helper from extension/tab-cleanup.js');
 check(!backgroundText.includes('function tabIdForClose'), 'extension background must not own tab cleanup helper internals');
 check(!backgroundText.includes('async function closeTabsWithGroupPersistenceMitigation'), 'extension background must not own tab cleanup helper internals');

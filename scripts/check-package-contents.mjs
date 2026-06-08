@@ -21,6 +21,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'extension/page-execution.js',
   'extension/page-artifacts.js',
   'extension/page-read-actions.js',
+  'extension/page-interactions.js',
   'extension/page-scripts.js',
   'extension/safety-gates.js',
   'extension/tab-cleanup.js',
