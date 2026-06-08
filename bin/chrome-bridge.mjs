@@ -99,6 +99,26 @@ function parseNonNegativeIntegerArg(value, name) {
   return parsed;
 }
 
+function parseFiniteNumberArg(value, name) {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`${name} must be numeric`);
+  }
+  return parsed;
+}
+
+function parseRequiredFiniteNumberArg(value, name, message) {
+  let parsed;
+  try {
+    parsed = parseFiniteNumberArg(value, name);
+  } catch {
+    throw new Error(message);
+  }
+  if (parsed === undefined) throw new Error(message);
+  return parsed;
+}
+
 function parseChromeIdArg(value, name) {
   return parseNonNegativeIntegerArg(value, name);
 }
@@ -2070,11 +2090,13 @@ tool_timeout_sec = 60
 
   if (cmd === 'click-at') {
     if (!args.confirm) throw new Error('click-at requires --confirm');
+    const x = parseRequiredFiniteNumberArg(args.x, '--x', 'click-at requires numeric --x and --y');
+    const y = parseRequiredFiniteNumberArg(args.y, '--y', 'click-at requires numeric --x and --y');
     printJson(await command('clickAt', {
       ...targetPayload(args),
       ...confirmationPayload(args),
-      x: args.x === undefined ? undefined : Number(args.x),
-      y: args.y === undefined ? undefined : Number(args.y),
+      x,
+      y,
       button: args.button,
       trusted: Boolean(args.trusted),
     }, 30_000));
