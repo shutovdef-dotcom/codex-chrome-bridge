@@ -604,6 +604,8 @@ check(pullRequestTemplateText.includes('npm run check:audit'), 'pull request tem
 check(pullRequestTemplateText.includes('npm run runtime-smoke'), 'pull request template must use the canonical runtime-smoke script');
 check(!pullRequestTemplateText.includes('node ./bin/chrome-bridge.mjs runtime-smoke'), 'pull request template must not use raw node runtime-smoke command');
 check(pullRequestTemplateText.includes('verification.status: "passed"'), 'pull request template must document live runtime smoke success criteria');
+check(pullRequestTemplateText.includes('reload-extension --confirm'), 'pull request template must include live extension reload before runtime smoke');
+check(pullRequestTemplateText.includes('doctor --live-checks'), 'pull request template must include live doctor check before runtime smoke');
 check(contributingText.includes('npm run check:runtime-smoke-plan'), 'contributing guide must include offline runtime smoke plan check');
 check(contributingText.includes('npm run check:roadmap'), 'contributing guide must include roadmap coverage check');
 check(contributingText.includes('npm run check:cli-local-tools'), 'contributing guide must include CLI local tools contract check');
@@ -613,6 +615,10 @@ check(contributingText.includes('npm run check:tab-group-persistence'), 'contrib
 check(contributingText.includes('npm run check:privacy'), 'contributing guide must include privacy scan check');
 check(contributingText.includes('npm run check:audit'), 'contributing guide must include canonical audit check script');
 check(contributingText.includes('verification.status: "passed"'), 'contributing guide must document live runtime smoke success criteria');
+check(contributingText.includes('reload-extension --confirm'), 'contributing guide must include live extension reload before runtime smoke');
+check(contributingText.includes('doctor --live-checks'), 'contributing guide must include live doctor check before runtime smoke');
+check(publishingText.includes('node ./bin/chrome-bridge.mjs reload-extension --confirm'), 'publishing checklist must include exact live extension reload command');
+check(publishingText.includes('node ./bin/chrome-bridge.mjs doctor --live-checks'), 'publishing checklist must include exact live doctor command');
 check(codexChromeBridgeSkillText.includes('runtime-smoke --coverage-plan'), 'bundled Codex chrome-bridge skill must recommend offline runtime smoke plan before live smoke');
 check(codexChromeBridgeSkillText.includes('npm run check:mcp-runtime-smoke'), 'bundled Codex chrome-bridge skill must mention MCP runtime-smoke contract check');
 check(codexChromeBridgeSkillText.includes('npm run check:tab-group-persistence'), 'bundled Codex chrome-bridge skill must mention tab-group persistence behavior check');
