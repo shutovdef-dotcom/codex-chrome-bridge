@@ -513,6 +513,7 @@ check(COMMAND_METADATA.traceSummary?.summary?.includes('metadata'), 'registry mu
 const cliDebugBundleBlock = functionBlock(cliText, 'debugBundle');
 const mcpDebugBundleBlock = functionBlock(mcpText, 'debugBundle');
 const runtimeSmokeBlock = functionBlock(cliText, 'runtimeSmoke');
+const runtimeSmokeCoveragePlanBlock = functionBlock(cliText, 'runtimeSmokeCoveragePlan');
 const runtimeSmokeCoverageBlock = functionBlock(cliText, 'runtimeSmokeCoverage');
 const runtimeSmokeRequiredCoverageBlock = /const RUNTIME_SMOKE_REQUIRED_COVERAGE = Object\.freeze\(\[[\s\S]*?\]\);/.exec(cliText)?.[0] || '';
 const listSelectOptionsBlock = functionBlock(pageScriptsText, 'listSelectOptionsInPage');
@@ -552,6 +553,9 @@ check(
   runtimeSmokeBlock.indexOf("args['coverage-plan']") < runtimeSmokeBlock.indexOf("bridgeFetch('/health')"),
   'runtime-smoke coverage-plan mode must return before live bridge health checks',
 );
+check(runtimeSmokeCoveragePlanBlock.includes("status: 'not-run'"), 'runtime-smoke coverage-plan output must mark live verification as not-run');
+check(runtimeSmokeCoveragePlanBlock.includes('liveVerificationRequired: true'), 'runtime-smoke coverage-plan output must explicitly require final live verification');
+check(runtimeSmokeCoveragePlanBlock.includes('coverageOk: true'), 'runtime-smoke coverage-plan output must document coverage.ok success criteria');
 for (const coverageStep of [
   'tabs scoped includes smoke tab',
   'viewport screenshot',
