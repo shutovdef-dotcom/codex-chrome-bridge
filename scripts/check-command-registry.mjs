@@ -609,6 +609,9 @@ check(contributingText.includes('npm run check:privacy'), 'contributing guide mu
 check(contributingText.includes('npm run check:audit'), 'contributing guide must include canonical audit check script');
 check(contributingText.includes('verification.status: "passed"'), 'contributing guide must document live runtime smoke success criteria');
 check(codexChromeBridgeSkillText.includes('runtime-smoke --coverage-plan'), 'bundled Codex chrome-bridge skill must recommend offline runtime smoke plan before live smoke');
+check(codexChromeBridgeSkillText.includes('npm run check:mcp-runtime-smoke'), 'bundled Codex chrome-bridge skill must mention MCP runtime-smoke contract check');
+check(codexChromeBridgeSkillText.includes('npm run check:tab-group-persistence'), 'bundled Codex chrome-bridge skill must mention tab-group persistence behavior check');
+check(codexChromeBridgeSkillText.includes('npm run check:privacy'), 'bundled Codex chrome-bridge skill must mention privacy scan check');
 check(codexChromeBridgeSkillText.includes('verification.status: "passed"'), 'bundled Codex chrome-bridge skill must document live runtime smoke success criteria');
 check(llmsText.includes('runtime-smoke:plan'), 'llms metadata must mention offline runtime smoke plan');
 check(llmsText.includes('check:tab-group-persistence'), 'llms metadata must mention tab-group persistence behavior check');
