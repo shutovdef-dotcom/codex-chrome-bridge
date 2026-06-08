@@ -58,6 +58,7 @@ const [
   readmeText,
   publishingText,
   roadmapText,
+  mcpDocsText,
   pullRequestTemplateText,
   contributingText,
   codexChromeBridgeSkillText,
@@ -94,6 +95,7 @@ const [
   fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/PUBLISHING.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/COMPETITIVE-ROADMAP.md'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'docs/MCP.md'), 'utf8'),
   fs.readFile(path.join(rootDir, '.github/PULL_REQUEST_TEMPLATE.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'CONTRIBUTING.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'codex/skills/chrome-bridge/SKILL.md'), 'utf8'),
@@ -521,6 +523,8 @@ check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bri
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
 check(mcpText.includes("if (args.coveragePlan) cliArgs.push('--coverage-plan')"), 'MCP runtime smoke helper must forward coveragePlan to CLI');
+check(mcpText.includes('verification.status="not-run"') && mcpText.includes('verification.status="passed"'), 'MCP runtime smoke tool description must document verification status semantics');
+check(mcpDocsText.includes('verification.status: "not-run"') && mcpDocsText.includes('verification.status: "passed"'), 'MCP docs must document runtime smoke verification status semantics');
 check(mcpText.includes('z.enum(HTTP_METHODS)'), 'MCP request method schema must use the shared HTTP method allowlist');
 check(cliText.includes('includeSnapshot') && cliText.includes('includeScreenshot'), 'CLI debug bundle page artifacts must be explicit opt-in');
 check(mcpText.includes('includeSnapshot: z.boolean().optional()') && mcpText.includes('includeScreenshot: z.boolean().optional()'), 'MCP debug bundle page artifacts must be explicit opt-in');
