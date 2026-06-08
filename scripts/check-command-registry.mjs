@@ -954,6 +954,8 @@ check((debuggerSessionText.match(/chrome\.debugger\.sendCommand/g) || []).length
 check((debuggerSessionText.match(/chrome\.debugger\.detach/g) || []).length === 1, 'extension must detach debugger only through detachDebugger');
 check(functionBlock(debuggerSessionText, 'startTraceForTab').includes('withTabLock(tab.id'), 'traceStart debugger action must use the serialized debugger wrapper');
 check(functionBlock(debuggerSessionText, 'stopTraceForTab').includes('withTabLock(tab.id'), 'traceStop debugger action must use the serialized debugger wrapper');
+check(functionBlock(debuggerSessionText, 'startTraceForTab').includes("'Page.enable'"), 'traceStart must pre-enable the Page domain for dialog handling');
+check(!functionBlock(pageInteractionsText, 'handleDialog').includes("'Page.enable'"), 'handleDialog must not call Page.enable after a modal dialog is already open');
 
 const debuggerActionFunctions = {
   screenshot: 'screenshot',
