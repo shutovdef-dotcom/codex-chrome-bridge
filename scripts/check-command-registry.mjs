@@ -374,6 +374,8 @@ expectPayload('observe', { limit: 0 }, false, 'observe invalid limit payload');
 expectPayload('findElements', { maxTextChars: 10 }, false, 'findElements invalid maxTextChars payload');
 expectPayload('setWorkspace', { policyMode: 'strict', confirmed: true }, true, 'setWorkspace strict payload');
 expectPayload('setWorkspace', { policyMode: 'permissive', confirmed: true }, false, 'setWorkspace invalid policy payload');
+expectPayload('setWorkspace', { groupColor: 'cyan', confirmed: true }, true, 'setWorkspace valid group color payload');
+expectPayload('setWorkspace', { groupColor: 'violet', confirmed: true }, false, 'setWorkspace invalid group color payload');
 expectPayload('reloadExtension', {}, false, 'reloadExtension missing confirmation payload');
 expectPayload('reloadExtension', { confirmed: true }, true, 'reloadExtension confirmed payload');
 expectPayload('adoptTab', { tabId: 123, confirmed: true }, true, 'adoptTab tab payload');
