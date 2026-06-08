@@ -283,6 +283,7 @@ let hoverCoordinateChecks = 0;
 let traceMaxEventsChecks = 0;
 let privateLimitChecks = 0;
 let readLimitChecks = 0;
+let utilityNumberChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -792,6 +793,105 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
     readLimitChecks += 1;
   }
 
+  const utilityNumberInvalidCases = [
+    {
+      label: 'wait invalid timeout-ms',
+      args: ['wait', '--selector', 'main', '--timeout-ms', 'nope'],
+      message: '--timeout-ms must be numeric',
+    },
+    {
+      label: 'scroll invalid x',
+      args: ['scroll', '--x', 'nope'],
+      message: '--x must be numeric',
+    },
+    {
+      label: 'scroll invalid y',
+      args: ['scroll', '--y', 'nope'],
+      message: '--y must be numeric',
+    },
+    {
+      label: 'storage too small max-value-chars',
+      args: ['storage', '--max-value-chars', '49', '--confirm'],
+      message: '--max-value-chars must be between 50 and 5000',
+    },
+    {
+      label: 'request too small max-chars',
+      args: ['request', 'https://example.com', '--max-chars', '99', '--confirm'],
+      message: '--max-chars must be between 100 and 200000',
+    },
+    {
+      label: 'ask invalid timeout-ms',
+      args: ['ask', '--question', 'Continue?', '--timeout-ms', 'nope'],
+      message: '--timeout-ms must be between 5000 and 1800000',
+    },
+  ];
+  for (const testCase of utilityNumberInvalidCases) {
+    const beforeInvalidUtilityNumber = receivedCommands.length;
+    const beforeInvalidUtilityNumberRejects = invalidPayloadRequests.length;
+    const rejected = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI ${testCase.label} must fail`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes(testCase.message),
+      `CLI ${testCase.label} rejection must explain numeric bounds`,
+    );
+    check(receivedCommands.length === beforeInvalidUtilityNumber, `CLI ${testCase.label} must not be accepted by fake command bridge`);
+    check(
+      invalidPayloadRequests.length === beforeInvalidUtilityNumberRejects,
+      `CLI ${testCase.label} must fail fast before contacting fake command bridge`,
+    );
+    utilityNumberChecks += 1;
+  }
+
+  const utilityNumberValidCases = [
+    {
+      label: 'wait zero timeout',
+      action: 'waitForSelector',
+      args: ['wait', '--selector', 'main', '--timeout-ms', '0'],
+      expectedPayload: { selector: 'main', timeoutMs: 0 },
+    },
+    {
+      label: 'scroll zero coordinates',
+      action: 'scroll',
+      args: ['scroll', '--x', '0', '--y', '0'],
+      expectedPayload: { x: 0, y: 0 },
+    },
+    {
+      label: 'storage min max-value-chars',
+      action: 'storageSnapshot',
+      args: ['storage', '--max-value-chars', '50', '--confirm'],
+      expectedPayload: { maxValueChars: 50, confirmed: true },
+    },
+    {
+      label: 'request min max-chars',
+      action: 'fetchUrl',
+      args: ['request', 'https://example.com', '--max-chars', '100', '--confirm'],
+      expectedPayload: { url: 'https://example.com', maxChars: 100, confirmed: true },
+    },
+    {
+      label: 'ask min timeout-ms',
+      action: 'askUser',
+      args: ['ask', '--question', 'Continue?', '--timeout-ms', '5000'],
+      expectedPayload: { question: 'Continue?', timeoutMs: 5000 },
+      expectedTimeoutMs: 10_000,
+    },
+  ];
+  for (const testCase of utilityNumberValidCases) {
+    const beforeValidUtilityNumber = receivedCommands.length;
+    const accepted = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(accepted.ok, `CLI ${testCase.label} must succeed against fake command bridge`);
+    const parsed = parseJsonOutput(accepted, `CLI ${testCase.label} fake command bridge`);
+    const receivedCommand = receivedCommands[beforeValidUtilityNumber];
+    const commandPayload = receivedCommand?.payload || parsed?.payload;
+    check(receivedCommand?.action === testCase.action, `CLI ${testCase.label} must dispatch ${testCase.action}`);
+    for (const [key, value] of Object.entries(testCase.expectedPayload)) {
+      check(commandPayload?.[key] === value, `CLI ${testCase.label} must forward ${key}`);
+    }
+    if (testCase.expectedTimeoutMs !== undefined) {
+      check(receivedCommand?.timeoutMs === testCase.expectedTimeoutMs, `CLI ${testCase.label} must pass command timeoutMs`);
+    }
+    utilityNumberChecks += 1;
+  }
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -868,6 +968,7 @@ process.stdout.write(`${JSON.stringify({
   traceMaxEventsChecks,
   privateLimitChecks,
   readLimitChecks,
+  utilityNumberChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
