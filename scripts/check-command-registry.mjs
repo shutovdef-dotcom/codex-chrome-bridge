@@ -43,6 +43,7 @@ const [
   pageReadActionsText,
   pageInteractionsText,
   pageScriptsText,
+  runtimeActionsText,
   safetyGatesText,
   tabCleanupText,
   tabInfoText,
@@ -71,6 +72,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/page-read-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-interactions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/runtime-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-info.js'), 'utf8').catch(() => ''),
@@ -571,7 +573,7 @@ check(!listSelectOptionsBlock.includes('value: select.value'), 'select-options m
 check(!listSelectOptionsBlock.includes('selected: option.selected'), 'select-options must not expose current selected option without confirmation');
 check(functionBlock(navigationActionsText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
 check(functionBlock(navigationActionsText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
-check(functionBlock(backgroundText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
+check(functionBlock(runtimeActionsText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
 check(backgroundText.includes("from './browser-data.js';"), 'extension background must import private browser-data handlers from extension/browser-data.js');
 for (const helperName of ['historySearch', 'bookmarksSearch', 'flattenBookmarks', 'cookiesList', 'fetchUrl']) {
   check(!functionBlock(backgroundText, helperName), `extension background must not own browser-data internals: ${helperName}`);
@@ -583,11 +585,15 @@ check(browserDataText.includes('export async function fetchUrl'), 'extension bro
 check(functionBlock(browserDataText, 'historySearch').includes("requireConfirmed(payload, 'historySearch')"), 'extension browser data history must require confirmation');
 check(functionBlock(browserDataText, 'cookiesList').includes("requireSensitiveConfirmed(payload, 'cookiesList without url/domain/name')"), 'extension browser data cookies whole-jar reads must require sensitive confirmation');
 check(functionBlock(browserDataText, 'fetchUrl').includes("requireSensitiveConfirmed(payload, 'fetchUrl credentials=include')"), 'extension browser data credentialed requests must require sensitive confirmation');
-check(backgroundText.includes("import { requireConfirmed } from './safety-gates.js';"), 'extension background must import safety gates from extension/safety-gates.js');
+check(runtimeActionsText.includes("import { requireConfirmed } from './safety-gates.js';"), 'extension runtime actions must import safety gates from extension/safety-gates.js');
 check(!backgroundText.includes('function requireConfirmed'), 'extension background must not own confirmation gate internals');
 check(!backgroundText.includes('function requireSensitiveConfirmed'), 'extension background must not own confirmation gate internals');
 check(functionBlock(safetyGatesText, 'requireConfirmed').includes('confirmed=true'), 'safety gates module must enforce mutation confirmation');
 check(functionBlock(safetyGatesText, 'requireSensitiveConfirmed').includes('confirmSensitive=true'), 'safety gates module must enforce sensitive confirmation');
+check(backgroundText.includes("from './runtime-actions.js';"), 'extension background must import runtime actions from extension/runtime-actions.js');
+check(!functionBlock(backgroundText, 'reloadExtension'), 'extension background must not own runtime action internals: reloadExtension');
+check(runtimeActionsText.includes('export function reloadExtension'), 'extension runtime actions module must export reloadExtension');
+check(functionBlock(runtimeActionsText, 'reloadExtension').includes('chrome.runtime.reload()'), 'extension runtime actions module must own runtime reload call');
 check(backgroundText.includes("from './debugger-session.js';"), 'extension background must import debugger session helpers from extension/debugger-session.js');
 check(!backgroundText.includes('traceSessions'), 'extension background must not own debugger trace session state');
 check(!backgroundText.includes('debuggerLocks'), 'extension background must not own debugger lock state');
