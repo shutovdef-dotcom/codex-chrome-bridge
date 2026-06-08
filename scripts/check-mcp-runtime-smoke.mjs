@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { BRIDGE_VERSION } from '../shared/command-registry.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mcpPath = path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs');
@@ -106,6 +107,43 @@ async function withStaleHealthServer(fn) {
   }
 }
 
+async function withStaleBridgeHealthServer(fn) {
+  const staleBridgeVersion = '0.0.0-stale-bridge';
+  const server = http.createServer((req, res) => {
+    if (req.url !== '/health') {
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unexpected path' }));
+      return;
+    }
+
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      bridge: {
+        version: staleBridgeVersion,
+      },
+      extension: {
+        connected: true,
+        info: {
+          version: BRIDGE_VERSION,
+        },
+      },
+    }));
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  try {
+    const { port } = server.address();
+    return await fn(`http://127.0.0.1:${port}`, staleBridgeVersion);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 const coveragePlanParsed = await withMcpClient({ CHROME_BRIDGE_URL: 'http://127.0.0.1:9' }, async (client) => (
   parseToolJson(await callRuntimeSmoke(client, { coveragePlan: true }), 'MCP coverage-plan runtime smoke')
 ));
@@ -169,6 +207,24 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   check(!Object.prototype.hasOwnProperty.call(staleParsed, 'stdout'), 'MCP stale-extension runtime smoke must not fall back to raw stdout wrapping');
 });
 
+let staleBridgeParsed;
+await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
+  staleBridgeParsed = await withMcpClient({ CHROME_BRIDGE_URL: bridgeUrl }, async (client) => (
+    parseToolJson(await callRuntimeSmoke(client, {}), 'MCP stale-bridge runtime smoke')
+  ));
+
+  if (!staleBridgeParsed) return;
+
+  check(staleBridgeParsed.ok === false, 'MCP stale-bridge runtime smoke output must fail top-level ok');
+  check(staleBridgeParsed.skipped === true, 'MCP stale-bridge runtime smoke must be skipped before fixture work');
+  check(staleBridgeParsed.bridgeVersion === staleBridgeVersion, 'MCP stale-bridge runtime smoke must report observed bridge version');
+  check(staleBridgeParsed.verification?.status === 'skipped', 'MCP stale-bridge verification status must be skipped');
+  check(staleBridgeParsed.verification?.liveVerificationRequired === true, 'MCP stale-bridge runtime smoke must still require final live verification');
+  check(staleBridgeParsed.verification?.observed?.bridgeVersion === staleBridgeVersion, 'MCP stale-bridge verification metadata must include observed bridge version');
+  check(typeof staleBridgeParsed.cliExitError === 'string' && staleBridgeParsed.cliExitError.length > 0, 'MCP stale-bridge runtime smoke must preserve cliExitError');
+  check(!Object.prototype.hasOwnProperty.call(staleBridgeParsed, 'stdout'), 'MCP stale-bridge runtime smoke must not fall back to raw stdout wrapping');
+});
+
 if (failures.length) {
   for (const failure of failures) process.stderr.write(`- ${failure}\n`);
   process.exit(1);
@@ -182,5 +238,6 @@ process.stdout.write(`${JSON.stringify({
   coveragePlanFinalCommandCount: coveragePlanParsed?.verification?.finalCommands?.length || 0,
   coveragePlanFinalMcpCallCount: coveragePlanParsed?.verification?.finalMcpCalls?.length || 0,
   staleExtensionStatus: staleParsed?.verification?.status,
+  staleBridgeStatus: staleBridgeParsed?.verification?.status,
   staleExtensionCliExitPreserved: Boolean(staleParsed?.cliExitError),
 }, null, 2)}\n`);

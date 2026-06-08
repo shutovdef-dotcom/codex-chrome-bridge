@@ -4,6 +4,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { BRIDGE_VERSION } from '../shared/command-registry.mjs';
 
 const execFileAsync = promisify(execFile);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -70,6 +71,43 @@ async function withStaleHealthServer(fn) {
   try {
     const { port } = server.address();
     return await fn(`http://127.0.0.1:${port}`, staleExtensionVersion);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+async function withStaleBridgeHealthServer(fn) {
+  const staleBridgeVersion = '0.0.0-stale-bridge';
+  const server = http.createServer((req, res) => {
+    if (req.url !== '/health') {
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unexpected path' }));
+      return;
+    }
+
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      bridge: {
+        version: staleBridgeVersion,
+      },
+      extension: {
+        connected: true,
+        info: {
+          version: BRIDGE_VERSION,
+        },
+      },
+    }));
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  try {
+    const { port } = server.address();
+    return await fn(`http://127.0.0.1:${port}`, staleBridgeVersion);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
@@ -148,6 +186,25 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   check(staleParsed.verification?.observed?.extensionVersion === staleExtensionVersion, 'stale-extension verification metadata must include observed extension version');
 });
 
+let staleBridgeParsed;
+await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
+  const result = await runCli(['runtime-smoke'], { CHROME_BRIDGE_URL: bridgeUrl });
+  try {
+    staleBridgeParsed = JSON.parse(result.stdout);
+  } catch (error) {
+    fail(`runtime-smoke stale-bridge output was not JSON: ${String(error?.message || error)}`);
+    return;
+  }
+
+  check(result.ok === false, 'stale-bridge runtime smoke must exit nonzero');
+  check(staleBridgeParsed.ok === false, 'stale-bridge runtime smoke output must fail top-level ok');
+  check(staleBridgeParsed.skipped === true, 'stale-bridge runtime smoke must be skipped before fixture work');
+  check(staleBridgeParsed.bridgeVersion === staleBridgeVersion, 'stale-bridge runtime smoke must report observed bridge version');
+  check(staleBridgeParsed.verification?.status === 'skipped', 'stale-bridge runtime smoke verification status must be skipped');
+  check(staleBridgeParsed.verification?.liveVerificationRequired === true, 'stale-bridge runtime smoke must still require final live verification');
+  check(staleBridgeParsed.verification?.observed?.bridgeVersion === staleBridgeVersion, 'stale-bridge verification metadata must include observed bridge version');
+});
+
 if (failures.length) {
   for (const failure of failures) process.stderr.write(`- ${failure}\n`);
   process.exit(1);
@@ -161,4 +218,5 @@ process.stdout.write(`${JSON.stringify({
   liveVerificationRequired: parsed.verification.liveVerificationRequired,
   requiredCount: parsed.coverage.requiredCount,
   staleExtensionStatus: staleParsed?.verification?.status,
+  staleBridgeStatus: staleBridgeParsed?.verification?.status,
 }, null, 2)}\n`);
