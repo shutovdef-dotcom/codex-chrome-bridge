@@ -87,9 +87,12 @@ In Chrome:
 Verify the bridge:
 
 ```bash
+npm run runtime-smoke:plan
 node ./bin/chrome-bridge.mjs health
 node ./bin/chrome-bridge.mjs runtime-smoke
 ```
+
+`npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan` and prints the required smoke checklist without contacting Chrome or the live bridge. Use it while another Codex session is actively using the bridge; run the normal live smoke only after the bridge is free.
 
 The smoke test opens temporary `127.0.0.1` fixture tabs, checks scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction, screenshots, PDF export, interactions, tracing, browser-data safety gates, and cleanup.
 
@@ -233,10 +236,11 @@ npm run check:bridge-contract
 npm run check:privacy
 npm run check:audit
 npm run check:pack
+npm run runtime-smoke:plan
 npm run runtime-smoke
 ```
 
-`docs:commands` regenerates the checked-in command catalog, managed CLI usage blocks, managed CLI metadata table, and managed MCP tool reference table from the shared registry. `check:registry` verifies command registry invariants, direct payload validation samples, complete CLI/MCP catalog coverage, debugger-backed action serialization, package/manifest/registry parity, and generated command catalog drift. `check:docs` verifies the CLI reference mirrors every registry-owned usage signature, the CLI generated blocks stay grouped correctly, the CLI/MCP reference keeps generated tool metadata blocks in sync, and every registry-defined MCP tool is documented. `check:bridge-contract` starts an isolated local test server, does not touch Chrome, and verifies bridge boundary/error behavior including malformed JSON, oversized JSON handling, timeout handling, stale extension fail-closed behavior, and shutdown cleanup. `check:privacy` scans repository files for local home paths, private-key headers, common provider tokens, and obvious secret assignments. `check:pack` parses the dry-run npm tarball and verifies required runtime, extension, shared registry, generated docs, and verification files are included. `runtime-smoke` requires Chrome, the unpacked extension, and the bridge server. It only uses a local fixture page.
+`docs:commands` regenerates the checked-in command catalog, managed CLI usage blocks, managed CLI metadata table, and managed MCP tool reference table from the shared registry. `check:registry` verifies command registry invariants, direct payload validation samples, complete CLI/MCP catalog coverage, debugger-backed action serialization, package/manifest/registry parity, and generated command catalog drift. `check:docs` verifies the CLI reference mirrors every registry-owned usage signature, the CLI generated blocks stay grouped correctly, the CLI/MCP reference keeps generated tool metadata blocks in sync, and every registry-defined MCP tool is documented. `check:bridge-contract` starts an isolated local test server, does not touch Chrome, and verifies bridge boundary/error behavior including malformed JSON, oversized JSON handling, timeout handling, stale extension fail-closed behavior, and shutdown cleanup. `check:privacy` scans repository files for local home paths, private-key headers, common provider tokens, and obvious secret assignments. `check:pack` parses the dry-run npm tarball and verifies required runtime, extension, shared registry, generated docs, and verification files are included. `runtime-smoke:plan` is offline and safe while the live bridge is busy. `runtime-smoke` requires Chrome, the unpacked extension, and the bridge server. It only uses a local fixture page.
 
 ## Contributing
 

@@ -56,6 +56,7 @@
     "mcp": "node ./mcp/chrome-bridge-mcp.mjs",
     "self-test": "node ./bin/chrome-bridge.mjs self-test",
     "runtime-smoke": "node ./bin/chrome-bridge.mjs runtime-smoke",
+    "runtime-smoke:plan": "node ./bin/chrome-bridge.mjs runtime-smoke --coverage-plan",
     "doctor": "node ./bin/chrome-bridge.mjs doctor",
     "docs:commands": "node ./scripts/generate-command-catalog.mjs",
     "check:docs": "node ./scripts/check-docs-coverage.mjs",
