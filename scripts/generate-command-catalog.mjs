@@ -4,12 +4,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   CLI_USAGE_GROUPS,
+  GENERATED_CLI_REFERENCE_BEGIN,
+  GENERATED_CLI_REFERENCE_END,
   GENERATED_MCP_TOOLS_BEGIN,
   GENERATED_MCP_TOOLS_END,
   commandCatalogMarkdown,
   generatedCliUsageBegin,
   generatedCliUsageBlock,
   generatedCliUsageEnd,
+  generatedCliReferenceBlock,
   generatedMcpToolsBlock,
 } from '../shared/command-registry.mjs';
 
@@ -31,6 +34,12 @@ async function replaceManagedBlock(filePath, beginMarker, endMarker, nextBlock) 
 }
 
 await fs.writeFile(catalogPath, commandCatalogMarkdown());
+await replaceManagedBlock(
+  cliPath,
+  GENERATED_CLI_REFERENCE_BEGIN,
+  GENERATED_CLI_REFERENCE_END,
+  generatedCliReferenceBlock(),
+);
 for (const group of CLI_USAGE_GROUPS) {
   await replaceManagedBlock(
     cliPath,

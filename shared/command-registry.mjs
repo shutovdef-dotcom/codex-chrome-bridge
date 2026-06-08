@@ -798,6 +798,9 @@ export function generatedCliUsageBlock(groupId) {
   ].join('\n');
 }
 
+export const GENERATED_CLI_REFERENCE_BEGIN = '<!-- BEGIN GENERATED CLI REFERENCE -->';
+export const GENERATED_CLI_REFERENCE_END = '<!-- END GENERATED CLI REFERENCE -->';
+
 export function commandCatalog() {
   return {
     version: BRIDGE_VERSION,
@@ -993,11 +996,12 @@ export const MCP_TOOLS = Object.freeze([
 export const GENERATED_MCP_TOOLS_BEGIN = '<!-- BEGIN GENERATED MCP TOOLS -->';
 export const GENERATED_MCP_TOOLS_END = '<!-- END GENERATED MCP TOOLS -->';
 
-function mcpToolMetadata(tool) {
-  const action = COMMAND_CATALOG.find((entry) => entry.mcp.includes(tool));
+function commandSurfaceMetadata(surface, id) {
+  const surfaceKey = surface === 'cli' ? 'cli' : 'mcp';
+  const action = COMMAND_CATALOG.find((entry) => entry[surfaceKey].includes(id));
   if (action) {
     return {
-      tool,
+      id,
       contract: action.action,
       riskTier: action.riskTier,
       defaultTimeoutMs: action.defaultTimeoutMs,
@@ -1007,10 +1011,10 @@ function mcpToolMetadata(tool) {
     };
   }
 
-  const localCommand = LOCAL_COMMAND_CATALOG.find((entry) => entry.mcp.includes(tool));
+  const localCommand = LOCAL_COMMAND_CATALOG.find((entry) => entry[surfaceKey].includes(id));
   if (localCommand) {
     return {
-      tool,
+      id,
       contract: localCommand.id,
       riskTier: localCommand.riskTier,
       defaultTimeoutMs: localCommand.defaultTimeoutMs,
@@ -1020,14 +1024,14 @@ function mcpToolMetadata(tool) {
     };
   }
 
-  throw new Error(`Missing MCP metadata for tool: ${tool}`);
+  throw new Error(`Missing ${surface.toUpperCase()} metadata for id: ${id}`);
 }
 
-export function mcpToolReferenceMarkdown() {
-  const rows = MCP_TOOLS.map((tool) => {
-    const entry = mcpToolMetadata(tool);
+function commandSurfaceReferenceMarkdown(surface, ids, firstColumn) {
+  const rows = ids.map((id) => {
+    const entry = commandSurfaceMetadata(surface, id);
     return `| ${[
-      `\`${entry.tool}\``,
+      `\`${entry.id}\``,
       `\`${entry.contract}\``,
       entry.riskTier,
       formatTimeoutMs(entry.defaultTimeoutMs),
@@ -1038,10 +1042,26 @@ export function mcpToolReferenceMarkdown() {
   });
 
   return [
-    '| Tool | Contract | Risk | Default Timeout | Confirm | Live Bridge | Summary |',
+    `| ${firstColumn} | Contract | Risk | Default Timeout | Confirm | Live Bridge | Summary |`,
     '| --- | --- | --- | --- | --- | --- | --- |',
     ...rows,
   ].join('\n');
+}
+
+export function cliCommandReferenceMarkdown() {
+  return commandSurfaceReferenceMarkdown('cli', CLI_COMMANDS, 'Command');
+}
+
+export function generatedCliReferenceBlock() {
+  return [
+    GENERATED_CLI_REFERENCE_BEGIN,
+    cliCommandReferenceMarkdown(),
+    GENERATED_CLI_REFERENCE_END,
+  ].join('\n');
+}
+
+export function mcpToolReferenceMarkdown() {
+  return commandSurfaceReferenceMarkdown('mcp', MCP_TOOLS, 'Tool');
 }
 
 export function generatedMcpToolsBlock() {

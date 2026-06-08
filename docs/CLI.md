@@ -12,6 +12,71 @@ Or install/link the package and use:
 chrome-bridge <command>
 ```
 
+## Command Metadata
+
+The command metadata table below is generated from the shared registry by `npm run docs:commands`.
+
+<!-- BEGIN GENERATED CLI REFERENCE -->
+| Command | Contract | Risk | Default Timeout | Confirm | Live Bridge | Summary |
+| --- | --- | --- | --- | --- | --- | --- |
+| `server` | `server` | system | - | no | no | Start the local Chrome Bridge HTTP/WebSocket server. |
+| `health` | `health` | read | 10000 ms | no | yes | Read local bridge health and extension connection status. |
+| `windows` | `windows` | read | 10000 ms | conditional | yes | List Chrome windows, scoped to the configured bridge group by default; includeAll requires confirmation. |
+| `group` | `group` | read | 10000 ms | no | yes | Show the current scoped Chrome tab group and its tabs. |
+| `tabs` | `tabs` | read | 10000 ms | conditional | yes | List Chrome tabs, scoped to the configured bridge group by default; includeAll requires confirmation. |
+| `workspace` | `workspace` | read | 10000 ms | no | yes | Show local workspace defaults, policy mode, and scoped group counts. |
+| `set-workspace` | `setWorkspace` | system | 10000 ms | yes | yes | Set local workspace group title, color, and scoped/strict policy defaults. |
+| `clear-workspace` | `clearWorkspace` | system | 10000 ms | yes | yes | Clear local workspace defaults and return to the default group policy. |
+| `ensure-tab` | `ensureTab` | system | 30000 ms | no | yes | Create or recover the dedicated scoped Chrome work tab. |
+| `adopt-tab` | `adoptTab` | interaction | 30000 ms | yes | yes | Adopt an already-open Chrome tab into the scoped bridge group. |
+| `open` | `open` | interaction | 30000 ms | no | yes | Open a URL in the scoped bridge tab or a new grouped tab. |
+| `activate` | `activateTab` | interaction | 10000 ms | no | yes | Activate a scoped tab and optionally focus its window. |
+| `close-tab` | `closeTab` | interaction | 10000 ms | yes | yes | Close one scoped tab. |
+| `close-group` | `closeGroup` | interaction | 10000 ms | yes | yes | Close all tabs in the scoped bridge group. |
+| `back` | `goBack` | interaction | 30000 ms | no | yes | Navigate the selected tab backward. |
+| `forward` | `goForward` | interaction | 30000 ms | no | yes | Navigate the selected tab forward. |
+| `reload` | `reloadTab` | interaction | 30000 ms | no | yes | Reload the selected tab. |
+| `wait` | `waitForSelector` | read | 30000 ms | no | yes | Wait for a selector to appear in the selected tab. |
+| `observe` | `observe` | read | 30000 ms | no | yes | Read ranked actionable elements without mutating page state. |
+| `find-elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements by role, text, nearby text, href, action, or risk. |
+| `extract` | `extractPage` | read | 30000 ms | no | yes | Extract structured tables, form structure, lists, and key-value blocks without current form values. |
+| `snapshot` | `snapshot` | read | 30000 ms | no | yes | Read a bounded structured page snapshot. |
+| `text` | `text` | read | 30000 ms | no | yes | Read bounded visible page text. |
+| `html` | `html` | read | 30000 ms | no | yes | Read bounded page HTML for a selector or the whole document. |
+| `screenshot` | `screenshot` | read | 30000 ms | no | yes | Capture a PNG screenshot of the selected tab, full page, or selector. |
+| `pdf` | `printPdf` | read | 60000 ms | no | yes | Print the selected tab to a local PDF artifact. |
+| `scroll` | `scroll` | interaction | 10000 ms | no | yes | Scroll the selected tab. |
+| `click` | `click` | interaction | 30000 ms | yes | yes | Click a selector in the selected tab. |
+| `click-at` | `clickAt` | interaction | 30000 ms | yes | yes | Click viewport coordinates, optionally through trusted debugger input. |
+| `hover` | `hover` | interaction | 30000 ms | no | yes | Hover an element or coordinates in the selected tab. |
+| `type` | `type` | interaction | 30000 ms | yes | yes | Type text into a selector, optionally through trusted debugger input. |
+| `press` | `press` | interaction | 30000 ms | yes | yes | Press a keyboard key, optionally through trusted debugger input. |
+| `select` | `select` | interaction | 30000 ms | yes | yes | Select an option in a select element. |
+| `select-options` | `listSelectOptions` | read | 30000 ms | no | yes | Read available select options without returning current selection state. |
+| `fill-form` | `fillForm` | interaction | 30000 ms | yes | yes | Preview or apply field values without submitting or returning raw field values. |
+| `handle-dialog` | `handleDialog` | interaction | 30000 ms | yes | yes | Accept or dismiss the currently open JavaScript dialog. |
+| `upload-file` | `uploadFile` | interaction | 60000 ms | yes | yes | Set local files on a file input through Chrome Debugger. |
+| `trace-start` | `traceStart` | system | 30000 ms | yes | yes | Start bounded console and network metadata tracing. |
+| `trace-summary` | `traceSummary` | read | 30000 ms | no | yes | Read trace session metadata without returning the trace event log. |
+| `trace-events` | `traceEvents` | read | 30000 ms | no | yes | Read recent bounded trace events. |
+| `trace-stop` | `traceStop` | system | 30000 ms | no | yes | Stop tracing and return recent events. |
+| `history` | `historySearch` | private-read | 30000 ms | yes | yes | Search Chrome history with explicit confirmation. |
+| `bookmarks` | `bookmarksSearch` | private-read | 30000 ms | yes | yes | Search Chrome bookmarks with explicit confirmation. |
+| `cookies` | `cookiesList` | private-read | 30000 ms | sensitive | yes | List Chrome cookie metadata; values require sensitive confirmation. |
+| `storage` | `storageSnapshot` | private-read | 30000 ms | sensitive | yes | Read page storage keys; values require sensitive confirmation. |
+| `request` | `fetchUrl` | private-read | 60000 ms | sensitive | yes | Run a bounded extension-context request; credentials require sensitive confirmation. |
+| `ask` | `askUser` | system | 305000 ms | no | yes | Open a local prompt tab and wait for a user answer. |
+| `session-summary` | `session-summary` | read | 30000 ms | no | yes | Summarize bridge health, workspace policy, scoped group state, and recommendations. |
+| `debug-bundle` | `debug-bundle` | read | 60000 ms | no | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
+| `command-catalog` | `command-catalog` | read | 5000 ms | no | no | Print this shared command registry as JSON or Markdown. |
+| `reload-extension` | `reloadExtension` | system | 5000 ms | yes | yes | Ask the unpacked extension to reload itself after local file edits; requires confirmation. |
+| `self-test` | `self-test` | read | 10000 ms | no | no | Run static project parity checks without touching Chrome. |
+| `runtime-smoke` | `runtime-smoke` | interaction | 180000 ms | no | yes | Run the real-browser fixture smoke test against the live bridge. |
+| `doctor` | `doctor` | read | 10000 ms | no | optional | Inspect local installation paths offline; pass --live-checks to probe bridge health and Chrome settings. |
+| `extension-path` | `extension-path` | read | 5000 ms | no | no | Print the unpacked extension directory path. |
+| `codex-config` | `codex-config` | read | 5000 ms | no | no | Print a Codex MCP configuration snippet using the current Node executable. |
+<!-- END GENERATED CLI REFERENCE -->
+
 ## Server and Diagnostics
 
 The command blocks below are generated from the shared registry by `npm run docs:commands`.
