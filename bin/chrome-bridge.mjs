@@ -1495,7 +1495,7 @@ async function runtimeSmoke(args = {}) {
   const failures = steps.filter((step) => !step.ok);
   const coverage = runtimeSmokeCoverage(steps);
   return {
-    ok: failures.length === 0,
+    ok: failures.length === 0 && coverage.ok,
     startedAt,
     finishedAt: new Date().toISOString(),
     expectedVersion: EXPECTED_EXTENSION_VERSION,
