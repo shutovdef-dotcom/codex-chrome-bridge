@@ -29,7 +29,7 @@ If extension permissions or source files change, reload the unpacked extension i
 Once the extension is connected, future source edits can often be applied with:
 
 ```bash
-node ./bin/chrome-bridge.mjs reload-extension
+node ./bin/chrome-bridge.mjs reload-extension --confirm
 ```
 
 Permission changes still require a manual Chrome extension reload.

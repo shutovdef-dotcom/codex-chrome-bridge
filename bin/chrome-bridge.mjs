@@ -6,55 +6,34 @@ import { execFile, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { startBridgeServer } from '../server/bridge-server.mjs';
+import {
+  BRIDGE_VERSION,
+  CLI_COMMANDS,
+  CLI_USAGE_GROUPS,
+  CLI_USAGE_LINES,
+  COMMAND_CATALOG,
+  COMMAND_METADATA,
+  DEBUGGER_SERIALIZED_ACTIONS,
+  EXTENSION_ACTIONS,
+  HTTP_METHODS,
+  MANIFEST_PERMISSIONS,
+  MCP_TOOLS,
+  commandCatalog,
+  commandCatalogMarkdown,
+  commandDefaultTimeoutMs,
+} from '../shared/command-registry.mjs';
 
 const DEFAULT_ENDPOINT = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
-const EXPECTED_EXTENSION_VERSION = '0.4.0';
+const EXPECTED_EXTENSION_VERSION = BRIDGE_VERSION;
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const execFileAsync = promisify(execFile);
 
 function usage() {
-  return `Usage:
-  chrome-bridge server [--port 17376]
-  chrome-bridge health
-  chrome-bridge windows [--all]
-  chrome-bridge group [--tabs]
-  chrome-bridge tabs [--all]
-  chrome-bridge ensure-tab [url] [--active]
-  chrome-bridge open <url> [--tab <id>] [--active] [--new]
-  chrome-bridge activate [--tab <id>] [--focus-window] [--allow-external]
-  chrome-bridge close-tab [--tab <id>] --confirm [--allow-external]
-  chrome-bridge close-group --confirm
-  chrome-bridge back [--tab <id>] [--allow-external]
-  chrome-bridge forward [--tab <id>] [--allow-external]
-  chrome-bridge reload [--tab <id>] [--bypass-cache] [--allow-external]
-  chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
-  chrome-bridge snapshot [--tab <id>] [--max-chars 50000] [--allow-external]
-  chrome-bridge text [--tab <id>] [--max-chars 50000] [--allow-external]
-  chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 100000] [--inner] [--allow-external]
-  chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--allow-external]
-  chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
-  chrome-bridge click --tab <id> --selector <css> --confirm [--allow-external]
-  chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]
-  chrome-bridge hover [--selector <css>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
-  chrome-bridge type --tab <id> --selector <css> --text <text> --confirm [--trusted] [--allow-external]
-  chrome-bridge press --key <key> --confirm [--selector <css>] [--trusted] [--tab <id>] [--allow-external]
-  chrome-bridge select --selector <css> --confirm [--value <value> | --label <label> | --index <n>] [--tab <id>] [--allow-external]
-  chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-network] [--no-console] [--include-extension-events] [--allow-external]
-  chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]
-  chrome-bridge trace-stop [--tab <id>] [--limit 100] [--allow-external]
-  chrome-bridge history [--query <text>] --confirm [--limit 25]
-  chrome-bridge bookmarks [--query <text>] --confirm [--limit 50]
-  chrome-bridge cookies [--url <url> | --domain <domain>] --confirm [--include-values --confirm-sensitive] [--limit 50]
-  chrome-bridge storage [--tab <id>] --confirm [--include-values --confirm-sensitive] [--allow-external]
-  chrome-bridge request <url> --confirm [--method GET] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000]
-  chrome-bridge ask --question <text> [--choices-json <json>] [--no-text] [--timeout-ms 300000] [--keep-tab]
-  chrome-bridge reload-extension
-  chrome-bridge self-test
-  chrome-bridge runtime-smoke [--keep-tab]
-  chrome-bridge doctor [--copy-path] [--open-extensions]
-  chrome-bridge extension-path
-  chrome-bridge codex-config`;
+  return [
+    'Usage:',
+    ...CLI_USAGE_LINES.map((line) => `  ${line}`),
+  ].join('\n');
 }
 
 function parseArgs(argv) {
@@ -88,16 +67,20 @@ async function bridgeFetch(pathname, options = {}) {
     throw new Error(`Bridge returned non-JSON ${response.status}: ${text.slice(0, 500)}`);
   }
   if (!response.ok || json.ok === false) {
-    throw new Error(json.error || `Bridge returned HTTP ${response.status}`);
+    const error = new Error(json.error || `Bridge returned HTTP ${response.status}`);
+    error.code = json.code;
+    error.details = json.details;
+    throw error;
   }
   return json;
 }
 
 async function command(action, payload = {}, timeoutMs) {
+  const effectiveTimeoutMs = timeoutMs ?? commandDefaultTimeoutMs(action);
   const json = await bridgeFetch('/command', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action, payload, timeoutMs }),
+    body: JSON.stringify({ action, payload, timeoutMs: effectiveTimeoutMs }),
   });
   return json.result;
 }
@@ -114,10 +97,11 @@ function targetPayload(args) {
 }
 
 function confirmationPayload(args) {
-  return {
+  const payload = {
     confirmed: Boolean(args.confirm),
-    confirmSensitive: Boolean(args['confirm-sensitive']),
   };
+  if (args['confirm-sensitive']) payload.confirmSensitive = true;
+  return payload;
 }
 
 function parseJsonOption(value, name) {
@@ -129,134 +113,23 @@ function parseJsonOption(value, name) {
   }
 }
 
-const EXPECTED_MANIFEST_PERMISSIONS = [
-  'activeTab',
-  'alarms',
-  'bookmarks',
-  'cookies',
-  'debugger',
-  'history',
-  'offscreen',
-  'scripting',
-  'storage',
-  'tabGroups',
-  'tabs',
-];
+function normalizeHttpMethod(value) {
+  if (value === undefined) return undefined;
+  const method = String(value).toUpperCase();
+  if (!HTTP_METHODS.includes(method)) {
+    throw new Error(`--method must be one of: ${HTTP_METHODS.join(', ')}`);
+  }
+  return method;
+}
 
-const EXPECTED_EXTENSION_ACTIONS = [
-  'windows',
-  'tabs',
-  'group',
-  'ensureTab',
-  'open',
-  'activateTab',
-  'closeTab',
-  'closeGroup',
-  'goBack',
-  'goForward',
-  'reloadTab',
-  'waitForSelector',
-  'snapshot',
-  'text',
-  'html',
-  'screenshot',
-  'scroll',
-  'click',
-  'clickAt',
-  'hover',
-  'type',
-  'press',
-  'select',
-  'traceStart',
-  'traceEvents',
-  'traceStop',
-  'historySearch',
-  'bookmarksSearch',
-  'cookiesList',
-  'storageSnapshot',
-  'fetchUrl',
-  'askUser',
-  'reloadExtension',
-];
+function tomlString(value) {
+  return JSON.stringify(String(value));
+}
 
-const EXPECTED_CLI_COMMANDS = [
-  'health',
-  'windows',
-  'group',
-  'tabs',
-  'ensure-tab',
-  'open',
-  'activate',
-  'close-tab',
-  'close-group',
-  'back',
-  'forward',
-  'reload',
-  'wait',
-  'snapshot',
-  'text',
-  'html',
-  'screenshot',
-  'scroll',
-  'click',
-  'click-at',
-  'hover',
-  'type',
-  'press',
-  'select',
-  'trace-start',
-  'trace-events',
-  'trace-stop',
-  'history',
-  'bookmarks',
-  'cookies',
-  'storage',
-  'request',
-  'ask',
-  'reload-extension',
-  'self-test',
-  'runtime-smoke',
-  'doctor',
-];
-
-const EXPECTED_MCP_TOOLS = [
-  'chrome_bridge_health',
-  'chrome_bridge_reload_extension',
-  'chrome_bridge_self_test',
-  'chrome_bridge_runtime_smoke',
-  'chrome_bridge_windows',
-  'chrome_bridge_tabs',
-  'chrome_bridge_group',
-  'chrome_bridge_ensure_tab',
-  'chrome_bridge_open',
-  'chrome_bridge_activate_tab',
-  'chrome_bridge_close_tab',
-  'chrome_bridge_close_group',
-  'chrome_bridge_back',
-  'chrome_bridge_forward',
-  'chrome_bridge_reload_tab',
-  'chrome_bridge_wait_for_selector',
-  'chrome_bridge_snapshot',
-  'chrome_bridge_text',
-  'chrome_bridge_html',
-  'chrome_bridge_screenshot',
-  'chrome_bridge_click_at',
-  'chrome_bridge_hover',
-  'chrome_bridge_click',
-  'chrome_bridge_type',
-  'chrome_bridge_press',
-  'chrome_bridge_select',
-  'chrome_bridge_scroll',
-  'chrome_bridge_trace_start',
-  'chrome_bridge_trace_events',
-  'chrome_bridge_trace_stop',
-  'chrome_bridge_history_search',
-  'chrome_bridge_bookmarks_search',
-  'chrome_bridge_cookies_list',
-  'chrome_bridge_storage_snapshot',
-  'chrome_bridge_request',
-  'chrome_bridge_ask_user',
-];
+const EXPECTED_MANIFEST_PERMISSIONS = MANIFEST_PERMISSIONS;
+const EXPECTED_EXTENSION_ACTIONS = EXTENSION_ACTIONS;
+const EXPECTED_CLI_COMMANDS = CLI_COMMANDS;
+const EXPECTED_MCP_TOOLS = MCP_TOOLS;
 
 async function tryExec(commandName, args, options = {}) {
   if (typeof options.input === 'string') {
@@ -318,15 +191,28 @@ function trySpawnWithInput(commandName, args, options = {}) {
 
 async function doctor(args) {
   const extensionPath = path.join(rootDir, 'extension');
-  const health = await bridgeFetch('/health').catch((error) => ({
-    ok: false,
-    error: String(error?.message || error),
-  }));
+  const includeLiveChecks = Boolean(args['live-checks']);
+  const health = includeLiveChecks
+    ? await bridgeFetch('/health').catch((error) => ({
+      ok: false,
+      error: String(error?.message || error),
+    }))
+    : {
+      ok: null,
+      skipped: true,
+      reason: 'Pass --live-checks when no other session is using the bridge.',
+    };
 
-  const appleEvents = await tryExec('osascript', [
-    '-e',
-    'tell application "Google Chrome" to execute active tab of front window javascript "document.title"',
-  ], { timeout: 3_000 });
+  const appleEvents = includeLiveChecks
+    ? await tryExec('osascript', [
+      '-e',
+      'tell application "Google Chrome" to execute active tab of front window javascript "document.title"',
+    ], { timeout: 3_000 })
+    : {
+      ok: null,
+      skipped: true,
+      reason: 'Pass --live-checks to probe real Chrome Apple Events settings.',
+    };
 
   const actions = [];
   if (args['copy-path']) {
@@ -343,14 +229,15 @@ async function doctor(args) {
     });
   }
 
-  const extensionConnected = Boolean(health?.extension?.connected);
+  const extensionConnected = includeLiveChecks ? Boolean(health?.extension?.connected) : null;
   const extensionVersion = health?.extension?.info?.version || null;
-  const extensionCurrent = extensionVersion === EXPECTED_EXTENSION_VERSION;
-  const appleEventsJsEnabled = appleEvents.ok;
+  const extensionCurrent = includeLiveChecks ? extensionVersion === EXPECTED_EXTENSION_VERSION : null;
+  const appleEventsJsEnabled = includeLiveChecks ? appleEvents.ok : null;
 
   return {
     bridgeUrl: DEFAULT_ENDPOINT,
     extensionPath,
+    liveChecks: includeLiveChecks,
     health,
     checks: {
       extensionConnected,
@@ -361,10 +248,14 @@ async function doctor(args) {
       appleEventsError: appleEvents.ok ? null : appleEvents.error,
     },
     actions,
-    nextActions: extensionConnected && extensionCurrent ? [
+    nextActions: !includeLiveChecks ? [
+      'Run chrome-bridge self-test for offline project verification.',
+      'Pass --live-checks only when no other Codex session is actively using the bridge.',
+      'Run chrome-bridge health and runtime-smoke later for final live verification.',
+    ] : extensionConnected && extensionCurrent ? [
       'Run chrome-bridge runtime-smoke for full local runtime verification.',
       'Run ensure-tab/open/snapshot/screenshot commands for task-specific work.',
-      'For future extension file edits, run chrome-bridge reload-extension.',
+      'For future extension file edits, run chrome-bridge reload-extension --confirm.',
     ] : extensionConnected ? [
       'Reload the unpacked Codex Chrome Bridge extension in chrome://extensions/.',
       `Confirm chrome-bridge health reports extension.info.version ${EXPECTED_EXTENSION_VERSION}.`,
@@ -389,11 +280,20 @@ async function selfTest() {
   const paths = {
     manifest: path.join(rootDir, 'extension/manifest.json'),
     background: path.join(rootDir, 'extension/background.js'),
+    pageScripts: path.join(rootDir, 'extension/page-scripts.js'),
+    workspacePolicy: path.join(rootDir, 'extension/workspace-policy.js'),
     offscreen: path.join(rootDir, 'extension/offscreen.js'),
     ask: path.join(rootDir, 'extension/ask.js'),
     server: path.join(rootDir, 'server/bridge-server.mjs'),
     cli: path.join(rootDir, 'bin/chrome-bridge.mjs'),
     mcp: path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'),
+    registry: path.join(rootDir, 'shared/command-registry.mjs'),
+    commandCatalogDoc: path.join(rootDir, 'docs/COMMAND-CATALOG.md'),
+    commandCatalogGenerator: path.join(rootDir, 'scripts/generate-command-catalog.mjs'),
+    bridgeContractChecker: path.join(rootDir, 'scripts/check-bridge-contract.mjs'),
+    docsCoverageChecker: path.join(rootDir, 'scripts/check-docs-coverage.mjs'),
+    packageContentsChecker: path.join(rootDir, 'scripts/check-package-contents.mjs'),
+    privacyScanner: path.join(rootDir, 'scripts/check-privacy-scan.mjs'),
     packageJson: path.join(rootDir, 'package.json'),
     packageLock: path.join(rootDir, 'package-lock.json'),
   };
@@ -401,21 +301,31 @@ async function selfTest() {
   const [
     manifestText,
     background,
+    pageScripts,
+    workspacePolicy,
     offscreen,
     ask,
     server,
     cli,
     mcp,
+    registry,
+    commandCatalogDoc,
+    bridgeContractChecker,
     packageJsonText,
     packageLockText,
   ] = await Promise.all([
     fs.readFile(paths.manifest, 'utf8'),
     fs.readFile(paths.background, 'utf8'),
+    fs.readFile(paths.pageScripts, 'utf8'),
+    fs.readFile(paths.workspacePolicy, 'utf8'),
     fs.readFile(paths.offscreen, 'utf8'),
     fs.readFile(paths.ask, 'utf8'),
     fs.readFile(paths.server, 'utf8'),
     fs.readFile(paths.cli, 'utf8'),
     fs.readFile(paths.mcp, 'utf8'),
+    fs.readFile(paths.registry, 'utf8'),
+    fs.readFile(paths.commandCatalogDoc, 'utf8'),
+    fs.readFile(paths.bridgeContractChecker, 'utf8'),
     fs.readFile(paths.packageJson, 'utf8'),
     fs.readFile(paths.packageLock, 'utf8'),
   ]);
@@ -426,11 +336,19 @@ async function selfTest() {
 
   const syntaxChecks = await Promise.all([
     tryExec(process.execPath, ['--check', paths.background]),
+    tryExec(process.execPath, ['--check', paths.pageScripts]),
+    tryExec(process.execPath, ['--check', paths.workspacePolicy]),
     tryExec(process.execPath, ['--check', paths.offscreen]),
     tryExec(process.execPath, ['--check', paths.ask]),
     tryExec(process.execPath, ['--check', paths.server]),
     tryExec(process.execPath, ['--check', paths.cli]),
     tryExec(process.execPath, ['--check', paths.mcp]),
+    tryExec(process.execPath, ['--check', paths.registry]),
+    tryExec(process.execPath, ['--check', paths.commandCatalogGenerator]),
+    tryExec(process.execPath, ['--check', paths.bridgeContractChecker]),
+    tryExec(process.execPath, ['--check', paths.docsCoverageChecker]),
+    tryExec(process.execPath, ['--check', paths.packageContentsChecker]),
+    tryExec(process.execPath, ['--check', paths.privacyScanner]),
   ]);
 
   const permissionChecks = EXPECTED_MANIFEST_PERMISSIONS.map((permission) => ({
@@ -443,9 +361,14 @@ async function selfTest() {
     { label: 'manifest version', item: EXPECTED_EXTENSION_VERSION, ok: manifest.version === EXPECTED_EXTENSION_VERSION },
     { label: 'offscreen version', item: EXPECTED_EXTENSION_VERSION, ok: offscreen.includes(`EXTENSION_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
     { label: 'ask page script', item: 'codex-bridge-user-answer', ok: ask.includes('codex-bridge-user-answer') },
-    { label: 'server version', item: EXPECTED_EXTENSION_VERSION, ok: server.includes(`EXTENSION_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
-    { label: 'cli expected version', item: EXPECTED_EXTENSION_VERSION, ok: cli.includes(`EXPECTED_EXTENSION_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
-    { label: 'mcp version', item: EXPECTED_EXTENSION_VERSION, ok: mcp.includes(`version: '${EXPECTED_EXTENSION_VERSION}'`) },
+    { label: 'extension module', item: 'page script imports', ok: background.includes("from './page-scripts.js'") },
+    { label: 'extension module', item: 'page script exports', ok: pageScripts.includes('export function collectSnapshot') },
+    { label: 'extension module', item: 'workspace policy imports', ok: background.includes("from './workspace-policy.js'") },
+    { label: 'extension module', item: 'workspace policy exports', ok: workspacePolicy.includes('export async function groupOptions') },
+    { label: 'registry version', item: EXPECTED_EXTENSION_VERSION, ok: registry.includes(`BRIDGE_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
+    { label: 'server registry version', item: EXPECTED_EXTENSION_VERSION, ok: server.includes('BRIDGE_VERSION') },
+    { label: 'cli registry version', item: EXPECTED_EXTENSION_VERSION, ok: cli.includes('EXPECTED_EXTENSION_VERSION = BRIDGE_VERSION') },
+    { label: 'mcp registry version', item: EXPECTED_EXTENSION_VERSION, ok: mcp.includes('version: BRIDGE_VERSION') },
     { label: 'package version', item: EXPECTED_EXTENSION_VERSION, ok: packageJson.version === EXPECTED_EXTENSION_VERSION },
     { label: 'package-lock root version', item: EXPECTED_EXTENSION_VERSION, ok: packageLock.version === EXPECTED_EXTENSION_VERSION && packageLock.packages?.['']?.version === EXPECTED_EXTENSION_VERSION },
   ];
@@ -456,18 +379,199 @@ async function selfTest() {
 
   const cliChecks = checkIncludes(usage(), EXPECTED_CLI_COMMANDS, 'cli usage');
   const mcpChecks = checkIncludes(mcp, EXPECTED_MCP_TOOLS, 'mcp tool');
+  const registryChecks = [
+    {
+      label: 'registry',
+      item: 'command metadata parity',
+      ok: Object.keys(COMMAND_METADATA).length === EXPECTED_EXTENSION_ACTIONS.length,
+    },
+    {
+      label: 'registry',
+      item: 'command risk tiers',
+      ok: EXPECTED_EXTENSION_ACTIONS.every((action) => typeof COMMAND_METADATA[action]?.riskTier === 'string'),
+    },
+    {
+      label: 'registry',
+      item: 'command default timeouts',
+      ok: EXPECTED_EXTENSION_ACTIONS.every((action) => Number.isFinite(COMMAND_METADATA[action]?.defaultTimeoutMs)),
+    },
+    {
+      label: 'registry',
+      item: 'command catalog metadata',
+      ok: COMMAND_CATALOG.length === EXPECTED_EXTENSION_ACTIONS.length
+        && COMMAND_CATALOG.every((entry) => entry.summary && Array.isArray(entry.cli) && Array.isArray(entry.mcp)),
+    },
+    {
+      label: 'registry',
+      item: 'generated command catalog doc',
+      ok: commandCatalogDoc === commandCatalogMarkdown(),
+    },
+    {
+      label: 'registry',
+      item: 'find-elements nearText contract',
+      ok: COMMAND_METADATA.findElements?.allowedKeys?.includes('nearText')
+        && usage().includes('--near-text <text>')
+        && mcp.includes('nearText: z.string().optional()')
+        && pageScripts.includes('nearTextNeedle'),
+    },
+    {
+      label: 'registry',
+      item: 'strict workspace policy mode',
+      ok: workspacePolicy.includes("['scoped', 'strict']")
+        && usage().includes('--policy-mode scoped|strict')
+        && mcp.includes("z.enum(['scoped', 'strict'])")
+        && background.includes("policyMode === 'strict'"),
+    },
+    {
+      label: 'registry',
+      item: 'upload-file files contract',
+      ok: registry.includes('function ensureStringArray')
+        && registry.includes("ensureStringArray(normalizedPayload, 'files', action)")
+        && mcp.includes('files: z.array(z.string()).optional()')
+        && usage().includes('--files-json <json>'),
+    },
+    {
+      label: 'registry',
+      item: 'docs coverage checker',
+      ok: packageJson.scripts?.['check:docs'] === 'node ./scripts/check-docs-coverage.mjs'
+        && packageJson.scripts?.check?.includes('npm run check:docs')
+        && cli.includes('docsCoverageChecker'),
+    },
+    {
+      label: 'registry',
+      item: 'package contents checker',
+      ok: packageJson.scripts?.['check:pack'] === 'node ./scripts/check-package-contents.mjs'
+        && packageJson.scripts?.check?.includes('check-package-contents.mjs')
+        && cli.includes('packageContentsChecker'),
+    },
+    {
+      label: 'registry',
+      item: 'privacy scanner',
+      ok: packageJson.scripts?.['check:privacy'] === 'node ./scripts/check-privacy-scan.mjs'
+        && packageJson.scripts?.check?.includes('npm run check:privacy')
+        && cli.includes('privacyScanner'),
+    },
+    {
+      label: 'registry',
+      item: 'runtime timeout defaults',
+      ok: server.includes('commandDefaultTimeoutMs')
+        && server.includes('return commandDefaultTimeoutMs(action)')
+        && server.includes('commandTimeoutMs(action, timeoutMs)')
+        && cli.includes('timeoutMs ?? commandDefaultTimeoutMs(action)')
+        && mcp.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'),
+    },
+    {
+      label: 'registry',
+      item: 'CLI usage signatures',
+      ok: registry.includes('CLI_USAGE_LINES')
+        && registry.includes('CLI_USAGE_GROUPS')
+        && CLI_USAGE_LINES.length === EXPECTED_CLI_COMMANDS.length
+        && CLI_USAGE_GROUPS.reduce((sum, group) => sum + group.commands.length, 0) === EXPECTED_CLI_COMMANDS.length
+        && CLI_USAGE_LINES.every((line) => usage().includes(line))
+        && commandCatalogMarkdown().includes('## CLI Usage Signatures'),
+    },
+  ];
+
+  const pressBlock = /if \(cmd === 'press'\) \{[\s\S]*?\n  \}/.exec(cli)?.[0] || '';
 
   const safetyChecks = [
     { label: 'safety gate', item: 'requireConfirmed', ok: background.includes('function requireConfirmed') },
     { label: 'safety gate', item: 'requireSensitiveConfirmed', ok: background.includes('function requireSensitiveConfirmed') },
     { label: 'safety gate', item: 'whole cookie jar confirmSensitive', ok: background.includes("cookiesList without url/domain/name") },
     { label: 'safety gate', item: 'credentialed request confirmSensitive', ok: background.includes("credentials === 'include'") },
+    { label: 'bridge guard', item: 'unsupported action rejection', ok: server.includes('Unsupported action:') },
+    { label: 'bridge guard', item: 'extension version mismatch rejection', ok: server.includes('Extension version mismatch:') },
+    { label: 'bridge guard', item: 'unknown extension version rejection', ok: server.includes('VERSION_UNKNOWN') && server.includes('extensionVersionStatusError') },
+    { label: 'bridge guard', item: 'long poll disabled by default', ok: server.includes('CHROME_BRIDGE_ENABLE_LONG_POLL') },
+    { label: 'bridge guard', item: 'server payload validation', ok: server.includes('validateCommandPayload') && registry.includes('COMMAND_PAYLOAD_SCHEMAS') },
+    { label: 'bridge guard', item: 'direct command origin rejection', ok: server.includes('requireCommandOrigin') && server.includes('INVALID_COMMAND_ORIGIN') },
+    { label: 'bridge guard', item: 'JSON POST content-type rejection', ok: server.includes('requireJsonContentType') && server.includes('UNSUPPORTED_MEDIA_TYPE') },
+    { label: 'bridge guard', item: 'extension origin/id parity', ok: server.includes('requireExtensionIdentity') && server.includes('EXTENSION_ID_MISMATCH') },
+    { label: 'bridge guard', item: 'unsafe host guard', ok: server.includes('CHROME_BRIDGE_UNSAFE_HOST') },
+    { label: 'safety gate', item: 'extension request method allowlist', ok: registry.includes('HTTP_METHODS') && cli.includes('normalizeHttpMethod') && mcp.includes('z.enum(HTTP_METHODS)') },
+    {
+      label: 'bridge guard',
+      item: 'shutdown cleanup',
+      ok: server.includes('BRIDGE_SHUTTING_DOWN')
+        && server.includes('rejectPendingCommands')
+        && server.includes('closeWebSocketServer')
+        && bridgeContractChecker.includes('rejects pending commands during shutdown')
+        && bridgeContractChecker.includes('closes websocket extension sockets during shutdown'),
+    },
+    {
+      label: 'bridge guard',
+      item: 'structured oversized body rejection',
+      ok: server.includes('REQUEST_TOO_LARGE')
+        && server.includes('let settled = false')
+        && bridgeContractChecker.includes('rejects oversized JSON request bodies with structured 413'),
+    },
+    {
+      label: 'bridge guard',
+      item: 'debugger actions serialized per tab',
+      ok: registry.includes('DEBUGGER_SERIALIZED_ACTIONS')
+        && DEBUGGER_SERIALIZED_ACTIONS.length >= 10
+        && background.includes('const debuggerLocks = new Map()')
+        && background.includes('async function withTabLock')
+        && background.includes('async function withDebugger')
+        && background.includes('return withTabLock(tabId'),
+    },
+    { label: 'trace privacy', item: 'no response body capture', ok: !background.includes('Network.getResponseBody') },
+    {
+      label: 'safety gate',
+      item: 'press trusted input is opt-in',
+      ok: pressBlock.includes('trusted: Boolean(args.trusted)')
+        && background.includes('if (payload.trusted === true)')
+        && usage().includes('press --key <key> --confirm [--selector <css>] [--trusted]'),
+    },
+    {
+      label: 'observability',
+      item: 'session summary includes workspace policy state',
+      ok: cli.includes("command('workspace', { includeTabs: true }, 10_000)")
+        && cli.includes('summaryRecommendations(health, group, workspace)')
+        && mcp.includes("bridgeCommand('workspace', { includeTabs: true }, 10_000)")
+        && mcp.includes('summaryRecommendations(health, group, workspace)'),
+    },
+    {
+      label: 'observability',
+      item: 'debug bundle page artifacts are opt-in',
+      ok: cli.includes("args['include-snapshot']")
+        && cli.includes("args['include-observe']")
+        && cli.includes("args['include-screenshot']")
+        && cli.includes("args['include-trace-events']")
+        && mcp.includes('includeSnapshot: z.boolean().optional()')
+        && mcp.includes('includeObserve: z.boolean().optional()')
+        && mcp.includes('includeScreenshot: z.boolean().optional()')
+        && mcp.includes('includeTraceEvents: z.boolean().optional()')
+        && cli.includes('trace-summary.json'),
+    },
+    {
+      label: 'observability',
+      item: 'extension error codes propagate through bridge',
+      ok: background.includes('function extensionErrorCode')
+        && offscreen.includes('code: response?.code')
+        && server.includes('body.code ||')
+        && cli.includes('error.details = json.details')
+        && mcp.includes('error.details = json.details'),
+    },
   ];
 
   const checks = [
     ...syntaxChecks.map((result, index) => ({
       label: 'syntax',
-      item: [paths.background, paths.offscreen, paths.ask, paths.server, paths.cli, paths.mcp][index],
+      item: [
+        paths.background,
+        paths.pageScripts,
+        paths.workspacePolicy,
+        paths.offscreen,
+        paths.ask,
+        paths.server,
+        paths.cli,
+        paths.mcp,
+        paths.registry,
+        paths.commandCatalogGenerator,
+        paths.bridgeContractChecker,
+        paths.docsCoverageChecker,
+      ][index],
       ok: result.ok,
       error: result.ok ? undefined : result.error || result.stderr,
     })),
@@ -476,6 +580,7 @@ async function selfTest() {
     ...actionChecks,
     ...cliChecks,
     ...mcpChecks,
+    ...registryChecks,
     ...safetyChecks,
   ];
 
@@ -615,9 +720,10 @@ async function closeServer(server) {
 function summarizeStepResult(value) {
   if (!value || typeof value !== 'object') return value;
   if (value.dataUrl) {
+    const mediaType = /^data:([^;,]+);base64,/.exec(value.dataUrl)?.[1] || 'unknown';
     return {
       ...value,
-      dataUrl: `data:image/png;base64,<${value.dataUrl.length} chars>`,
+      dataUrl: `data:${mediaType};base64,<${value.dataUrl.length} chars>`,
     };
   }
   if (typeof value.text === 'string' && value.text.length > 500) {
@@ -633,6 +739,178 @@ function summarizeStepResult(value) {
     };
   }
   return value;
+}
+
+async function sessionSummary() {
+  const health = await bridgeFetch('/health').catch((error) => ({
+    ok: false,
+    code: error.code || null,
+    error: String(error?.message || error),
+  }));
+  const group = await command('group', {}, 10_000).catch((error) => ({
+    ok: false,
+    code: error.code || null,
+    error: String(error?.message || error),
+  }));
+  const workspace = await command('workspace', { includeTabs: true }, 10_000).catch((error) => ({
+    ok: false,
+    code: error.code || null,
+    error: String(error?.message || error),
+  }));
+  return {
+    generatedAt: new Date().toISOString(),
+    bridgeUrl: DEFAULT_ENDPOINT,
+    health,
+    workspace,
+    group,
+    recommendations: summaryRecommendations(health, group, workspace),
+  };
+}
+
+function summaryRecommendations(health, group, workspace) {
+  const recommendations = [];
+  const extensionVersion = health?.extension?.info?.version;
+  const policyMode = workspace?.policy?.mode || workspace?.workspace?.policyMode;
+  if (extensionVersion && extensionVersion !== EXPECTED_EXTENSION_VERSION) {
+    recommendations.push(`Reload the unpacked extension; expected ${EXPECTED_EXTENSION_VERSION}, got ${extensionVersion}.`);
+  }
+  if (!health?.extension?.connected) {
+    recommendations.push('Load or reload the unpacked Chrome extension.');
+  }
+  if ((workspace?.counts?.tabs === 0) || (group?.tabs && !group.tabs.length)) {
+    recommendations.push('Run ensure-tab, open, or adopt-tab before browser work.');
+  }
+  if (policyMode === 'strict') {
+    recommendations.push('Strict workspace policy is active; outside tabs are blocked even with allowExternal.');
+  }
+  return recommendations;
+}
+
+async function writeJsonFile(filePath, value) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function writeDataUrlFile(filePath, dataUrl, expectedPrefix) {
+  const match = new RegExp(`^${expectedPrefix},(.+)$`).exec(dataUrl || '');
+  if (!match) throw new Error(`Invalid data URL for ${filePath}`);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, Buffer.from(match[1], 'base64'));
+}
+
+const DEBUG_BUNDLE_REDACTED_KEYS = new Set([
+  'url',
+  'href',
+  'title',
+  'text',
+  'label',
+  'value',
+  'values',
+  'dataUrl',
+  'favIconUrl',
+]);
+
+function redactDebugBundleValue(value) {
+  if (Array.isArray(value)) return value.map((item) => redactDebugBundleValue(item));
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [
+    key,
+    DEBUG_BUNDLE_REDACTED_KEYS.has(key) ? '[redacted]' : redactDebugBundleValue(entry),
+  ]));
+}
+
+async function debugBundle(args = {}) {
+  if (!args.out) throw new Error('debug-bundle requires --out <dir>');
+  const outputDir = path.resolve(args.out);
+  const target = targetPayload(args);
+  const createdAt = new Date().toISOString();
+  const includeSnapshot = Boolean(args['include-snapshot']);
+  const includeObserve = Boolean(args['include-observe']);
+  const includeScreenshot = Boolean(args['include-screenshot']);
+  const includeTraceEvents = Boolean(args['include-trace-events']);
+  const manifest = {
+    createdAt,
+    bridgeUrl: DEFAULT_ENDPOINT,
+    files: [],
+    privacy: {
+      mode: 'redacted',
+      note: 'Bundle redacts URL/title/text/value fields and excludes cookie values, storage values, request bodies, credentialed requests, page artifacts, and full trace events unless explicitly requested.',
+      pageArtifacts: {
+        snapshot: includeSnapshot ? 'included' : 'omitted-by-default',
+        observe: includeObserve ? 'included' : 'omitted-by-default',
+        screenshot: includeScreenshot ? 'included' : 'omitted-by-default',
+      },
+      traceEvents: includeTraceEvents ? 'included' : 'summarized-by-default',
+    },
+  };
+
+  const addJson = async (name, value, options = {}) => {
+    const filePath = path.join(outputDir, name);
+    const output = options.redact === false ? value : redactDebugBundleValue(value);
+    await writeJsonFile(filePath, output);
+    manifest.files.push(name);
+    return output;
+  };
+
+  const summary = await sessionSummary();
+  await addJson('session-summary.json', redactDebugBundleValue(summary));
+  await addJson('health.json', redactDebugBundleValue(summary.health));
+
+  if (includeSnapshot) {
+    const snapshot = await command('snapshot', { ...target, maxChars: 50_000 }, 30_000).catch((error) => ({
+      ok: false,
+      code: error.code || null,
+      error: String(error?.message || error),
+    }));
+    await addJson('snapshot.json', snapshot, { redact: false });
+  }
+
+  if (includeObserve) {
+    const observe = await command('observe', { ...target, limit: 100 }, 30_000).catch((error) => ({
+      ok: false,
+      code: error.code || null,
+      error: String(error?.message || error),
+    }));
+    await addJson('observe.json', observe, { redact: false });
+  }
+
+  const trace = await command('traceSummary', target, 30_000).catch((error) => ({
+    ok: false,
+    code: error.code || null,
+    error: String(error?.message || error),
+  }));
+  await addJson('trace-summary.json', trace);
+  if (includeTraceEvents) {
+    const traceEvents = await command('traceEvents', { ...target, limit: 200 }, 30_000).catch((error) => ({
+      ok: false,
+      code: error.code || null,
+      error: String(error?.message || error),
+    }));
+    await addJson('trace-events.json', traceEvents, { redact: false });
+  }
+
+  if (includeScreenshot) {
+    const screenshot = await command('screenshot', target, 30_000).catch((error) => ({
+      ok: false,
+      code: error.code || null,
+      error: String(error?.message || error),
+    }));
+    if (screenshot?.dataUrl) {
+      await writeDataUrlFile(path.join(outputDir, 'screenshot.png'), screenshot.dataUrl, 'data:image\\/png;base64');
+      manifest.files.push('screenshot.png');
+      await addJson('screenshot.json', { ...screenshot, dataUrl: undefined });
+    } else {
+      await addJson('screenshot.json', screenshot);
+    }
+  }
+
+  await addJson('manifest.json', manifest);
+  return {
+    ok: true,
+    out: outputDir,
+    files: manifest.files,
+    createdAt,
+  };
 }
 
 async function runtimeSmoke(args = {}) {
@@ -703,6 +981,16 @@ async function runtimeSmoke(args = {}) {
       tabId,
       selector: '#ready',
     }, 30_000));
+    await run('observe actionable elements', () => command('observe', {
+      tabId,
+      limit: 20,
+    }, 30_000), {
+      assert: (result) => {
+        if (!result.elements?.some((element) => element.selector === '#action' && element.action === 'click')) {
+          throw new Error('observe did not include action button');
+        }
+      },
+    });
     await run('text extraction', () => command('text', { tabId, maxChars: 5_000 }, 30_000), {
       assert: (result) => {
         if (!result.text?.includes('Codex Bridge Smoke')) throw new Error('text did not include fixture title');
@@ -718,6 +1006,53 @@ async function runtimeSmoke(args = {}) {
         if (!result.elements?.some((element) => element.selector === '#action')) throw new Error('snapshot did not include action button');
       },
     });
+    await run('find-elements filtered', () => command('findElements', {
+      tabId,
+      text: 'Action',
+      limit: 20,
+    }, 30_000), {
+      assert: (result) => {
+        if (!result.elements?.some((element) => element.selector === '#action')) throw new Error('find-elements did not include action button');
+      },
+    });
+    await run('find-elements near text filtered', () => command('findElements', {
+      tabId,
+      nearText: 'Codex Bridge Smoke',
+      text: 'Action',
+      limit: 20,
+    }, 30_000), {
+      assert: (result) => {
+        if (!result.elements?.some((element) => element.selector === '#action')) {
+          throw new Error('find-elements nearText did not include action button');
+        }
+      },
+    });
+    await run('extract forms', () => command('extractPage', {
+      tabId,
+      kind: 'forms',
+      maxItems: 10,
+    }, 30_000), {
+      assert: (result) => {
+        if (!Array.isArray(result.forms)) throw new Error('extract did not return forms array');
+      },
+    });
+    await run('select options read', () => command('listSelectOptions', {
+      tabId,
+      selector: '#smoke-select',
+    }, 30_000), {
+      assert: (result) => {
+        if (!result.options?.some((option) => option.value === 'b')) throw new Error('select options did not include Beta');
+      },
+    });
+    await run('fill form dry run', () => command('fillForm', {
+      tabId,
+      fields: { '#smoke-input': 'preview' },
+      dryRun: true,
+    }, 30_000), {
+      assert: (result) => {
+        if (!result.dryRun || result.applied) throw new Error('fill form dry run unexpectedly applied changes');
+      },
+    });
     await run('viewport screenshot', () => command('screenshot', { tabId }, 30_000), {
       assert: (result) => {
         if (!String(result.dataUrl || '').startsWith('data:image/png;base64,')) throw new Error('viewport screenshot was not a PNG data URL');
@@ -731,6 +1066,11 @@ async function runtimeSmoke(args = {}) {
     await run('selector screenshot', () => command('screenshot', { tabId, selector: '#fixture' }, 60_000), {
       assert: (result) => {
         if (!String(result.dataUrl || '').startsWith('data:image/png;base64,')) throw new Error('selector screenshot was not a PNG data URL');
+      },
+    });
+    await run('pdf export', () => command('printPdf', { tabId }, 60_000), {
+      assert: (result) => {
+        if (!String(result.dataUrl || '').startsWith('data:application/pdf;base64,')) throw new Error('pdf export was not a PDF data URL');
       },
     });
 
@@ -928,8 +1268,8 @@ async function main() {
 
   if (cmd === 'codex-config') {
     process.stdout.write(`[mcp_servers.chrome-bridge]
-command = "/opt/homebrew/bin/node"
-args = ["${path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs')}"]
+command = ${tomlString(process.execPath)}
+args = [${tomlString(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'))}]
 startup_timeout_sec = 20
 tool_timeout_sec = 60
 `);
@@ -961,20 +1301,25 @@ tool_timeout_sec = 60
   }
 
   if (cmd === 'reload-extension') {
-    printJson(await command('reloadExtension', {}, 5_000));
+    if (!args.confirm) throw new Error('reload-extension requires --confirm');
+    printJson(await command('reloadExtension', confirmationPayload(args), 5_000));
     return;
   }
 
   if (cmd === 'tabs') {
+    if (args.all && !args.confirm) throw new Error('tabs --all requires --confirm');
     printJson(await command('tabs', {
       includeAll: Boolean(args.all),
+      ...confirmationPayload(args),
     }));
     return;
   }
 
   if (cmd === 'windows') {
+    if (args.all && !args.confirm) throw new Error('windows --all requires --confirm');
     printJson(await command('windows', {
       includeAll: Boolean(args.all),
+      ...confirmationPayload(args),
     }));
     return;
   }
@@ -986,10 +1331,44 @@ tool_timeout_sec = 60
     return;
   }
 
+  if (cmd === 'workspace') {
+    printJson(await command('workspace', {
+      includeTabs: Boolean(args.tabs),
+    }));
+    return;
+  }
+
+  if (cmd === 'set-workspace') {
+    if (!args.confirm) throw new Error('set-workspace requires --confirm');
+    printJson(await command('setWorkspace', {
+      name: args.name,
+      groupTitle: args['group-title'],
+      groupColor: args['group-color'],
+      policyMode: args['policy-mode'],
+      ...confirmationPayload(args),
+    }));
+    return;
+  }
+
+  if (cmd === 'clear-workspace') {
+    if (!args.confirm) throw new Error('clear-workspace requires --confirm');
+    printJson(await command('clearWorkspace', confirmationPayload(args)));
+    return;
+  }
+
   if (cmd === 'ensure-tab') {
     printJson(await command('ensureTab', {
       url: first,
       active: Boolean(args.active),
+    }, 30_000));
+    return;
+  }
+
+  if (cmd === 'adopt-tab') {
+    if (!args.confirm) throw new Error('adopt-tab requires --confirm');
+    printJson(await command('adoptTab', {
+      tabId: args.tab ? Number(args.tab) : undefined,
+      ...confirmationPayload(args),
     }, 30_000));
     return;
   }
@@ -1053,6 +1432,41 @@ tool_timeout_sec = 60
     return;
   }
 
+  if (cmd === 'observe') {
+    printJson(await command('observe', {
+      ...targetPayload(args),
+      limit: args.limit ? Number(args.limit) : undefined,
+      maxTextChars: args['max-text-chars'] ? Number(args['max-text-chars']) : undefined,
+    }, 30_000));
+    return;
+  }
+
+  if (cmd === 'find-elements') {
+    printJson(await command('findElements', {
+      ...targetPayload(args),
+      role: args.role,
+      text: args.text,
+      nearText: args['near-text'],
+      placeholder: args.placeholder,
+      href: args.href,
+      actionKind: args.action,
+      risk: args.risk,
+      limit: args.limit ? Number(args.limit) : undefined,
+      maxTextChars: args['max-text-chars'] ? Number(args['max-text-chars']) : undefined,
+    }, 30_000));
+    return;
+  }
+
+  if (cmd === 'extract') {
+    printJson(await command('extractPage', {
+      ...targetPayload(args),
+      kind: args.kind,
+      maxItems: args['max-items'] ? Number(args['max-items']) : undefined,
+      maxTextChars: args['max-text-chars'] ? Number(args['max-text-chars']) : undefined,
+    }, 30_000));
+    return;
+  }
+
   if (cmd === 'snapshot' || cmd === 'text') {
     printJson(await command(cmd, {
       ...targetPayload(args),
@@ -1080,6 +1494,23 @@ tool_timeout_sec = 60
     }, args['full-page'] || args.selector ? 60_000 : 30_000);
     const match = /^data:image\/png;base64,(.+)$/.exec(result.dataUrl || '');
     if (!match) throw new Error('Extension returned an invalid PNG data URL');
+    await fs.mkdir(path.dirname(path.resolve(args.out)), { recursive: true });
+    await fs.writeFile(args.out, Buffer.from(match[1], 'base64'));
+    printJson({ ...result, dataUrl: undefined, out: path.resolve(args.out) });
+    return;
+  }
+
+  if (cmd === 'pdf') {
+    if (!args.out) throw new Error('pdf requires --out <file>');
+    const result = await command('printPdf', {
+      ...targetPayload(args),
+      landscape: Boolean(args.landscape),
+      printBackground: !args['omit-background'],
+      pageRanges: args['page-ranges'],
+      scale: args.scale === undefined ? undefined : Number(args.scale),
+    }, 60_000);
+    const match = /^data:application\/pdf;base64,(.+)$/.exec(result.dataUrl || '');
+    if (!match) throw new Error('Extension returned an invalid PDF data URL');
     await fs.mkdir(path.dirname(path.resolve(args.out)), { recursive: true });
     await fs.writeFile(args.out, Buffer.from(match[1], 'base64'));
     printJson({ ...result, dataUrl: undefined, out: path.resolve(args.out) });
@@ -1158,7 +1589,7 @@ tool_timeout_sec = 60
       metaKey: Boolean(args.meta),
       altKey: Boolean(args.alt),
       shiftKey: Boolean(args.shift),
-      trusted: !args.dom,
+      trusted: Boolean(args.trusted),
     }, 30_000));
     return;
   }
@@ -1177,6 +1608,53 @@ tool_timeout_sec = 60
     return;
   }
 
+  if (cmd === 'select-options') {
+    if (!args.selector) throw new Error('select-options requires --selector <css>');
+    printJson(await command('listSelectOptions', {
+      ...targetPayload(args),
+      selector: args.selector,
+    }, 30_000));
+    return;
+  }
+
+  if (cmd === 'fill-form') {
+    const fields = parseJsonOption(args['fields-json'], '--fields-json');
+    if (!fields || typeof fields !== 'object' || Array.isArray(fields)) throw new Error('fill-form requires --fields-json <object>');
+    if (!args['dry-run'] && !args.confirm) throw new Error('fill-form apply requires --confirm; pass --dry-run to preview');
+    printJson(await command('fillForm', {
+      ...targetPayload(args),
+      ...confirmationPayload(args),
+      fields,
+      dryRun: Boolean(args['dry-run']),
+    }, 30_000));
+    return;
+  }
+
+  if (cmd === 'handle-dialog') {
+    if (!args.confirm) throw new Error('handle-dialog requires --confirm');
+    printJson(await command('handleDialog', {
+      ...targetPayload(args),
+      ...confirmationPayload(args),
+      accept: !args.dismiss,
+      promptText: args['prompt-text'],
+    }, 30_000));
+    return;
+  }
+
+  if (cmd === 'upload-file') {
+    if (!args.confirm) throw new Error('upload-file requires --confirm');
+    if (!args.selector) throw new Error('upload-file requires --selector <css>');
+    if (!args.file && !args['files-json']) throw new Error('upload-file requires --file <path> or --files-json <json>');
+    printJson(await command('uploadFile', {
+      ...targetPayload(args),
+      ...confirmationPayload(args),
+      selector: args.selector,
+      file: args.file,
+      files: parseJsonOption(args['files-json'], '--files-json'),
+    }, 60_000));
+    return;
+  }
+
   if (cmd === 'trace-start') {
     if (!args.confirm) throw new Error('trace-start requires --confirm');
     printJson(await command('traceStart', {
@@ -1190,8 +1668,13 @@ tool_timeout_sec = 60
     return;
   }
 
-  if (cmd === 'trace-events' || cmd === 'trace-stop') {
-    printJson(await command(cmd === 'trace-events' ? 'traceEvents' : 'traceStop', {
+  if (cmd === 'trace-summary' || cmd === 'trace-events' || cmd === 'trace-stop') {
+    const action = {
+      'trace-summary': 'traceSummary',
+      'trace-events': 'traceEvents',
+      'trace-stop': 'traceStop',
+    }[cmd];
+    printJson(await command(action, {
       ...targetPayload(args),
       limit: args.limit ? Number(args.limit) : undefined,
     }, 30_000));
@@ -1248,7 +1731,7 @@ tool_timeout_sec = 60
     printJson(await command('fetchUrl', {
       ...confirmationPayload(args),
       url: first,
-      method: args.method,
+      method: normalizeHttpMethod(args.method),
       headers: parseJsonOption(args['headers-json'], '--headers-json'),
       body: args.body,
       credentials: args.credentials,
@@ -1267,6 +1750,25 @@ tool_timeout_sec = 60
       closeOnAnswer: !args['keep-tab'],
       timeoutMs: args['timeout-ms'] ? Number(args['timeout-ms']) : undefined,
     }, args['timeout-ms'] ? Number(args['timeout-ms']) + 5_000 : 305_000));
+    return;
+  }
+
+  if (cmd === 'session-summary') {
+    printJson(await sessionSummary());
+    return;
+  }
+
+  if (cmd === 'debug-bundle') {
+    printJson(await debugBundle(args));
+    return;
+  }
+
+  if (cmd === 'command-catalog') {
+    if (args.markdown) {
+      process.stdout.write(commandCatalogMarkdown());
+      return;
+    }
+    printJson(commandCatalog());
     return;
   }
 

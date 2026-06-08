@@ -8,6 +8,8 @@ The `extension/` directory contains a Manifest V3 extension:
 
 - `manifest.json` declares permissions.
 - `background.js` executes browser commands.
+- `page-scripts.js` contains self-contained functions injected into web pages through `chrome.scripting.executeScript`.
+- `workspace-policy.js` owns local workspace defaults and scoped policy normalization.
 - `offscreen.html` and `offscreen.js` keep a WebSocket connection to the local bridge server.
 - `ask.html` and `ask.js` provide a local human-in-the-loop prompt page.
 
@@ -21,10 +23,37 @@ It exposes:
 
 - `GET /health` for diagnostics.
 - `POST /command` for CLI/MCP commands.
-- `/extension` WebSocket for the extension.
-- Long-poll fallback endpoints for the extension.
+- `/extension` WebSocket for the extension; upgrade requests must carry a `chrome-extension://` origin and hello messages with `extensionId` must match that origin.
+- Long-poll fallback endpoints for the extension, disabled by default and only enabled with `CHROME_BRIDGE_ENABLE_LONG_POLL=1`; fallback requests must also carry a `chrome-extension://` origin and matching `extensionId` when reported.
 
 The bridge server does not persist browser data.
+
+It also rejects unsupported actions, rejects browser and extension origins on direct command ingress, exposes CORS only on extension ingress paths, requires `application/json` for JSON POST endpoints, validates direct JSON bodies and explicit command envelope fields, validates command payloads including required fields, nested form/header/prompt shapes, enum fields, numeric bounds, confirmation gates, top-level timeouts, and URL schemes before extension dispatch, refuses non-loopback binds by default, requires extension-origin ingress with origin/id parity when reported, returns stable disconnected-extension errors, preserves extension error codes/details for CLI/MCP diagnostics, and refuses most commands when the connected extension version is missing or does not match the bridge version, so unverified or stale unpacked extensions fail closed instead of drifting silently.
+
+## Shared Command Registry
+
+`shared/command-registry.mjs` is the Node-side command contract source of truth.
+
+It defines:
+
+- bridge version metadata
+- expected extension actions
+- manifest permissions used by `self-test`
+- CLI command names
+- CLI usage signatures used by `chrome-bridge --help`
+- CLI reference usage groups used by `npm run docs:commands`
+- MCP tool names
+- server payload schemas for direct `/command` callers
+- per-action risk tiers and default timeout metadata
+- debugger-backed actions that must be serialized per tab
+- command catalog summaries, CLI aliases, MCP tool names, and confirmation requirements
+- local diagnostic/tooling command metadata, including whether each command touches the live bridge
+
+The extension still owns Chrome API execution, but the server allowlist, runtime default timeouts, CLI `--help` signatures, CLI reference usage groups, MCP reference tool list, static parity checks, generated [command catalog](COMMAND-CATALOG.md), and `command-catalog` / `chrome_bridge_command_catalog` output derive from this shared registry. The generated Markdown catalog exposes action risk, default timeout, confirmation, CLI usage signatures, and direct `/command` payload-key metadata from the same source, including keeping `confirmSensitive` limited to private-value actions.
+
+`npm run check:registry` verifies the registry contract without touching Chrome: schema uniqueness, package/manifest/registry version and permission parity, metadata/catalog parity, complete CLI and MCP catalog coverage, registry-owned CLI usage signatures and groups, debugger-backed action serialization, confirmation invariants, selected payload validation cases including unsafe URL-scheme rejection, and generated command catalog drift. `npm run check:docs` separately verifies that the CLI reference mirrors every registry-owned usage signature, the CLI generated usage blocks match registry groups, the MCP reference keeps its generated tool-list block in sync, and the MCP reference mentions every registry-defined tool.
+
+`npm run check:bridge-contract` also avoids Chrome. It starts an isolated local bridge server on an ephemeral port and verifies disabled long-poll fallback, unsupported action rejection, malformed JSON/payload/envelope/media-type/timeout/oversized-body rejection, direct-command origin rejection, disconnected-extension 503 behavior, unsafe host rejection, extension-origin ingress and origin/id mismatch rejection including known-extension poll requests, stale/missing extension-version fail-closed behavior, shutdown cleanup for WebSocket/pending-command lifecycle, and extension error code/detail propagation.
 
 ## CLI
 
@@ -62,3 +91,5 @@ MCP client or CLI
 The important boundary is the user's real Chrome profile. Anything visible to Chrome may be private.
 
 Use [SAFETY.md](SAFETY.md) as the source of truth for confirmation gates and private-data handling.
+
+Named workspace defaults are stored in extension-local storage. They make the active group title/color and policy mode explicit without weakening the default tab boundary: `scoped` requires `allowExternal` for outside tabs, while `strict` blocks outside tabs entirely.

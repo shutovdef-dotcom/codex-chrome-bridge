@@ -1,0 +1,143 @@
+# Chrome Bridge Command Catalog
+
+Version: 0.4.0
+
+| Action | Category | Risk | Default Timeout | CLI | MCP | Confirm | Direct Payload Keys | Summary |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| windows | scope | read | 10000 ms | windows | chrome_bridge_windows | conditional | includeAll, groupTitle, groupColor, confirmed | List Chrome windows, scoped to the configured bridge group by default; includeAll requires confirmation. |
+| tabs | scope | read | 10000 ms | tabs | chrome_bridge_tabs | conditional | includeAll, groupTitle, groupColor, confirmed | List Chrome tabs, scoped to the configured bridge group by default; includeAll requires confirmation. |
+| group | scope | read | 10000 ms | group | chrome_bridge_group | no | includeTabs, groupTitle, groupColor | Show the current scoped Chrome tab group and its tabs. |
+| workspace | scope | read | 10000 ms | workspace | chrome_bridge_workspace | no | includeTabs | Show local workspace defaults, policy mode, and scoped group counts. |
+| setWorkspace | scope | system | 10000 ms | set-workspace | chrome_bridge_set_workspace | yes | name, groupTitle, groupColor, policyMode, confirmed | Set local workspace group title, color, and scoped/strict policy defaults. |
+| clearWorkspace | scope | system | 10000 ms | clear-workspace | chrome_bridge_clear_workspace | yes | confirmed | Clear local workspace defaults and return to the default group policy. |
+| ensureTab | navigation | system | 30000 ms | ensure-tab | chrome_bridge_ensure_tab | no | url, active, groupTitle, groupColor | Create or recover the dedicated scoped Chrome work tab. |
+| adoptTab | navigation | interaction | 30000 ms | adopt-tab | chrome_bridge_adopt_tab | yes | tabId, confirmed, groupTitle, groupColor | Adopt an already-open Chrome tab into the scoped bridge group. |
+| open | navigation | interaction | 30000 ms | open | chrome_bridge_open | no | tabId, allowExternal, url, active, newTab, groupTitle, groupColor | Open a URL in the scoped bridge tab or a new grouped tab. |
+| activateTab | navigation | interaction | 10000 ms | activate | chrome_bridge_activate_tab | no | tabId, allowExternal, focusWindow | Activate a scoped tab and optionally focus its window. |
+| closeTab | navigation | interaction | 10000 ms | close-tab | chrome_bridge_close_tab | yes | tabId, allowExternal, confirmed | Close one scoped tab. |
+| closeGroup | navigation | interaction | 10000 ms | close-group | chrome_bridge_close_group | yes | confirmed, groupTitle, groupColor | Close all tabs in the scoped bridge group. |
+| goBack | navigation | interaction | 30000 ms | back | chrome_bridge_back | no | tabId, allowExternal, timeoutMs | Navigate the selected tab backward. |
+| goForward | navigation | interaction | 30000 ms | forward | chrome_bridge_forward | no | tabId, allowExternal, timeoutMs | Navigate the selected tab forward. |
+| reloadTab | navigation | interaction | 30000 ms | reload | chrome_bridge_reload_tab | no | tabId, allowExternal, bypassCache, timeoutMs | Reload the selected tab. |
+| waitForSelector | read | read | 30000 ms | wait | chrome_bridge_wait_for_selector | no | tabId, allowExternal, selector, timeoutMs, visible | Wait for a selector to appear in the selected tab. |
+| observe | read | read | 30000 ms | observe | chrome_bridge_observe | no | tabId, allowExternal, limit, maxTextChars, role, text, nearText, placeholder, href, actionKind, risk | Read ranked actionable elements without mutating page state. |
+| findElements | read | read | 30000 ms | find-elements | chrome_bridge_find_elements | no | tabId, allowExternal, limit, maxTextChars, role, text, nearText, placeholder, href, actionKind, risk | Filter ranked actionable elements by role, text, nearby text, href, action, or risk. |
+| extractPage | read | read | 30000 ms | extract | chrome_bridge_extract | no | tabId, allowExternal, kind, maxItems, maxTextChars | Extract structured tables, form structure, lists, and key-value blocks without current form values. |
+| snapshot | read | read | 30000 ms | snapshot | chrome_bridge_snapshot | no | tabId, allowExternal, maxChars | Read a bounded structured page snapshot. |
+| text | read | read | 30000 ms | text | chrome_bridge_text | no | tabId, allowExternal, maxChars | Read bounded visible page text. |
+| html | read | read | 30000 ms | html | chrome_bridge_html | no | tabId, allowExternal, maxChars, selector, outer | Read bounded page HTML for a selector or the whole document. |
+| screenshot | artifact | read | 30000 ms | screenshot | chrome_bridge_screenshot | no | tabId, allowExternal, fullPage, selector | Capture a PNG screenshot of the selected tab, full page, or selector. |
+| printPdf | artifact | read | 60000 ms | pdf | chrome_bridge_pdf | no | tabId, allowExternal, landscape, printBackground, preferCssPageSize, pageRanges, scale | Print the selected tab to a local PDF artifact. |
+| listSelectOptions | read | read | 30000 ms | select-options | chrome_bridge_select_options | no | tabId, allowExternal, selector | Read available select options without returning current selection state. |
+| scroll | interaction | interaction | 10000 ms | scroll | chrome_bridge_scroll | no | tabId, allowExternal, x, y | Scroll the selected tab. |
+| click | interaction | interaction | 30000 ms | click | chrome_bridge_click | yes | tabId, allowExternal, confirmed, selector | Click a selector in the selected tab. |
+| clickAt | interaction | interaction | 30000 ms | click-at | chrome_bridge_click_at | yes | tabId, allowExternal, confirmed, x, y, button, trusted | Click viewport coordinates, optionally through trusted debugger input. |
+| hover | interaction | interaction | 30000 ms | hover | chrome_bridge_hover | no | tabId, allowExternal, selector, x, y, trusted | Hover an element or coordinates in the selected tab. |
+| type | interaction | interaction | 30000 ms | type | chrome_bridge_type | yes | tabId, allowExternal, confirmed, selector, text, trusted | Type text into a selector, optionally through trusted debugger input. |
+| press | interaction | interaction | 30000 ms | press | chrome_bridge_press | yes | tabId, allowExternal, confirmed, selector, key, code, ctrlKey, metaKey, altKey, shiftKey, trusted | Press a keyboard key, optionally through trusted debugger input. |
+| select | interaction | interaction | 30000 ms | select | chrome_bridge_select | yes | tabId, allowExternal, confirmed, selector, value, label, index | Select an option in a select element. |
+| fillForm | interaction | interaction | 30000 ms | fill-form | chrome_bridge_fill_form | yes | tabId, allowExternal, confirmed, fields, dryRun | Preview or apply field values without submitting or returning raw field values. |
+| handleDialog | interaction | interaction | 30000 ms | handle-dialog | chrome_bridge_handle_dialog | yes | tabId, allowExternal, confirmed, accept, promptText | Accept or dismiss the currently open JavaScript dialog. |
+| uploadFile | interaction | interaction | 60000 ms | upload-file | chrome_bridge_upload_file | yes | tabId, allowExternal, confirmed, selector, file, files | Set local files on a file input through Chrome Debugger. |
+| traceStart | debug | system | 30000 ms | trace-start | chrome_bridge_trace_start | yes | tabId, allowExternal, confirmed, maxEvents, network, console, includeExtensionEvents | Start bounded console and network metadata tracing. |
+| traceSummary | debug | read | 30000 ms | trace-summary | chrome_bridge_trace_summary | no | tabId, allowExternal | Read trace session metadata without returning the trace event log. |
+| traceEvents | debug | read | 30000 ms | trace-events | chrome_bridge_trace_events | no | tabId, allowExternal, limit | Read recent bounded trace events. |
+| traceStop | debug | system | 30000 ms | trace-stop | chrome_bridge_trace_stop | no | tabId, allowExternal, limit | Stop tracing and return recent events. |
+| historySearch | private-read | private-read | 30000 ms | history | chrome_bridge_history_search | yes | query, limit, startTime, endTime, confirmed | Search Chrome history with explicit confirmation. |
+| bookmarksSearch | private-read | private-read | 30000 ms | bookmarks | chrome_bridge_bookmarks_search | yes | query, limit, confirmed | Search Chrome bookmarks with explicit confirmation. |
+| cookiesList | private-read | private-read | 30000 ms | cookies | chrome_bridge_cookies_list | sensitive | url, domain, name, limit, includeValues, confirmed, confirmSensitive | List Chrome cookie metadata; values require sensitive confirmation. |
+| storageSnapshot | private-read | private-read | 30000 ms | storage | chrome_bridge_storage_snapshot | sensitive | tabId, allowExternal, confirmed, confirmSensitive, includeValues, maxValueChars | Read page storage keys; values require sensitive confirmation. |
+| fetchUrl | private-read | private-read | 60000 ms | request | chrome_bridge_request | sensitive | url, method, headers, body, credentials, maxChars, confirmed, confirmSensitive | Run a bounded extension-context request; credentials require sensitive confirmation. |
+| askUser | human | system | 305000 ms | ask | chrome_bridge_ask_user | no | question, choices, allowText, closeOnAnswer, timeoutMs | Open a local prompt tab and wait for a user answer. |
+| reloadExtension | system | system | 5000 ms | reload-extension | chrome_bridge_reload_extension | yes | confirmed | Ask the unpacked extension to reload itself after local file edits; requires confirmation. |
+
+## Local Commands And Tools
+
+| ID | Category | Risk | Default Timeout | CLI | MCP | Live Bridge | Summary |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| server | service | system | - | server | - | no | Start the local Chrome Bridge HTTP/WebSocket server. |
+| health | diagnostic | read | 10000 ms | health | chrome_bridge_health | yes | Read local bridge health and extension connection status. |
+| session-summary | diagnostic | read | 30000 ms | session-summary | chrome_bridge_session_summary | yes | Summarize bridge health, workspace policy, scoped group state, and recommendations. |
+| debug-bundle | debug | read | 60000 ms | debug-bundle | chrome_bridge_debug_bundle | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
+| command-catalog | diagnostic | read | 5000 ms | command-catalog | chrome_bridge_command_catalog | no | Print this shared command registry as JSON or Markdown. |
+| self-test | verification | read | 10000 ms | self-test | chrome_bridge_self_test | no | Run static project parity checks without touching Chrome. |
+| runtime-smoke | verification | interaction | 180000 ms | runtime-smoke | chrome_bridge_runtime_smoke | yes | Run the real-browser fixture smoke test against the live bridge. |
+| doctor | diagnostic | read | 10000 ms | doctor | - | optional | Inspect local installation paths offline; pass --live-checks to probe bridge health and Chrome settings. |
+| extension-path | diagnostic | read | 5000 ms | extension-path | - | no | Print the unpacked extension directory path. |
+| codex-config | diagnostic | read | 5000 ms | codex-config | - | no | Print a Codex MCP configuration snippet using the current Node executable. |
+
+## CLI Usage Signatures
+
+```text
+chrome-bridge server [--port 17376]
+chrome-bridge health
+chrome-bridge windows [--all --confirm]
+chrome-bridge group [--tabs]
+chrome-bridge tabs [--all --confirm]
+chrome-bridge workspace [--tabs]
+chrome-bridge set-workspace [--name <name>] [--group-title <title>] [--group-color <color>] [--policy-mode scoped|strict] --confirm
+chrome-bridge clear-workspace --confirm
+chrome-bridge ensure-tab [url] [--active]
+chrome-bridge adopt-tab [--tab <id>] --confirm
+chrome-bridge open <url> [--tab <id>] [--active] [--new] [--allow-external]
+chrome-bridge activate [--tab <id>] [--focus-window] [--allow-external]
+chrome-bridge close-tab [--tab <id>] --confirm [--allow-external]
+chrome-bridge close-group --confirm
+chrome-bridge back [--tab <id>] [--allow-external]
+chrome-bridge forward [--tab <id>] [--allow-external]
+chrome-bridge reload [--tab <id>] [--bypass-cache] [--allow-external]
+chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
+chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]
+chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>] [--placeholder <text>] [--href <text>] [--action <kind>] [--risk <risk>] [--limit 80] [--tab <id>] [--allow-external]
+chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--max-items 50] [--tab <id>] [--allow-external]
+chrome-bridge snapshot [--tab <id>] [--max-chars 50000] [--allow-external]
+chrome-bridge text [--tab <id>] [--max-chars 50000] [--allow-external]
+chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 100000] [--inner] [--allow-external]
+chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--allow-external]
+chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
+chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
+chrome-bridge click --tab <id> --selector <css> --confirm [--allow-external]
+chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]
+chrome-bridge hover [--selector <css>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
+chrome-bridge type --tab <id> --selector <css> --text <text> --confirm [--trusted] [--allow-external]
+chrome-bridge press --key <key> --confirm [--selector <css>] [--trusted] [--tab <id>] [--allow-external]
+chrome-bridge select --selector <css> --confirm [--value <value> | --label <label> | --index <n>] [--tab <id>] [--allow-external]
+chrome-bridge select-options --selector <css> [--tab <id>] [--allow-external]
+chrome-bridge fill-form --fields-json <json> [--dry-run] [--confirm] [--tab <id>] [--allow-external]
+chrome-bridge handle-dialog --confirm [--dismiss] [--prompt-text <text>] [--tab <id>] [--allow-external]
+chrome-bridge upload-file --selector <css> (--file <path> | --files-json <json>) --confirm [--tab <id>] [--allow-external]
+chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-network] [--no-console] [--include-extension-events] [--allow-external]
+chrome-bridge trace-summary [--tab <id>] [--allow-external]
+chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]
+chrome-bridge trace-stop [--tab <id>] [--limit 100] [--allow-external]
+chrome-bridge history [--query <text>] --confirm [--limit 25]
+chrome-bridge bookmarks [--query <text>] --confirm [--limit 50]
+chrome-bridge cookies [--url <url> | --domain <domain>] --confirm [--include-values --confirm-sensitive] [--limit 50]
+chrome-bridge storage [--tab <id>] --confirm [--include-values --confirm-sensitive] [--allow-external]
+chrome-bridge request <url> --confirm [--method GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000]
+chrome-bridge ask --question <text> [--choices-json <json>] [--no-text] [--timeout-ms 300000] [--keep-tab]
+chrome-bridge session-summary
+chrome-bridge debug-bundle --out <dir> [--tab <id>] [--allow-external] [--include-snapshot] [--include-observe] [--include-screenshot] [--include-trace-events]
+chrome-bridge command-catalog [--markdown]
+chrome-bridge reload-extension --confirm
+chrome-bridge self-test
+chrome-bridge runtime-smoke [--keep-tab]
+chrome-bridge doctor [--live-checks] [--copy-path] [--open-extensions]
+chrome-bridge extension-path
+chrome-bridge codex-config
+```
+
+## Debugger-Serialized Actions
+
+These extension actions use the Chrome Debugger API and are serialized per tab by the extension:
+
+- `screenshot`
+- `printPdf`
+- `clickAt`
+- `hover`
+- `type`
+- `press`
+- `handleDialog`
+- `uploadFile`
+- `traceStart`
+- `traceStop`

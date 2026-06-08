@@ -1,0 +1,527 @@
+#!/usr/bin/env node
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  BRIDGE_VERSION,
+  CLI_COMMANDS,
+  CLI_USAGE_GROUPS,
+  CLI_USAGE_LINES,
+  COMMAND_CATALOG,
+  COMMAND_METADATA,
+  COMMAND_PAYLOAD_SCHEMAS,
+  DEBUGGER_SERIALIZED_ACTIONS,
+  EXTENSION_ACTIONS,
+  LOCAL_COMMAND_CATALOG,
+  LOCAL_COMMAND_METADATA,
+  MANIFEST_PERMISSIONS,
+  MCP_TOOLS,
+  commandCatalogMarkdown,
+  commandDefaultTimeoutMs,
+  commandRiskTier,
+  cliUsageLineForCommand,
+  validateCommandPayload,
+} from '../shared/command-registry.mjs';
+
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const failures = [];
+const [
+  manifestText,
+  packageText,
+  serverText,
+  cliText,
+  mcpText,
+  backgroundText,
+  pageScriptsText,
+  packageContentsCheckerText,
+  privacyScannerText,
+  checkWorkflowText,
+] = await Promise.all([
+  fs.readFile(path.join(rootDir, 'extension/manifest.json'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'server/bridge-server.mjs'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'bin/chrome-bridge.mjs'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
+  fs.readFile(path.join(rootDir, '.github/workflows/check.yml'), 'utf8'),
+]);
+const manifest = JSON.parse(manifestText);
+const packageJson = JSON.parse(packageText);
+const cliUsageBlock = /function usage\(\) \{\n  return \[\n[\s\S]*?\n  \]\.join\('\\n'\);\n\}/.exec(cliText)?.[0] || '';
+
+function check(condition, message) {
+  if (!condition) failures.push(message);
+}
+
+function uniqueValues(values, label) {
+  const seen = new Set();
+  for (const value of values) {
+    check(!seen.has(value), `${label} contains duplicate value: ${value}`);
+    seen.add(value);
+  }
+}
+
+function sameArray(left, right) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function sameSet(left, right) {
+  return sameArray([...left].sort(), [...right].sort());
+}
+
+function expectPayload(action, payload, ok, label) {
+  try {
+    validateCommandPayload(action, payload);
+    check(ok, `${label} unexpectedly passed`);
+  } catch (error) {
+    check(!ok, `${label} unexpectedly failed: ${String(error?.message || error)}`);
+  }
+}
+
+function functionBlock(source, name) {
+  const marker = new RegExp(`(?:async\\s+)?function\\s+${name}\\s*\\(`);
+  const match = marker.exec(source);
+  if (!match) return '';
+  const paramsStart = source.indexOf('(', match.index);
+  let paramsDepth = 0;
+  let paramsEnd = -1;
+  for (let index = paramsStart; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') paramsDepth += 1;
+    if (char === ')') {
+      paramsDepth -= 1;
+      if (paramsDepth === 0) {
+        paramsEnd = index;
+        break;
+      }
+    }
+  }
+  const braceStart = source.indexOf('{', paramsEnd);
+  if (braceStart < 0) return '';
+  let depth = 0;
+  for (let index = braceStart; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '{') depth += 1;
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) return source.slice(match.index, index + 1);
+    }
+  }
+  return '';
+}
+
+uniqueValues(MANIFEST_PERMISSIONS, 'manifest permissions');
+uniqueValues(EXTENSION_ACTIONS, 'extension actions');
+uniqueValues(CLI_COMMANDS, 'CLI commands');
+uniqueValues(CLI_USAGE_GROUPS.map((group) => group.id), 'CLI usage group ids');
+uniqueValues(CLI_USAGE_LINES, 'CLI usage lines');
+uniqueValues(DEBUGGER_SERIALIZED_ACTIONS, 'debugger serialized actions');
+uniqueValues(MCP_TOOLS, 'MCP tools');
+
+check(BRIDGE_VERSION === '0.4.0', `unexpected bridge version: ${BRIDGE_VERSION}`);
+check(packageJson.version === BRIDGE_VERSION, `package.json version ${packageJson.version} does not match registry ${BRIDGE_VERSION}`);
+check(manifest.manifest_version === 3, `extension manifest version must be 3, got ${manifest.manifest_version}`);
+check(manifest.version === BRIDGE_VERSION, `extension manifest version ${manifest.version} does not match registry ${BRIDGE_VERSION}`);
+check(sameSet(manifest.permissions || [], MANIFEST_PERMISSIONS), 'extension manifest permissions do not match registry permissions');
+check((manifest.host_permissions || []).includes('<all_urls>'), 'extension manifest must explicitly declare <all_urls> host access');
+check((packageJson.files || []).includes('shared/'), 'package.json files must include shared/');
+check((packageJson.files || []).includes('docs/'), 'package.json files must include docs/');
+check(packageJson.scripts?.['check:pack'] === 'node ./scripts/check-package-contents.mjs', 'check:pack must verify exact package contents');
+check(packageJson.scripts?.['check:privacy'] === 'node ./scripts/check-privacy-scan.mjs', 'check:privacy must run the privacy scanner');
+check(packageJson.scripts?.check?.includes('npm run check:privacy'), 'npm run check must include check:privacy');
+check(checkWorkflowText.includes('node-version:'), 'GitHub check workflow must use a Node.js version matrix');
+for (const nodeVersion of ['20', '22', '24']) {
+  check(new RegExp(`-\\s*${nodeVersion}\\b`).test(checkWorkflowText), `GitHub check workflow must include Node.js ${nodeVersion}`);
+}
+for (const command of ['npm ci', 'npm run check', 'npm run check:audit', 'npm run check:pack']) {
+  check(checkWorkflowText.includes(`run: ${command}`), `GitHub check workflow must run ${command}`);
+}
+check(!checkWorkflowText.includes('runtime-smoke'), 'GitHub check workflow must not run live runtime-smoke');
+check(packageContentsCheckerText.includes('REQUIRED_PACKAGE_FILES'), 'package contents checker must declare required package files');
+for (const requiredPackageFile of [
+  'shared/command-registry.mjs',
+  'extension/page-scripts.js',
+  'extension/workspace-policy.js',
+  'docs/COMMAND-CATALOG.md',
+  'docs/COMPETITIVE-ROADMAP.md',
+  'scripts/check-command-registry.mjs',
+  'scripts/check-bridge-contract.mjs',
+  'scripts/check-docs-coverage.mjs',
+  'scripts/check-package-contents.mjs',
+  'scripts/check-privacy-scan.mjs',
+]) {
+  check(packageContentsCheckerText.includes(`'${requiredPackageFile}'`), `package contents checker must require ${requiredPackageFile}`);
+}
+check(privacyScannerText.includes('LOCAL_HOME_PATTERN'), 'privacy scanner must check local home paths');
+check(privacyScannerText.includes('private-key'), 'privacy scanner must check private-key headers');
+check(privacyScannerText.includes('secret-assignment'), 'privacy scanner must check obvious secret assignments');
+check(!privacyScannerText.includes('package-lock.json'), 'privacy scanner must include package-lock.json in leak checks');
+check(CLI_USAGE_LINES.length === CLI_COMMANDS.length, 'CLI usage line count must match CLI command count');
+check(
+  CLI_USAGE_GROUPS.reduce((sum, group) => sum + group.commands.length, 0) === CLI_COMMANDS.length,
+  'CLI usage groups must cover every CLI command exactly once',
+);
+check(EXTENSION_ACTIONS.length === Object.keys(COMMAND_PAYLOAD_SCHEMAS).length, 'extension actions do not match payload schemas');
+check(COMMAND_CATALOG.length === EXTENSION_ACTIONS.length, 'command catalog length does not match extension actions');
+check(LOCAL_COMMAND_CATALOG.length === Object.keys(LOCAL_COMMAND_METADATA).length, 'local command catalog length does not match local metadata');
+
+for (const action of DEBUGGER_SERIALIZED_ACTIONS) {
+  check(EXTENSION_ACTIONS.includes(action), `debugger serialized action is not an extension action: ${action}`);
+}
+
+const dispatchBlock = functionBlock(backgroundText, 'dispatch');
+check(dispatchBlock.includes('switch (action)'), 'extension background dispatch must switch on registry actions');
+for (const action of EXTENSION_ACTIONS) {
+  check(dispatchBlock.includes(`case '${action}':`), `extension background dispatch is missing registry action: ${action}`);
+}
+
+const cliMainBlock = functionBlock(cliText, 'main');
+for (const command of CLI_COMMANDS) {
+  check(cliMainBlock.includes(`cmd === '${command}'`), `CLI main() is missing registry command implementation: ${command}`);
+}
+
+for (const tool of MCP_TOOLS) {
+  check(mcpText.includes(`'${tool}'`), `MCP server is missing registry tool implementation: ${tool}`);
+}
+
+const catalogCliCommands = new Set();
+const catalogMcpTools = new Set();
+
+function addCatalogReferences(entry, label) {
+  for (const command of entry.cli || []) {
+    check(!catalogCliCommands.has(command), `${label} duplicates CLI command reference: ${command}`);
+    catalogCliCommands.add(command);
+  }
+  for (const tool of entry.mcp || []) {
+    check(!catalogMcpTools.has(tool), `${label} duplicates MCP tool reference: ${tool}`);
+    catalogMcpTools.add(tool);
+  }
+}
+
+for (const action of EXTENSION_ACTIONS) {
+  const schema = COMMAND_PAYLOAD_SCHEMAS[action];
+  const metadata = COMMAND_METADATA[action];
+  const catalog = COMMAND_CATALOG.find((entry) => entry.action === action);
+
+  check(Array.isArray(schema), `${action} schema is missing`);
+  uniqueValues(schema || [], `${action} payload schema`);
+  check(metadata, `${action} metadata is missing`);
+  check(catalog, `${action} catalog entry is missing`);
+  if (!metadata || !catalog) continue;
+
+  check(metadata.action === action, `${action} metadata action mismatch`);
+  check(catalog === metadata, `${action} catalog should reference metadata entry`);
+  check(sameArray(metadata.allowedKeys, schema), `${action} metadata allowedKeys drift`);
+  check(metadata.riskTier === commandRiskTier(action), `${action} risk tier drift`);
+  check(metadata.defaultTimeoutMs === commandDefaultTimeoutMs(action), `${action} timeout drift`);
+  check(Number.isFinite(metadata.defaultTimeoutMs) && metadata.defaultTimeoutMs >= 5_000, `${action} timeout is too small`);
+  check(typeof metadata.summary === 'string' && metadata.summary.length >= 12, `${action} summary is missing or too short`);
+  check(typeof metadata.category === 'string' && metadata.category.length > 0, `${action} category is missing`);
+  check(Array.isArray(metadata.cli), `${action} cli aliases must be an array`);
+  check(Array.isArray(metadata.mcp), `${action} MCP tools must be an array`);
+
+  for (const command of metadata.cli) {
+    check(CLI_COMMANDS.includes(command), `${action} references unknown CLI command: ${command}`);
+  }
+  for (const tool of metadata.mcp) {
+    check(MCP_TOOLS.includes(tool), `${action} references unknown MCP tool: ${tool}`);
+  }
+
+  if (metadata.requiresSensitiveConfirmation) {
+    check(metadata.requiresConfirmation, `${action} sensitive confirmation must also require confirmation`);
+    check(metadata.allowedKeys.includes('confirmSensitive'), `${action} sensitive action must allow confirmSensitive`);
+  } else {
+    check(!metadata.allowedKeys.includes('confirmSensitive'), `${action} non-sensitive action must not allow confirmSensitive`);
+  }
+  if (metadata.requiresConditionalConfirmation) {
+    check(!metadata.requiresConfirmation, `${action} conditional confirmation should not force every scoped read to confirm`);
+    check(metadata.allowedKeys.includes('confirmed'), `${action} conditional confirmation action must allow confirmed`);
+  }
+  if (metadata.riskTier === 'private-read') {
+    check(metadata.requiresConfirmation, `${action} private-read action must require confirmation`);
+  }
+
+  addCatalogReferences(metadata, action);
+}
+
+for (const localCommand of LOCAL_COMMAND_CATALOG) {
+  check(localCommand.id && LOCAL_COMMAND_METADATA[localCommand.id] === localCommand, `${localCommand.id || 'local command'} local metadata mismatch`);
+  check(typeof localCommand.category === 'string' && localCommand.category.length > 0, `${localCommand.id} local category is missing`);
+  check(typeof localCommand.riskTier === 'string' && localCommand.riskTier.length > 0, `${localCommand.id} local risk tier is missing`);
+  check(typeof localCommand.summary === 'string' && localCommand.summary.length >= 12, `${localCommand.id} local summary is missing or too short`);
+  check(Array.isArray(localCommand.cli), `${localCommand.id} local cli aliases must be an array`);
+  check(Array.isArray(localCommand.mcp), `${localCommand.id} local MCP tools must be an array`);
+  check(typeof localCommand.usesLiveBridge === 'boolean', `${localCommand.id} local live bridge flag must be boolean`);
+  check(['yes', 'no', 'optional'].includes(localCommand.liveBridge), `${localCommand.id} local live bridge metadata must be yes/no/optional`);
+  check(
+    localCommand.defaultTimeoutMs === null
+      || (Number.isFinite(localCommand.defaultTimeoutMs) && localCommand.defaultTimeoutMs >= 5_000),
+    `${localCommand.id} local timeout must be null or at least 5000ms`,
+  );
+
+  for (const command of localCommand.cli) {
+    check(CLI_COMMANDS.includes(command), `${localCommand.id} references unknown local CLI command: ${command}`);
+  }
+  for (const tool of localCommand.mcp) {
+    check(MCP_TOOLS.includes(tool), `${localCommand.id} references unknown local MCP tool: ${tool}`);
+  }
+
+  addCatalogReferences(localCommand, localCommand.id);
+}
+
+for (const command of CLI_COMMANDS) {
+  check(catalogCliCommands.has(command), `CLI command is not represented in any catalog metadata: ${command}`);
+  check(
+    CLI_USAGE_LINES.some((line) => line === `chrome-bridge ${command}` || line.startsWith(`chrome-bridge ${command} `)),
+    `CLI command is missing a registry usage signature: ${command}`,
+  );
+  const groupMatches = CLI_USAGE_GROUPS.filter((group) => group.commands.includes(command));
+  check(groupMatches.length === 1, `CLI command must appear in exactly one usage group: ${command}`);
+  check(cliUsageLineForCommand(command).startsWith(`chrome-bridge ${command}`), `CLI command usage helper drift: ${command}`);
+}
+check(cliUsageBlock.includes('CLI_USAGE_LINES'), 'CLI usage() must be derived from registry CLI_USAGE_LINES');
+check(cliUsageLineForCommand('open').includes('--allow-external'), 'CLI open usage must document the supported --allow-external flag');
+check(cliUsageLineForCommand('doctor').includes('--live-checks'), 'CLI doctor usage must document explicit live checks');
+for (const tool of MCP_TOOLS) {
+  check(catalogMcpTools.has(tool), `MCP tool is not represented in any catalog metadata: ${tool}`);
+}
+
+for (const id of ['session-summary', 'debug-bundle', 'command-catalog', 'runtime-smoke']) {
+  check(Boolean(LOCAL_COMMAND_METADATA[id]), `local command metadata is missing ${id}`);
+}
+
+expectPayload('findElements', { nearText: 'Billing address', limit: 5 }, true, 'findElements nearText payload');
+expectPayload('findElements', { nearText: 42 }, false, 'findElements invalid nearText payload');
+expectPayload('tabs', { includeAll: true }, false, 'tabs includeAll missing confirmation payload');
+expectPayload('tabs', { includeAll: true, confirmed: true }, true, 'tabs includeAll confirmed payload');
+expectPayload('windows', { includeAll: true }, false, 'windows includeAll missing confirmation payload');
+expectPayload('windows', { includeAll: true, confirmed: true }, true, 'windows includeAll confirmed payload');
+expectPayload('observe', { limit: 300, maxTextChars: 1_000 }, true, 'observe numeric bounds payload');
+expectPayload('observe', { limit: 0 }, false, 'observe invalid limit payload');
+expectPayload('findElements', { maxTextChars: 10 }, false, 'findElements invalid maxTextChars payload');
+expectPayload('setWorkspace', { policyMode: 'strict', confirmed: true }, true, 'setWorkspace strict payload');
+expectPayload('setWorkspace', { policyMode: 'permissive', confirmed: true }, false, 'setWorkspace invalid policy payload');
+expectPayload('reloadExtension', {}, false, 'reloadExtension missing confirmation payload');
+expectPayload('reloadExtension', { confirmed: true }, true, 'reloadExtension confirmed payload');
+expectPayload('adoptTab', { tabId: 123, confirmed: true }, true, 'adoptTab tab payload');
+expectPayload('adoptTab', { tabId: 123, confirmed: true, allowExternal: true }, false, 'adoptTab allowExternal rejection');
+expectPayload('open', {}, false, 'open missing url payload');
+expectPayload('waitForSelector', {}, false, 'waitForSelector missing selector payload');
+expectPayload('extractPage', { kind: 'tables', maxItems: 5 }, true, 'extractPage kind payload');
+expectPayload('extractPage', { kind: 'everything' }, false, 'extractPage invalid kind payload');
+expectPayload('extractPage', { maxItems: 501 }, false, 'extractPage invalid maxItems payload');
+expectPayload('snapshot', { maxChars: 200_000 }, true, 'snapshot maxChars payload');
+expectPayload('text', { maxChars: 999 }, false, 'text invalid maxChars payload');
+expectPayload('html', { maxChars: 500_000 }, true, 'html maxChars payload');
+expectPayload('html', { maxChars: 500_001 }, false, 'html invalid maxChars payload');
+expectPayload('printPdf', { scale: 2 }, true, 'printPdf scale payload');
+expectPayload('printPdf', { scale: 99 }, false, 'printPdf invalid scale payload');
+expectPayload('open', { url: 'https://example.com' }, true, 'open https payload');
+expectPayload('ensureTab', { url: 'about:blank' }, true, 'ensureTab about:blank payload');
+expectPayload('open', { url: 'javascript:alert(1)' }, false, 'open javascript URL rejection');
+expectPayload('ensureTab', { url: 'data:text/html,<script>alert(1)</script>' }, false, 'ensureTab data URL rejection');
+expectPayload('fetchUrl', { url: 'file:///etc/passwd', confirmed: true }, false, 'fetchUrl file URL rejection');
+expectPayload('cookiesList', { url: 'chrome://settings', confirmed: true }, false, 'cookiesList chrome URL rejection');
+expectPayload('click', { selector: 'button' }, false, 'click missing confirmation payload');
+expectPayload('click', { selector: 'button', confirmed: true }, true, 'click confirmed payload');
+expectPayload('uploadFile', { selector: 'input[type=file]', files: ['/tmp/a.txt'], confirmed: true }, true, 'uploadFile files payload');
+expectPayload('uploadFile', { selector: 'input[type=file]', files: [123], confirmed: true }, false, 'uploadFile invalid files payload');
+expectPayload('uploadFile', { selector: 'input[type=file]', confirmed: true }, false, 'uploadFile missing files payload');
+expectPayload('fillForm', { fields: { '#name': 'Ada', '#count': 1, '#enabled': true }, dryRun: true }, true, 'fillForm primitive fields payload');
+expectPayload('fillForm', { fields: { '#name': 'Ada' }, dryRun: true }, true, 'fillForm dry-run without confirmation payload');
+expectPayload('fillForm', { fields: { '#name': 'Ada' }, dryRun: false }, false, 'fillForm apply missing confirmation payload');
+expectPayload('fillForm', { fields: { '#name': 'Ada' }, dryRun: false, confirmed: true }, true, 'fillForm apply confirmed payload');
+expectPayload('fillForm', { fields: { '#name': { nested: true } }, dryRun: true }, false, 'fillForm invalid nested fields payload');
+expectPayload('fillForm', { dryRun: true }, false, 'fillForm missing fields payload');
+expectPayload('fetchUrl', { url: 'https://example.com' }, false, 'fetchUrl missing confirmation payload');
+expectPayload('fetchUrl', { url: 'https://example.com', headers: { 'x-test': 'ok' }, confirmed: true }, true, 'fetchUrl string headers payload');
+expectPayload('fetchUrl', { url: 'https://example.com', headers: { 'x-test': 123 }, confirmed: true }, false, 'fetchUrl invalid headers payload');
+expectPayload('fetchUrl', { url: 'https://example.com', method: 'POST', confirmed: true }, true, 'fetchUrl allowed method payload');
+expectPayload('fetchUrl', { url: 'https://example.com', method: 'TRACE', confirmed: true }, false, 'fetchUrl invalid method payload');
+expectPayload('fetchUrl', { url: 'https://example.com', credentials: 'omit', confirmed: true }, true, 'fetchUrl credentials payload');
+expectPayload('fetchUrl', { url: 'https://example.com', credentials: 'same-origin', confirmed: true }, false, 'fetchUrl invalid credentials payload');
+expectPayload('fetchUrl', { url: 'https://example.com', credentials: 'include', confirmed: true }, false, 'fetchUrl missing sensitive confirmation payload');
+expectPayload('fetchUrl', { url: 'https://example.com', credentials: 'include', confirmed: true, confirmSensitive: true }, true, 'fetchUrl sensitive confirmed payload');
+expectPayload('fetchUrl', { url: 'https://example.com', maxChars: 1, confirmed: true }, false, 'fetchUrl invalid maxChars payload');
+expectPayload('traceStart', { maxEvents: 50, confirmed: true }, true, 'traceStart maxEvents payload');
+expectPayload('traceStart', { maxEvents: 1, confirmed: true }, false, 'traceStart invalid maxEvents payload');
+expectPayload('traceSummary', {}, true, 'traceSummary read payload');
+expectPayload('traceSummary', { allowExternal: true }, true, 'traceSummary allowExternal payload');
+expectPayload('traceEvents', { limit: 2_000 }, true, 'traceEvents limit payload');
+expectPayload('traceStop', { limit: 2_001 }, false, 'traceStop invalid limit payload');
+expectPayload('historySearch', { limit: 200, confirmed: true }, true, 'historySearch limit payload');
+expectPayload('bookmarksSearch', { limit: 201, confirmed: true }, false, 'bookmarksSearch invalid limit payload');
+expectPayload('cookiesList', { url: 'https://example.com', limit: 500, confirmed: true }, true, 'cookiesList limit payload');
+expectPayload('cookiesList', { url: 'https://example.com', limit: 501, confirmed: true }, false, 'cookiesList invalid limit payload');
+expectPayload('cookiesList', { confirmed: true }, false, 'cookiesList whole jar missing sensitive confirmation payload');
+expectPayload('cookiesList', { confirmed: true, confirmSensitive: true }, true, 'cookiesList whole jar sensitive confirmed payload');
+expectPayload('storageSnapshot', { maxValueChars: 50, confirmed: true }, true, 'storageSnapshot maxValueChars payload');
+expectPayload('storageSnapshot', { maxValueChars: 49, confirmed: true }, false, 'storageSnapshot invalid maxValueChars payload');
+expectPayload('storageSnapshot', { includeValues: true, confirmed: true }, false, 'storageSnapshot missing sensitive confirmation payload');
+expectPayload('storageSnapshot', { includeValues: true, confirmed: true, confirmSensitive: true }, true, 'storageSnapshot sensitive confirmed payload');
+expectPayload('askUser', { question: 'Continue?', choices: ['Yes', { value: 'no', label: 'No' }] }, true, 'askUser choices payload');
+expectPayload('askUser', { question: 'Continue?', choices: [123] }, false, 'askUser invalid choice payload');
+expectPayload('askUser', { question: 'Continue?', choices: Array.from({ length: 9 }, (_, index) => `Choice ${index}`) }, false, 'askUser too many choices payload');
+expectPayload('askUser', { question: 'Continue?', timeoutMs: 5_000 }, true, 'askUser timeoutMs payload');
+expectPayload('askUser', { question: 'Continue?', timeoutMs: 4_999 }, false, 'askUser invalid timeoutMs payload');
+expectPayload('askUser', {}, false, 'askUser missing question payload');
+expectPayload('clickAt', { x: 0, y: 0, confirmed: true }, true, 'clickAt zero coordinates payload');
+expectPayload('clickAt', { y: 5, confirmed: true }, false, 'clickAt missing x payload');
+expectPayload('click', { confirmed: true }, false, 'click missing selector payload');
+expectPayload('type', { selector: '#name', text: '', confirmed: true }, true, 'type empty text payload');
+expectPayload('type', { selector: '#name', confirmed: true }, false, 'type missing text payload');
+expectPayload('press', { confirmed: true }, false, 'press missing key payload');
+expectPayload('select', { confirmed: true }, false, 'select missing selector payload');
+expectPayload('listSelectOptions', {}, false, 'select-options missing selector payload');
+expectPayload('click', { selector: 'button', confirmed: true, unknown: true }, false, 'unknown payload key rejection');
+
+const catalogPath = path.join(rootDir, 'docs/COMMAND-CATALOG.md');
+const catalogText = await fs.readFile(catalogPath, 'utf8');
+check(catalogText === commandCatalogMarkdown(), 'docs/COMMAND-CATALOG.md is not generated from the current registry');
+check(
+  commandCatalogMarkdown().includes('| Action | Category | Risk | Default Timeout | CLI | MCP | Confirm | Direct Payload Keys | Summary |'),
+  'generated command catalog action table must include default timeout and direct payload keys',
+);
+check(
+  commandCatalogMarkdown().includes('| ID | Category | Risk | Default Timeout | CLI | MCP | Live Bridge | Summary |'),
+  'generated command catalog local table must include default timeout',
+);
+check(
+  commandCatalogMarkdown().includes('## CLI Usage Signatures'),
+  'generated command catalog must include registry-owned CLI usage signatures',
+);
+check(
+  commandCatalogMarkdown().includes('## Debugger-Serialized Actions'),
+  'generated command catalog must include debugger-serialized action metadata',
+);
+check(
+  commandCatalogMarkdown().includes('tabId, allowExternal'),
+  'generated command catalog must expose direct payload key metadata',
+);
+check(
+  commandCatalogMarkdown().includes('| windows | scope | read | 10000 ms | windows | chrome_bridge_windows | conditional |'),
+  'generated command catalog must expose conditional confirmation metadata',
+);
+check(
+  commandCatalogMarkdown().includes('| doctor | diagnostic | read | 10000 ms | doctor | - | optional |'),
+  'generated command catalog must expose optional live bridge metadata for doctor',
+);
+check(serverText.includes('commandDefaultTimeoutMs'), 'server must import/use commandDefaultTimeoutMs');
+check(serverText.includes('return commandDefaultTimeoutMs(action)'), 'server command timeout default must derive from registry action metadata');
+check(serverText.includes('commandTimeoutMs(action, timeoutMs)'), 'server /command path must pass action to timeout resolver');
+check(serverText.includes('VERSION_UNKNOWN'), 'server must fail closed when a connected extension has not reported its version');
+check(serverText.includes('state.extensionInfo = null'), 'server websocket reconnect must not inherit a previously verified extension version');
+check(serverText.includes('function requireExtensionOrigin(req)'), 'server must centralize extension-origin ingress checks');
+check(serverText.includes('INVALID_EXTENSION_ORIGIN'), 'server extension ingress must return a stable invalid-origin error code');
+check(serverText.includes('function requireExtensionIdentity(req, info = {})'), 'server must verify extension origin/id parity when the extension reports an id');
+check(serverText.includes('EXTENSION_ID_MISMATCH'), 'server extension ingress must return a stable extension-id mismatch code');
+check(serverText.includes('function requireKnownExtensionOrigin(req)'), 'server long-poll fallback must verify known extension id on poll requests');
+check(serverText.includes('!isExtensionOrigin(req)'), 'server websocket ingress must require a chrome-extension origin');
+check(serverText.includes('function requireCommandOrigin(req)'), 'server must reject web origins on direct command ingress');
+check(serverText.includes('INVALID_COMMAND_ORIGIN'), 'server command ingress must return a stable invalid-origin error code');
+check(serverText.includes('Direct command ingress rejects browser and extension origins'), 'server direct command ingress must be originless-only for local CLI/MCP clients');
+check(serverText.includes('function isExtensionIngressPath(req)'), 'server CORS must be scoped to extension ingress paths');
+check(serverText.includes('isExtensionIngressPath(req) && origin.startsWith'), 'server CORS must not expose direct /command to extension origins');
+check(serverText.includes('function validateCommandEnvelope(body)'), 'server must validate the direct /command envelope before dispatch');
+check(serverText.includes("const COMMAND_BODY_KEYS = new Set(['action', 'payload', 'timeoutMs'])"), 'server command envelope keys must stay explicit');
+check(serverText.includes('function requireJsonContentType(req)'), 'server must require application/json for POST JSON endpoints');
+check(serverText.includes('UNSUPPORTED_MEDIA_TYPE'), 'server must return a stable media-type error code');
+check(serverText.includes('function drainRequestBody(req)'), 'server oversized request handling must drain remaining request bytes');
+check(serverText.includes('EXTENSION_NOT_CONNECTED'), 'server must return a stable code when the extension is disconnected');
+check(cliText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'CLI command wrapper must default to registry action timeout');
+check(cliText.includes('function normalizeHttpMethod(value)'), 'CLI must normalize and validate request --method');
+check(functionBlock(cliText, 'doctor').includes("Boolean(args['live-checks'])"), 'CLI doctor must keep live checks behind --live-checks');
+check(functionBlock(cliText, 'doctor').includes('Pass --live-checks'), 'CLI doctor offline mode must explain how to opt into live checks');
+check(cliText.includes('function tomlString(value)'), 'CLI codex-config must escape TOML strings');
+check(cliText.includes('command = ${tomlString(process.execPath)}'), 'CLI codex-config must use the current Node executable');
+check(!cliText.includes('/opt/homebrew/bin/node'), 'CLI codex-config must not hardcode a Homebrew Node path');
+check(cliText.includes("if (!args.confirm) throw new Error('reload-extension requires --confirm')"), 'CLI reload-extension must require --confirm');
+check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
+check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
+check(mcpText.includes('z.enum(HTTP_METHODS)'), 'MCP request method schema must use the shared HTTP method allowlist');
+check(cliText.includes('includeSnapshot') && cliText.includes('includeScreenshot'), 'CLI debug bundle page artifacts must be explicit opt-in');
+check(mcpText.includes('includeSnapshot: z.boolean().optional()') && mcpText.includes('includeScreenshot: z.boolean().optional()'), 'MCP debug bundle page artifacts must be explicit opt-in');
+check(cliText.includes('function redactDebugBundleValue(value)') && mcpText.includes('function redactDebugBundleValue(value)'), 'debug bundle JSON artifacts must pass through a redaction helper');
+check(cliText.includes("args['include-trace-events']") && mcpText.includes('includeTraceEvents: z.boolean().optional()'), 'debug bundle full trace events must be explicit opt-in');
+check(COMMAND_METADATA.traceSummary?.summary?.includes('metadata'), 'registry must expose a traceSummary metadata-only action');
+const cliDebugBundleBlock = functionBlock(cliText, 'debugBundle');
+const mcpDebugBundleBlock = functionBlock(mcpText, 'debugBundle');
+const listSelectOptionsBlock = functionBlock(pageScriptsText, 'listSelectOptionsInPage');
+check(
+  cliDebugBundleBlock.includes("command('traceSummary'")
+    && cliDebugBundleBlock.includes('if (includeTraceEvents)')
+    && cliDebugBundleBlock.includes("command('traceEvents'"),
+  'CLI debug bundle must use traceSummary by default and reserve traceEvents for the explicit includeTraceEvents branch',
+);
+check(
+  mcpDebugBundleBlock.includes("bridgeCommand('traceSummary'")
+    && mcpDebugBundleBlock.includes('if (includeTraceEvents)')
+    && mcpDebugBundleBlock.includes("bridgeCommand('traceEvents'"),
+  'MCP debug bundle must use traceSummary by default and reserve traceEvents for the explicit includeTraceEvents branch',
+);
+check(cliText.includes("addJson('session-summary.json', redactDebugBundleValue(summary))"), 'CLI debug bundle session summary must be redacted');
+check(mcpText.includes("addJson('session-summary.json', redactDebugBundleValue(summary))"), 'MCP debug bundle session summary must be redacted');
+check(!LOCAL_COMMAND_METADATA['debug-bundle'].summary.includes('screenshot'), 'debug-bundle catalog summary must not imply screenshot capture by default');
+check(backgroundText.includes('const debuggerLocks = new Map()'), 'extension must maintain per-tab debugger locks');
+check(functionBlock(backgroundText, 'withTabLock').includes('debuggerLocks.set(tabId, next)'), 'withTabLock must serialize debugger work per tab');
+check(functionBlock(backgroundText, 'withDebugger').includes('return withTabLock(tabId'), 'withDebugger must run under the per-tab debugger lock');
+check((backgroundText.match(/chrome\.debugger\.sendCommand/g) || []).length === 1, 'extension must send debugger commands only through sendDebuggerCommand');
+check((backgroundText.match(/chrome\.debugger\.detach/g) || []).length === 1, 'extension must detach debugger only through detachDebugger');
+
+const debuggerActionFunctions = {
+  screenshot: 'screenshot',
+  printPdf: 'printPdf',
+  clickAt: 'clickAt',
+  hover: 'hover',
+  type: 'typeInto',
+  press: 'pressKey',
+  handleDialog: 'handleDialog',
+  uploadFile: 'uploadFile',
+  traceStart: 'traceStart',
+  traceStop: 'traceStop',
+};
+
+for (const action of DEBUGGER_SERIALIZED_ACTIONS) {
+  const block = functionBlock(backgroundText, debuggerActionFunctions[action]);
+  check(block, `${action} debugger action function is missing`);
+  check(
+    action.startsWith('trace') ? block.includes('withTabLock(') : block.includes('withDebugger('),
+    `${action} debugger action must use the serialized debugger wrapper`,
+  );
+}
+check(mcpText.includes('const navigationUrlSchema'), 'MCP must define navigationUrlSchema for http/https/about:blank');
+check(mcpText.includes('const webUrlSchema'), 'MCP must define webUrlSchema for http/https-only URL tools');
+check(!mcpText.includes('z.string().url()'), 'MCP must not use broad z.string().url() because it accepts unsafe URL schemes');
+check(!cliText.includes("confirmSensitive: Boolean(args['confirm-sensitive'])"), 'CLI must not emit confirmSensitive=false by default');
+check(pageScriptsText.includes('function formFieldValueState(field'), 'form helpers must report value state without exposing values');
+check(!pageScriptsText.includes('value: field.value'), 'extract form fields must not expose current field values');
+check(!pageScriptsText.includes('selectedIndex: field'), 'extract form fields must not expose current select indexes');
+check(!pageScriptsText.includes('before,'), 'fill-form preview must not expose current field values');
+check(!pageScriptsText.includes('after: nextValue'), 'fill-form preview must not echo planned field values');
+check(!listSelectOptionsBlock.includes('selectedIndex'), 'select-options must not expose current selected index without confirmation');
+check(!listSelectOptionsBlock.includes('value: select.value'), 'select-options must not expose current selected value without confirmation');
+check(!listSelectOptionsBlock.includes('selected: option.selected'), 'select-options must not expose current selected option without confirmation');
+check(functionBlock(backgroundText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
+check(functionBlock(backgroundText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
+check(functionBlock(backgroundText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
+
+if (failures.length) {
+  process.stderr.write(`${failures.map((failure) => `- ${failure}`).join('\n')}\n`);
+  process.exitCode = 1;
+} else {
+  process.stdout.write(JSON.stringify({
+    ok: true,
+    version: BRIDGE_VERSION,
+    packageVersion: packageJson.version,
+    manifestVersion: manifest.version,
+    manifestPermissions: (manifest.permissions || []).length,
+    actions: EXTENSION_ACTIONS.length,
+    localCommands: LOCAL_COMMAND_CATALOG.length,
+    cliCommands: CLI_COMMANDS.length,
+    mcpTools: MCP_TOOLS.length,
+  }, null, 2));
+  process.stdout.write('\n');
+}

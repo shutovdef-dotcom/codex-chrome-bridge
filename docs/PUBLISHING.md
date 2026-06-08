@@ -6,13 +6,24 @@ Use this checklist before making the repository public.
 
 ```bash
 npm ci
+npm run docs:commands
 npm run check
+npm run check:registry
+npm run check:docs
+npm run check:bridge-contract
+npm run check:privacy
 npm run check:audit
 npm run check:pack
 npm run server
 node ./bin/chrome-bridge.mjs health
 node ./bin/chrome-bridge.mjs runtime-smoke
 ```
+
+Run the live `health`, `doctor --live-checks`, and `runtime-smoke` checks only when no other Codex session is actively using the bridge.
+
+`check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
+
+`check:registry` also verifies that the GitHub Check workflow keeps the Node.js 20/22/24 matrix and runs `npm ci`, `npm run check`, `npm run check:audit`, and `npm run check:pack` without adding live `runtime-smoke` to CI.
 
 ## Repository Metadata
 
@@ -26,13 +37,7 @@ node ./bin/chrome-bridge.mjs runtime-smoke
 
 ## Privacy Review
 
-Before publishing:
-
-```bash
-rg -n "/Users/|secret|token|password|api[_-]?key|cookie|private" . -g '!node_modules/**' -g '!package-lock.json'
-```
-
-Expected matches should be docs or safety text, not real secrets or private paths.
+`check:privacy` scans tracked and untracked repository files, excluding ignored dependencies, for local home paths, private-key headers, common provider tokens, and obvious secret assignments.
 
 ## GitHub
 

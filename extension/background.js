@@ -1,19 +1,29 @@
+import {
+  clickAtInPage,
+  collectExtract,
+  collectHTML,
+  collectObserve,
+  collectSnapshot,
+  collectStorageSnapshot,
+  collectText,
+  elementClipForSelector,
+  fillFormInPage,
+  hoverInPage,
+  listSelectOptionsInPage,
+  pressKeyInPage,
+  selectOptionInPage,
+  waitForSelectorInPage,
+} from './page-scripts.js';
+import { groupOptions } from './workspace-policy.js';
+
 const OFFSCREEN_URL = 'offscreen.html';
-const DEFAULT_GROUP_TITLE = 'Codex Bridge';
-const DEFAULT_GROUP_COLOR = 'purple';
 const DEBUGGER_PROTOCOL_VERSION = '1.3';
 const MAX_TRACE_EVENTS = 500;
 const MAX_USER_PROMPT_CHOICES = 8;
 
 const traceSessions = new Map();
 const pendingUserPrompts = new Map();
-
-function groupOptions(payload = {}) {
-  return {
-    title: String(payload.groupTitle || DEFAULT_GROUP_TITLE).trim() || DEFAULT_GROUP_TITLE,
-    color: String(payload.groupColor || DEFAULT_GROUP_COLOR).trim() || DEFAULT_GROUP_COLOR,
-  };
-}
+const debuggerLocks = new Map();
 
 async function ensureOffscreen() {
   if (!chrome.offscreen) {
@@ -98,10 +108,34 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   dispatch(message.action, message.payload || {})
     .then((result) => sendResponse({ ok: true, result }))
-    .catch((error) => sendResponse({ ok: false, error: String(error?.message || error) }));
+    .catch((error) => sendResponse({
+      ok: false,
+      code: extensionErrorCode(error),
+      error: String(error?.message || error),
+      details: extensionErrorDetails(error),
+    }));
 
   return true;
 });
+
+function extensionErrorCode(error) {
+  if (error?.code) return error.code;
+  const message = String(error?.message || error);
+  if (message.includes('confirmSensitive=true')) return 'SENSITIVE_CONFIRMATION_REQUIRED';
+  if (message.includes('confirmed=true')) return 'CONFIRMATION_REQUIRED';
+  if (message.includes('outside the') || message.includes('strict workspace policy')) return 'TAB_SCOPE_VIOLATION';
+  if (message.includes('No element matches selector')) return 'SELECTOR_NOT_FOUND';
+  if (message.includes('requires selector')) return 'MISSING_SELECTOR';
+  if (message.includes('requires url')) return 'MISSING_URL';
+  if (message.includes('requires fields object')) return 'MISSING_FIELDS';
+  return 'EXTENSION_COMMAND_FAILED';
+}
+
+function extensionErrorDetails(error) {
+  const details = {};
+  if (error?.name) details.name = error.name;
+  return Object.keys(details).length ? details : undefined;
+}
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   for (const prompt of pendingUserPrompts.values()) {
@@ -122,8 +156,16 @@ async function dispatch(action, payload) {
       return listTabs(payload);
     case 'group':
       return groupStatus(payload);
+    case 'workspace':
+      return workspaceStatus(payload);
+    case 'setWorkspace':
+      return setWorkspace(payload);
+    case 'clearWorkspace':
+      return clearWorkspace(payload);
     case 'ensureTab':
       return ensureCodexTab(payload);
+    case 'adoptTab':
+      return adoptTab(payload);
     case 'open':
       return openTab(payload);
     case 'activateTab':
@@ -140,6 +182,12 @@ async function dispatch(action, payload) {
       return reloadTab(payload);
     case 'waitForSelector':
       return waitForSelector(payload);
+    case 'observe':
+      return observe(payload);
+    case 'findElements':
+      return findElements(payload);
+    case 'extractPage':
+      return extractPage(payload);
     case 'snapshot':
       return snapshot(payload);
     case 'text':
@@ -148,6 +196,10 @@ async function dispatch(action, payload) {
       return pageHTML(payload);
     case 'screenshot':
       return screenshot(payload);
+    case 'printPdf':
+      return printPdf(payload);
+    case 'listSelectOptions':
+      return listSelectOptions(payload);
     case 'scroll':
       return scroll(payload);
     case 'click':
@@ -162,8 +214,16 @@ async function dispatch(action, payload) {
       return pressKey(payload);
     case 'select':
       return selectOption(payload);
+    case 'fillForm':
+      return fillForm(payload);
+    case 'handleDialog':
+      return handleDialog(payload);
+    case 'uploadFile':
+      return uploadFile(payload);
     case 'traceStart':
       return traceStart(payload);
+    case 'traceSummary':
+      return traceSummaryCommand(payload);
     case 'traceEvents':
       return traceEvents(payload);
     case 'traceStop':
@@ -180,16 +240,15 @@ async function dispatch(action, payload) {
       return fetchUrl(payload);
     case 'askUser':
       return askUser(payload);
-    case 'evalPage':
-      return evalPage(payload);
     case 'reloadExtension':
-      return reloadExtension();
+      return reloadExtension(payload);
     default:
       throw new Error(`Unknown action: ${action}`);
   }
 }
 
-async function reloadExtension() {
+async function reloadExtension(payload = {}) {
+  requireConfirmed(payload, 'reloadExtension');
   setTimeout(() => chrome.runtime.reload(), 100);
   return {
     reloading: true,
@@ -198,9 +257,10 @@ async function reloadExtension() {
 }
 
 async function listTabs(payload = {}) {
+  if (payload.includeAll) requireConfirmed(payload, 'tabs includeAll');
   const tabs = await chrome.tabs.query({});
   const groups = await listTabGroups();
-  const options = groupOptions(payload);
+  const options = await groupOptions(payload);
   const codexGroups = groups.filter((group) => group.title === options.title);
   const codexGroupIds = new Set(codexGroups.map((group) => group.id));
   const scoped = !payload.includeAll;
@@ -217,12 +277,13 @@ async function listTabs(payload = {}) {
 }
 
 async function listWindows(payload = {}) {
+  if (payload.includeAll) requireConfirmed(payload, 'windows includeAll');
   const windows = await chrome.windows.getAll({
     populate: true,
     windowTypes: ['normal'],
   });
   const groups = await listTabGroups();
-  const options = groupOptions(payload);
+  const options = await groupOptions(payload);
   const scoped = !payload.includeAll;
 
   const windowInfos = windows.map((window) => {
@@ -296,8 +357,22 @@ async function getStoredCodexTab(payload = {}) {
   return tab;
 }
 
+async function getLastFocusedTab() {
+  const tabs = await chrome.tabs.query({
+    active: true,
+    lastFocusedWindow: true,
+  });
+  const tab = tabs.find((candidate) => candidate.id);
+  if (!tab?.id) throw new Error('No active browser tab was found in the last focused window');
+  return tab;
+}
+
 async function getTargetTab(payload = {}, options = {}) {
   if (payload.tabId) {
+    const policy = await groupOptions(payload);
+    if (payload.allowExternal && policy.policyMode === 'strict') {
+      throw new Error('allowExternal is blocked by strict workspace policy');
+    }
     const tab = await chrome.tabs.get(Number(payload.tabId));
     if (!payload.allowExternal) {
       await assertCodexScopedTab(tab, payload);
@@ -335,7 +410,7 @@ async function getTargetTab(payload = {}, options = {}) {
 
 async function getStoredCodexGroup(payload = {}, windowId) {
   if (!chrome.tabGroups) return null;
-  const options = groupOptions(payload);
+  const options = await groupOptions(payload);
   const stored = await storageGet(['codexGroupId', 'codexGroupWindowId']);
 
   if (stored.codexGroupId) {
@@ -354,7 +429,7 @@ async function getStoredCodexGroup(payload = {}, windowId) {
 }
 
 async function getCodexGroupTabs(payload = {}) {
-  const options = groupOptions(payload);
+  const options = await groupOptions(payload);
   const groups = await listTabGroups();
   const groupIds = new Set(groups
     .filter((group) => group.title === options.title)
@@ -369,7 +444,7 @@ async function ensureCodexGroupForTab(tab, payload = {}) {
     throw new Error('chrome.tabGroups API is unavailable; reload the extension after granting the tabGroups permission');
   }
 
-  const options = groupOptions(payload);
+  const options = await groupOptions(payload);
   let group = await getStoredCodexGroup(payload, tab.windowId);
   let groupId = group?.id;
 
@@ -409,7 +484,7 @@ async function ensureCodexGroupForTab(tab, payload = {}) {
 }
 
 async function assertCodexScopedTab(tab, payload = {}) {
-  const options = groupOptions(payload);
+  const options = await groupOptions(payload);
   const group = await getStoredCodexGroup(payload, tab.windowId);
   if (group && tab.groupId === group.id) return;
 
@@ -443,6 +518,20 @@ async function ensureCodexTab(payload) {
   return tabInfo(await chrome.tabs.get(tab.id), { group });
 }
 
+async function adoptTab(payload = {}) {
+  requireConfirmed(payload, 'adoptTab');
+  const tab = payload.tabId
+    ? await chrome.tabs.get(Number(payload.tabId))
+    : await getLastFocusedTab();
+  const group = await ensureCodexGroupForTab(tab, payload);
+  const latest = await chrome.tabs.get(tab.id);
+  await storageSet({ codexTabId: latest.id, codexWindowId: latest.windowId });
+  return {
+    adopted: true,
+    tab: tabInfo(latest, { group }),
+  };
+}
+
 async function waitForTabComplete(tabId, timeoutMs = 25_000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
@@ -472,7 +561,7 @@ async function openTab(payload) {
 }
 
 async function createGroupedTab(payload) {
-  const options = groupOptions(payload);
+  const options = await groupOptions(payload);
   let tabs = await getCodexGroupTabs(payload);
   let tab;
 
@@ -507,7 +596,7 @@ async function createGroupedTab(payload) {
 }
 
 async function groupStatus(payload = {}) {
-  const options = groupOptions(payload);
+  const options = await groupOptions(payload);
   const groups = await listTabGroups();
   const codexGroups = groups.filter((group) => group.title === options.title);
   const groupIds = new Set(codexGroups.map((group) => group.id));
@@ -518,6 +607,65 @@ async function groupStatus(payload = {}) {
     groups: codexGroups,
     tabs: tabs.map((tab) => tabInfo(tab, { groups: codexGroups })),
   };
+}
+
+async function workspaceStatus(payload = {}) {
+  const includeTabs = Boolean(payload.includeTabs);
+  const status = await groupStatus({ ...payload, includeTabs });
+  return {
+    workspace: status.configuredGroup,
+    policy: {
+      mode: status.configuredGroup.policyMode,
+      externalTabs: status.configuredGroup.externalTabs,
+      mutationConfirmation: 'required',
+      sensitiveConfirmation: 'required',
+    },
+    groups: status.groups,
+    tabs: includeTabs ? status.tabs : undefined,
+    counts: {
+      groups: status.groups.length,
+      tabs: status.tabs.length,
+    },
+  };
+}
+
+async function setWorkspace(payload = {}) {
+  requireConfirmed(payload, 'setWorkspace');
+  const options = await groupOptions(payload);
+  await storageSet({
+    codexWorkspaceName: options.workspace,
+    codexWorkspaceGroupTitle: options.title,
+    codexWorkspaceGroupColor: options.color,
+    codexWorkspacePolicyMode: options.policyMode,
+  });
+
+  const { codexTabId } = await storageGet(['codexTabId']);
+  if (codexTabId) {
+    try {
+      const tab = await chrome.tabs.get(codexTabId);
+      await ensureCodexGroupForTab(tab, {
+        groupTitle: options.title,
+        groupColor: options.color,
+      });
+    } catch {
+      await storageRemove(['codexTabId', 'codexWindowId', 'codexGroupId', 'codexGroupWindowId']);
+    }
+  }
+
+  return workspaceStatus({ includeTabs: true });
+}
+
+async function clearWorkspace(payload = {}) {
+  requireConfirmed(payload, 'clearWorkspace');
+  await storageRemove([
+    'codexWorkspaceName',
+    'codexWorkspaceGroupTitle',
+    'codexWorkspaceGroupColor',
+    'codexWorkspacePolicyMode',
+    'codexGroupId',
+    'codexGroupWindowId',
+  ]);
+  return workspaceStatus({ includeTabs: true });
 }
 
 function requireConfirmed(payload, action) {
@@ -610,16 +758,38 @@ async function sendDebuggerCommand(tabId, method, params = {}) {
   return chrome.debugger.sendCommand(debuggerTarget(tabId), method, params);
 }
 
-async function withDebugger(tabId, fn) {
-  if (!chrome.debugger) throw new Error('chrome.debugger API is unavailable; reload the extension after granting the debugger permission');
-  const { detachAfter } = await attachDebugger(tabId);
+async function withTabLock(tabId, fn) {
+  const previous = debuggerLocks.get(tabId) || Promise.resolve();
+  let release;
+  const current = new Promise((resolve) => {
+    release = resolve;
+  });
+  const next = previous.then(() => current, () => current);
+  debuggerLocks.set(tabId, next);
+
+  await previous.catch(() => {});
   try {
     return await fn();
   } finally {
-    if (detachAfter) {
-      await detachDebugger(tabId).catch(() => {});
+    release();
+    if (debuggerLocks.get(tabId) === next) {
+      debuggerLocks.delete(tabId);
     }
   }
+}
+
+async function withDebugger(tabId, fn) {
+  if (!chrome.debugger) throw new Error('chrome.debugger API is unavailable; reload the extension after granting the debugger permission');
+  return withTabLock(tabId, async () => {
+    const { detachAfter } = await attachDebugger(tabId);
+    try {
+      return await fn();
+    } finally {
+      if (detachAfter) {
+        await detachDebugger(tabId).catch(() => {});
+      }
+    }
+  });
 }
 
 function pushTraceEvent(tabId, event) {
@@ -678,15 +848,6 @@ function recordDebuggerEvent(source, method, params = {}) {
 
   if (method === 'Network.responseReceived') {
     const response = params.response || {};
-    const session = traceSessions.get(tabId);
-    if (session?.responseInfo) {
-      session.responseInfo.set(params.requestId, {
-        url: response.url,
-        status: response.status,
-        mimeType: response.mimeType,
-        resourceType: params.type,
-      });
-    }
     pushTraceEvent(tabId, {
       kind: 'network.response',
       requestId: params.requestId,
@@ -701,11 +862,6 @@ function recordDebuggerEvent(source, method, params = {}) {
     return;
   }
 
-  if (method === 'Network.loadingFinished') {
-    captureRelevantResponseBody(tabId, params.requestId);
-    return;
-  }
-
   if (method === 'Network.loadingFailed') {
     pushTraceEvent(tabId, {
       kind: 'network.failed',
@@ -717,75 +873,40 @@ function recordDebuggerEvent(source, method, params = {}) {
   }
 }
 
-async function captureRelevantResponseBody(tabId, requestId) {
-  const session = traceSessions.get(tabId);
-  const info = session?.responseInfo?.get(requestId);
-  if (!session?.active || !info) return;
-
-  const url = String(info.url || '');
-  const isFileManagerRequest =
-    url.includes('/filemanager/')
-    || url.includes('/fmd/api/')
-    || url.includes('/fmi/');
-  const isJson = String(info.mimeType || '').includes('json');
-  if (!isFileManagerRequest || !isJson) return;
-
-  try {
-    const body = await sendDebuggerCommand(tabId, 'Network.getResponseBody', { requestId });
-    pushTraceEvent(tabId, {
-      kind: 'network.body',
-      requestId,
-      url: info.url,
-      status: info.status,
-      mimeType: info.mimeType,
-      base64Encoded: Boolean(body.base64Encoded),
-      body: String(body.body || '').slice(0, 20_000),
-    });
-  } catch (error) {
-    pushTraceEvent(tabId, {
-      kind: 'network.body.error',
-      requestId,
-      url: info.url,
-      error: String(error?.message || error),
-    });
-  } finally {
-    session.responseInfo?.delete(requestId);
-  }
-}
-
 async function traceStart(payload) {
   requireConfirmed(payload, 'traceStart');
   const tab = await getTargetTab(payload);
-  if (traceSessions.get(tab.id)?.active) {
-    return traceSummary(tab.id, tab);
-  }
-
-  await chrome.debugger.attach(debuggerTarget(tab.id), DEBUGGER_PROTOCOL_VERSION);
-  const session = {
-    tabId: tab.id,
-    attached: true,
-    active: true,
-    startedAt: new Date().toISOString(),
-    maxEvents: Math.min(Math.max(Number(payload.maxEvents || MAX_TRACE_EVENTS), 50), 2_000),
-    includeExtensionEvents: Boolean(payload.includeExtensionEvents),
-    responseInfo: new Map(),
-    events: [],
-  };
-  traceSessions.set(tab.id, session);
-
-  try {
-    if (payload.network !== false) await sendDebuggerCommand(tab.id, 'Network.enable');
-    if (payload.console !== false) {
-      await sendDebuggerCommand(tab.id, 'Runtime.enable');
-      await sendDebuggerCommand(tab.id, 'Log.enable');
+  return withTabLock(tab.id, async () => {
+    if (traceSessions.get(tab.id)?.active) {
+      return traceSummary(tab.id, tab);
     }
-  } catch (error) {
-    traceSessions.delete(tab.id);
-    await detachDebugger(tab.id).catch(() => {});
-    throw error;
-  }
 
-  return traceSummary(tab.id, tab);
+    await chrome.debugger.attach(debuggerTarget(tab.id), DEBUGGER_PROTOCOL_VERSION);
+    const session = {
+      tabId: tab.id,
+      attached: true,
+      active: true,
+      startedAt: new Date().toISOString(),
+      maxEvents: Math.min(Math.max(Number(payload.maxEvents || MAX_TRACE_EVENTS), 50), 2_000),
+      includeExtensionEvents: Boolean(payload.includeExtensionEvents),
+      events: [],
+    };
+    traceSessions.set(tab.id, session);
+
+    try {
+      if (payload.network !== false) await sendDebuggerCommand(tab.id, 'Network.enable');
+      if (payload.console !== false) {
+        await sendDebuggerCommand(tab.id, 'Runtime.enable');
+        await sendDebuggerCommand(tab.id, 'Log.enable');
+      }
+    } catch (error) {
+      traceSessions.delete(tab.id);
+      await detachDebugger(tab.id).catch(() => {});
+      throw error;
+    }
+
+    return traceSummary(tab.id, tab);
+  });
 }
 
 function traceSummary(tabId, tab = null) {
@@ -810,45 +931,65 @@ async function traceEvents(payload) {
   };
 }
 
-async function traceStop(payload) {
+async function traceSummaryCommand(payload) {
   const tab = await getTargetTab(payload);
-  const session = traceSessions.get(tab.id);
-  if (!session) return { active: false, tab: tabInfo(tab), events: [] };
-  session.active = false;
-  session.attached = false;
-  session.stoppedAt = new Date().toISOString();
-  await detachDebugger(tab.id).catch(() => {});
-  traceSessions.delete(tab.id);
-  const limit = Math.min(Math.max(Number(payload.limit || 100), 1), session.maxEvents);
-  return {
-    active: false,
-    tab: tabInfo(tab),
-    startedAt: session.startedAt,
-    stoppedAt: session.stoppedAt,
-    eventCount: session.events.length,
-    events: session.events.slice(-limit),
-  };
+  return traceSummary(tab.id, tab);
 }
 
-async function execute(tabId, func, args = []) {
+async function traceStop(payload) {
+  const tab = await getTargetTab(payload);
+  return withTabLock(tab.id, async () => {
+    const session = traceSessions.get(tab.id);
+    if (!session) return { active: false, tab: tabInfo(tab), events: [] };
+    session.active = false;
+    session.attached = false;
+    session.stoppedAt = new Date().toISOString();
+    await detachDebugger(tab.id).catch(() => {});
+    traceSessions.delete(tab.id);
+    const limit = Math.min(Math.max(Number(payload.limit || 100), 1), session.maxEvents);
+    return {
+      active: false,
+      tab: tabInfo(tab),
+      startedAt: session.startedAt,
+      stoppedAt: session.stoppedAt,
+      eventCount: session.events.length,
+      events: session.events.slice(-limit),
+    };
+  });
+}
+
+async function execute(tabId, func, args = [], options = {}) {
   const frames = await chrome.scripting.executeScript({
     target: { tabId },
     func,
     args,
-    world: 'MAIN',
+    world: options.world || 'ISOLATED',
   });
   return frames?.[0]?.result;
 }
 
-async function evalPage(payload) {
+async function observe(payload) {
   const tab = await getTargetTab(payload);
-  const code = String(payload.code || '');
-  if (!code.trim()) throw new Error('evalPage requires code');
-  const result = await execute(tab.id, async (source) => {
-    const fn = new Function(`return (async () => { ${source} })();`);
-    return await fn();
-  }, [code]);
-  return { tab: tabInfo(tab), result };
+  const result = await execute(tab.id, collectObserve, [payload]);
+  return { tab: tabInfo(tab), ...result };
+}
+
+async function findElements(payload) {
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectObserve, [payload]);
+  return { tab: tabInfo(tab), ...result, filters: elementFilters(payload) };
+}
+
+function elementFilters(payload = {}) {
+  return Object.fromEntries(['role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk']
+    .filter((key) => payload[key] !== undefined)
+    .map((key) => [key, payload[key]]));
+}
+
+async function extractPage(payload) {
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectExtract, [payload]);
+  return { tab: tabInfo(tab), ...result };
 }
 
 async function snapshot(payload) {
@@ -910,6 +1051,27 @@ async function screenshot(payload) {
   await chrome.tabs.update(tab.id, { active: true });
   await delay(300);
   const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+  const latest = await chrome.tabs.get(tab.id);
+  return {
+    tab: tabInfo(latest),
+    dataUrl,
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+async function printPdf(payload = {}) {
+  const tab = await getTargetTab(payload);
+  const dataUrl = await withDebugger(tab.id, async () => {
+    await sendDebuggerCommand(tab.id, 'Page.enable');
+    const pdf = await sendDebuggerCommand(tab.id, 'Page.printToPDF', {
+      landscape: Boolean(payload.landscape),
+      printBackground: payload.printBackground !== false,
+      preferCSSPageSize: payload.preferCssPageSize !== false,
+      pageRanges: typeof payload.pageRanges === 'string' ? payload.pageRanges : undefined,
+      scale: payload.scale === undefined ? undefined : Math.min(Math.max(Number(payload.scale), 0.1), 2),
+    });
+    return `data:application/pdf;base64,${pdf.data}`;
+  });
   const latest = await chrome.tabs.get(tab.id);
   return {
     tab: tabInfo(latest),
@@ -1044,7 +1206,7 @@ async function pressKey(payload) {
     }, [{ selector: payload.selector }]);
   }
 
-  if (payload.trusted !== false) {
+  if (payload.trusted === true) {
     return withDebugger(tab.id, async () => {
       const event = keyEventPayload(key, payload);
       await sendDebuggerCommand(tab.id, 'Input.dispatchKeyEvent', { ...event, type: 'keyDown' });
@@ -1078,6 +1240,78 @@ async function selectOption(payload) {
     index: payload.index === undefined ? undefined : Number(payload.index),
   }]);
   return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+async function listSelectOptions(payload) {
+  if (!payload.selector) throw new Error('listSelectOptions requires selector');
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, listSelectOptionsInPage, [{
+    selector: payload.selector,
+  }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+async function fillForm(payload) {
+  const dryRun = payload.dryRun !== false;
+  if (!dryRun) requireConfirmed(payload, 'fillForm');
+  if (!payload.fields || typeof payload.fields !== 'object') throw new Error('fillForm requires fields object');
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, fillFormInPage, [{
+    fields: payload.fields,
+    dryRun,
+  }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+async function handleDialog(payload) {
+  requireConfirmed(payload, 'handleDialog');
+  const tab = await getTargetTab(payload);
+  return withDebugger(tab.id, async () => {
+    await sendDebuggerCommand(tab.id, 'Page.enable');
+    await sendDebuggerCommand(tab.id, 'Page.handleJavaScriptDialog', {
+      accept: payload.accept !== false,
+      promptText: typeof payload.promptText === 'string' ? payload.promptText : undefined,
+    });
+    return {
+      handled: true,
+      accepted: payload.accept !== false,
+      tab: tabInfo(await chrome.tabs.get(tab.id)),
+    };
+  });
+}
+
+async function uploadFile(payload) {
+  requireConfirmed(payload, 'uploadFile');
+  if (!payload.selector) throw new Error('uploadFile requires selector');
+  const files = Array.isArray(payload.files)
+    ? payload.files.map(String)
+    : (payload.file ? [String(payload.file)] : []);
+  if (!files.length) throw new Error('uploadFile requires file or files');
+  const tab = await getTargetTab(payload);
+  return withDebugger(tab.id, async () => {
+    await sendDebuggerCommand(tab.id, 'DOM.enable');
+    const documentResult = await sendDebuggerCommand(tab.id, 'DOM.getDocument', {
+      depth: -1,
+      pierce: true,
+    });
+    const rootNodeId = documentResult?.root?.nodeId;
+    if (!rootNodeId) throw new Error('Failed to read DOM root for uploadFile');
+    const queryResult = await sendDebuggerCommand(tab.id, 'DOM.querySelector', {
+      nodeId: rootNodeId,
+      selector: payload.selector,
+    });
+    if (!queryResult?.nodeId) throw new Error(`No element matches selector: ${payload.selector}`);
+    await sendDebuggerCommand(tab.id, 'DOM.setFileInputFiles', {
+      nodeId: queryResult.nodeId,
+      files,
+    });
+    return {
+      uploaded: true,
+      selector: payload.selector,
+      fileCount: files.length,
+      tab: tabInfo(await chrome.tabs.get(tab.id)),
+    };
+  });
 }
 
 function keyEventPayload(key, payload = {}) {
@@ -1431,310 +1665,5 @@ function tabInfo(tab, options = {}) {
     title: tab.title,
     url: tab.url,
     status: tab.status,
-  };
-}
-
-function collectText(options = {}) {
-  const maxChars = Number(options.maxChars || 50_000);
-  const text = (document.body?.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
-  return {
-    url: location.href,
-    title: document.title,
-    text: text.slice(0, maxChars),
-    truncated: text.length > maxChars,
-    length: text.length,
-  };
-}
-
-function collectHTML(options = {}) {
-  const maxChars = Number(options.maxChars || 100_000);
-  const element = options.selector ? document.querySelector(options.selector) : document.documentElement;
-  if (!element) throw new Error(`No element matches selector: ${options.selector}`);
-  const html = options.outer === false ? element.innerHTML : element.outerHTML;
-  return {
-    url: location.href,
-    title: document.title,
-    selector: options.selector || 'html',
-    html: html.slice(0, maxChars),
-    truncated: html.length > maxChars,
-    length: html.length,
-  };
-}
-
-async function waitForSelectorInPage(options = {}) {
-  const selector = String(options.selector || '');
-  const timeoutMs = Number(options.timeoutMs || 10_000);
-  const visible = options.visible !== false;
-  const started = Date.now();
-
-  const isVisible = (element) => {
-    if (!visible) return true;
-    const style = getComputedStyle(element);
-    const rect = element.getBoundingClientRect();
-    return style.visibility !== 'hidden'
-      && style.display !== 'none'
-      && rect.width > 0
-      && rect.height > 0;
-  };
-
-  while (Date.now() - started < timeoutMs) {
-    const element = document.querySelector(selector);
-    if (element && isVisible(element)) {
-      const rect = element.getBoundingClientRect();
-      return {
-        matched: true,
-        selector,
-        waitedMs: Date.now() - started,
-        rect: {
-          x: Math.round(rect.x),
-          y: Math.round(rect.y),
-          width: Math.round(rect.width),
-          height: Math.round(rect.height),
-        },
-        text: String(element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 500),
-      };
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-
-  throw new Error(`Timed out waiting for selector: ${selector}`);
-}
-
-function elementClipForSelector(selector) {
-  const element = document.querySelector(selector);
-  if (!element) throw new Error(`No element matches selector: ${selector}`);
-  const rect = element.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) throw new Error(`Element has empty bounds: ${selector}`);
-  return {
-    x: Math.round(rect.left + window.scrollX),
-    y: Math.round(rect.top + window.scrollY),
-    width: Math.round(rect.width),
-    height: Math.round(rect.height),
-  };
-}
-
-function clickAtInPage(options = {}) {
-  const x = Number(options.x);
-  const y = Number(options.y);
-  const element = document.elementFromPoint(x, y);
-  if (!element) throw new Error(`No element at coordinates ${x},${y}`);
-  const eventOptions = {
-    bubbles: true,
-    cancelable: true,
-    view: window,
-    clientX: x,
-    clientY: y,
-    button: options.button === 'right' ? 2 : 0,
-  };
-  element.dispatchEvent(new MouseEvent('mouseover', eventOptions));
-  element.dispatchEvent(new MouseEvent('mousemove', eventOptions));
-  element.dispatchEvent(new MouseEvent('mousedown', eventOptions));
-  element.dispatchEvent(new MouseEvent('mouseup', eventOptions));
-  element.dispatchEvent(new MouseEvent('click', eventOptions));
-  return {
-    clicked: { x, y, trusted: false },
-    tag: element.tagName.toLowerCase(),
-    text: String(element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300),
-    url: location.href,
-    title: document.title,
-  };
-}
-
-function hoverInPage(options = {}) {
-  let element = null;
-  let x = Number(options.x);
-  let y = Number(options.y);
-
-  if (options.selector) {
-    element = document.querySelector(options.selector);
-    if (!element) throw new Error(`No element matches selector: ${options.selector}`);
-    const rect = element.getBoundingClientRect();
-    x = Number.isFinite(x) ? x : rect.left + rect.width / 2;
-    y = Number.isFinite(y) ? y : rect.top + rect.height / 2;
-  } else {
-    if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error('hover requires selector or numeric x and y');
-    element = document.elementFromPoint(x, y);
-    if (!element) throw new Error(`No element at coordinates ${x},${y}`);
-  }
-
-  const eventOptions = {
-    bubbles: true,
-    cancelable: true,
-    view: window,
-    clientX: x,
-    clientY: y,
-  };
-  element.dispatchEvent(new MouseEvent('mouseover', eventOptions));
-  element.dispatchEvent(new MouseEvent('mouseenter', eventOptions));
-  element.dispatchEvent(new MouseEvent('mousemove', eventOptions));
-  return {
-    hovered: { x: Math.round(x), y: Math.round(y), trusted: false },
-    tag: element.tagName.toLowerCase(),
-    text: String(element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300),
-  };
-}
-
-function pressKeyInPage(options = {}) {
-  const eventOptions = {
-    key: options.key,
-    code: options.code || options.key,
-    bubbles: true,
-    cancelable: true,
-    ctrlKey: Boolean(options.ctrlKey),
-    metaKey: Boolean(options.metaKey),
-    altKey: Boolean(options.altKey),
-    shiftKey: Boolean(options.shiftKey),
-  };
-  const target = document.activeElement || document.body;
-  target.dispatchEvent(new KeyboardEvent('keydown', eventOptions));
-  target.dispatchEvent(new KeyboardEvent('keyup', eventOptions));
-  return {
-    pressed: options.key,
-    trusted: false,
-    activeTag: target?.tagName?.toLowerCase?.() || null,
-    url: location.href,
-    title: document.title,
-  };
-}
-
-function selectOptionInPage(options = {}) {
-  const select = document.querySelector(options.selector);
-  if (!select) throw new Error(`No element matches selector: ${options.selector}`);
-  if (select.tagName.toLowerCase() !== 'select') throw new Error(`Element is not a select: ${options.selector}`);
-
-  let option = null;
-  if (options.value !== undefined) {
-    option = Array.from(select.options).find((candidate) => candidate.value === String(options.value));
-  } else if (options.label !== undefined) {
-    option = Array.from(select.options).find((candidate) => candidate.label === String(options.label) || candidate.text === String(options.label));
-  } else if (Number.isInteger(options.index)) {
-    option = select.options[options.index];
-  }
-
-  if (!option) throw new Error('No matching option found');
-  select.value = option.value;
-  select.dispatchEvent(new Event('input', { bubbles: true }));
-  select.dispatchEvent(new Event('change', { bubbles: true }));
-  return {
-    selected: {
-      selector: options.selector,
-      value: option.value,
-      label: option.label || option.text,
-      index: option.index,
-    },
-    url: location.href,
-    title: document.title,
-  };
-}
-
-function collectStorageSnapshot(options = {}) {
-  const maxValueChars = Number(options.maxValueChars || 500);
-  const serialize = (storage) => Array.from({ length: storage.length }, (_, index) => storage.key(index))
-    .filter(Boolean)
-    .map((key) => {
-      const value = storage.getItem(key);
-      return {
-        key,
-        value: options.includeValues ? String(value).slice(0, maxValueChars) : undefined,
-        truncated: options.includeValues ? String(value).length > maxValueChars : undefined,
-      };
-    });
-
-  return {
-    url: location.href,
-    title: document.title,
-    localStorage: serialize(window.localStorage),
-    sessionStorage: serialize(window.sessionStorage),
-  };
-}
-
-function collectSnapshot(options = {}) {
-  const maxChars = Number(options.maxChars || 50_000);
-  const text = (document.body?.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
-  const isVisible = (element) => {
-    const style = getComputedStyle(element);
-    const rect = element.getBoundingClientRect();
-    return style.visibility !== 'hidden'
-      && style.display !== 'none'
-      && rect.width > 0
-      && rect.height > 0;
-  };
-  const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
-  const selectorFor = (element) => {
-    if (element.id) return `#${CSS.escape(element.id)}`;
-    const testId = element.getAttribute('data-testid') || element.getAttribute('data-test');
-    if (testId) return `[data-testid="${CSS.escape(testId)}"]`;
-    const aria = element.getAttribute('aria-label');
-    if (aria) return `${element.tagName.toLowerCase()}[aria-label="${CSS.escape(aria)}"]`;
-    const href = element.getAttribute('href');
-    if (href && element.tagName.toLowerCase() === 'a') {
-      return `a[href="${CSS.escape(href)}"]`;
-    }
-    return element.tagName.toLowerCase();
-  };
-  const elementInfo = (element) => {
-    const rect = element.getBoundingClientRect();
-    return {
-      tag: element.tagName.toLowerCase(),
-      selector: selectorFor(element),
-      text: clean(element.innerText || element.textContent).slice(0, 300),
-      ariaLabel: element.getAttribute('aria-label'),
-      role: element.getAttribute('role'),
-      href: element.getAttribute('href'),
-      type: element.getAttribute('type'),
-      name: element.getAttribute('name'),
-      placeholder: element.getAttribute('placeholder'),
-      rect: {
-        x: Math.round(rect.x),
-        y: Math.round(rect.y),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
-      },
-    };
-  };
-
-  const headings = Array.from(document.querySelectorAll('h1,h2,h3'))
-    .filter(isVisible)
-    .slice(0, 80)
-    .map((element) => ({
-      level: element.tagName.toLowerCase(),
-      text: clean(element.innerText || element.textContent),
-    }));
-
-  const elements = Array.from(document.querySelectorAll('a,button,input,textarea,select,[role="button"],[role="link"],[tabindex]'))
-    .filter(isVisible)
-    .slice(0, 250)
-    .map(elementInfo);
-
-  const tables = Array.from(document.querySelectorAll('table'))
-    .filter(isVisible)
-    .slice(0, 10)
-    .map((table) => Array.from(table.querySelectorAll('tr'))
-      .slice(0, 25)
-      .map((row) => Array.from(row.querySelectorAll('th,td'))
-        .slice(0, 12)
-        .map((cell) => clean(cell.innerText || cell.textContent).slice(0, 200))));
-
-  const jsonLd = Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
-    .slice(0, 20)
-    .map((script) => script.textContent?.slice(0, 5000) || '');
-
-  return {
-    url: location.href,
-    title: document.title,
-    viewport: {
-      width: window.innerWidth,
-      height: window.innerHeight,
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
-      devicePixelRatio: window.devicePixelRatio,
-    },
-    headings,
-    elements,
-    tables,
-    jsonLd,
-    text: text.slice(0, maxChars),
-    textLength: text.length,
-    truncated: text.length > maxChars,
   };
 }

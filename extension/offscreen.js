@@ -71,7 +71,9 @@ function connect() {
         socket.send(JSON.stringify({
           id: command.id,
           ok: false,
+          code: response?.code || 'BACKGROUND_COMMAND_FAILED',
           error: response?.error || 'Background command failed',
+          details: response?.details,
           info: await helloPayload(),
         }));
       }
@@ -79,6 +81,7 @@ function connect() {
       socket.send(JSON.stringify({
         id: command.id,
         ok: false,
+        code: 'BACKGROUND_UNAVAILABLE',
         error: String(error?.message || error),
         info: await helloPayload(),
       }));

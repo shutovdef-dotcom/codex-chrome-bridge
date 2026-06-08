@@ -7,10 +7,36 @@ import { promisify } from 'node:util';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import {
+  BRIDGE_VERSION,
+  HTTP_METHODS,
+  commandCatalog,
+  commandDefaultTimeoutMs,
+} from '../shared/command-registry.mjs';
 
 const BRIDGE_URL = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const execFileAsync = promisify(execFile);
+
+function hasAllowedUrlProtocol(value, allowedProtocols) {
+  try {
+    const parsed = new URL(value);
+    return allowedProtocols.includes(parsed.protocol)
+      && (parsed.protocol !== 'about:' || parsed.href === 'about:blank');
+  } catch {
+    return false;
+  }
+}
+
+const navigationUrlSchema = z.string().refine(
+  (value) => hasAllowedUrlProtocol(value, ['http:', 'https:', 'about:']),
+  'URL must use http:, https:, or about:blank',
+);
+
+const webUrlSchema = z.string().refine(
+  (value) => hasAllowedUrlProtocol(value, ['http:', 'https:']),
+  'URL must use http: or https:',
+);
 
 async function bridgeFetch(pathname, options = {}) {
   const response = await fetch(`${BRIDGE_URL}${pathname}`, options);
@@ -22,16 +48,20 @@ async function bridgeFetch(pathname, options = {}) {
     throw new Error(`Bridge returned non-JSON ${response.status}: ${text.slice(0, 500)}`);
   }
   if (!response.ok || json.ok === false) {
-    throw new Error(json.error || `Bridge returned HTTP ${response.status}`);
+    const error = new Error(json.error || `Bridge returned HTTP ${response.status}`);
+    error.code = json.code;
+    error.details = json.details;
+    throw error;
   }
   return json;
 }
 
-async function bridgeCommand(action, payload = {}, timeoutMs = 20_000) {
+async function bridgeCommand(action, payload = {}, timeoutMs) {
+  const effectiveTimeoutMs = timeoutMs ?? commandDefaultTimeoutMs(action);
   const json = await bridgeFetch('/command', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action, payload, timeoutMs }),
+    body: JSON.stringify({ action, payload, timeoutMs: effectiveTimeoutMs }),
   });
   return json.result;
 }
@@ -83,9 +113,177 @@ async function localRuntimeSmoke(args = {}) {
   }
 }
 
+async function sessionSummary() {
+  const health = await bridgeFetch('/health').catch((error) => ({
+    ok: false,
+    code: error.code || null,
+    error: String(error?.message || error),
+  }));
+  const group = await bridgeCommand('group', {}, 10_000).catch((error) => ({
+    ok: false,
+    code: error.code || null,
+    error: String(error?.message || error),
+  }));
+  const workspace = await bridgeCommand('workspace', { includeTabs: true }, 10_000).catch((error) => ({
+    ok: false,
+    code: error.code || null,
+    error: String(error?.message || error),
+  }));
+  return {
+    generatedAt: new Date().toISOString(),
+    bridgeUrl: BRIDGE_URL,
+    health,
+    workspace,
+    group,
+    recommendations: summaryRecommendations(health, group, workspace),
+  };
+}
+
+function summaryRecommendations(health, group, workspace) {
+  const recommendations = [];
+  const extensionVersion = health?.extension?.info?.version;
+  const policyMode = workspace?.policy?.mode || workspace?.workspace?.policyMode;
+  if (extensionVersion && extensionVersion !== BRIDGE_VERSION) {
+    recommendations.push(`Reload the unpacked extension; expected ${BRIDGE_VERSION}, got ${extensionVersion}.`);
+  }
+  if (!health?.extension?.connected) {
+    recommendations.push('Load or reload the unpacked Chrome extension.');
+  }
+  if ((workspace?.counts?.tabs === 0) || (group?.tabs && !group.tabs.length)) {
+    recommendations.push('Run ensure-tab, open, or adopt-tab before browser work.');
+  }
+  if (policyMode === 'strict') {
+    recommendations.push('Strict workspace policy is active; outside tabs are blocked even with allowExternal.');
+  }
+  return recommendations;
+}
+
+async function writeDataUrlFile(filePath, dataUrl, expectedPrefix) {
+  const match = new RegExp(`^${expectedPrefix},(.+)$`).exec(dataUrl || '');
+  if (!match) throw new Error(`Invalid data URL for ${filePath}`);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, Buffer.from(match[1], 'base64'));
+}
+
+async function writeJsonFile(filePath, value) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+const DEBUG_BUNDLE_REDACTED_KEYS = new Set([
+  'url',
+  'href',
+  'title',
+  'text',
+  'label',
+  'value',
+  'values',
+  'dataUrl',
+  'favIconUrl',
+]);
+
+function redactDebugBundleValue(value) {
+  if (Array.isArray(value)) return value.map((item) => redactDebugBundleValue(item));
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [
+    key,
+    DEBUG_BUNDLE_REDACTED_KEYS.has(key) ? '[redacted]' : redactDebugBundleValue(entry),
+  ]));
+}
+
+async function debugBundle(args = {}) {
+  const outputDir = path.resolve(args.out);
+  const target = {
+    tabId: args.tabId,
+    allowExternal: args.allowExternal,
+  };
+  const createdAt = new Date().toISOString();
+  const includeSnapshot = Boolean(args.includeSnapshot);
+  const includeObserve = Boolean(args.includeObserve);
+  const includeScreenshot = Boolean(args.includeScreenshot);
+  const includeTraceEvents = Boolean(args.includeTraceEvents);
+  const manifest = {
+    createdAt,
+    bridgeUrl: BRIDGE_URL,
+    files: [],
+    privacy: {
+      mode: 'redacted',
+      note: 'Bundle redacts URL/title/text/value fields and excludes cookie values, storage values, request bodies, credentialed requests, page artifacts, and full trace events unless explicitly requested.',
+      pageArtifacts: {
+        snapshot: includeSnapshot ? 'included' : 'omitted-by-default',
+        observe: includeObserve ? 'included' : 'omitted-by-default',
+        screenshot: includeScreenshot ? 'included' : 'omitted-by-default',
+      },
+      traceEvents: includeTraceEvents ? 'included' : 'summarized-by-default',
+    },
+  };
+
+  const addJson = async (name, value, options = {}) => {
+    const output = options.redact === false ? value : redactDebugBundleValue(value);
+    await writeJsonFile(path.join(outputDir, name), output);
+    manifest.files.push(name);
+    return output;
+  };
+
+  const summary = await sessionSummary();
+  await addJson('session-summary.json', redactDebugBundleValue(summary));
+  await addJson('health.json', redactDebugBundleValue(summary.health));
+  if (includeSnapshot) {
+    await addJson('snapshot.json', await bridgeCommand('snapshot', { ...target, maxChars: 50_000 }, 30_000).catch((error) => ({
+      ok: false,
+      code: error.code || null,
+      error: String(error?.message || error),
+    })), { redact: false });
+  }
+  if (includeObserve) {
+    await addJson('observe.json', await bridgeCommand('observe', { ...target, limit: 100 }, 30_000).catch((error) => ({
+      ok: false,
+      code: error.code || null,
+      error: String(error?.message || error),
+    })), { redact: false });
+  }
+  const trace = await bridgeCommand('traceSummary', target, 30_000).catch((error) => ({
+    ok: false,
+    code: error.code || null,
+    error: String(error?.message || error),
+  }));
+  await addJson('trace-summary.json', trace);
+  if (includeTraceEvents) {
+    const traceEvents = await bridgeCommand('traceEvents', { ...target, limit: 200 }, 30_000).catch((error) => ({
+      ok: false,
+      code: error.code || null,
+      error: String(error?.message || error),
+    }));
+    await addJson('trace-events.json', traceEvents, { redact: false });
+  }
+
+  if (includeScreenshot) {
+    const screenshot = await bridgeCommand('screenshot', target, 30_000).catch((error) => ({
+      ok: false,
+      code: error.code || null,
+      error: String(error?.message || error),
+    }));
+    if (screenshot?.dataUrl) {
+      await writeDataUrlFile(path.join(outputDir, 'screenshot.png'), screenshot.dataUrl, 'data:image\\/png;base64');
+      manifest.files.push('screenshot.png');
+      await addJson('screenshot.json', { ...screenshot, dataUrl: undefined });
+    } else {
+      await addJson('screenshot.json', screenshot);
+    }
+  }
+
+  await addJson('manifest.json', manifest);
+  return {
+    ok: true,
+    out: outputDir,
+    files: manifest.files,
+    createdAt,
+  };
+}
+
 const server = new McpServer({
   name: 'codex-chrome-bridge',
-  version: '0.4.0',
+  version: BRIDGE_VERSION,
 });
 
 server.tool(
@@ -97,9 +295,11 @@ server.tool(
 
 server.tool(
   'chrome_bridge_reload_extension',
-  'Ask the loaded Codex Chrome Bridge extension to reload itself after local extension file edits.',
-  {},
-  async () => textResult(await bridgeCommand('reloadExtension', {}, 5_000)),
+  'Ask the loaded Codex Chrome Bridge extension to reload itself after local extension file edits. Requires confirmed=true because it interrupts active bridge sessions.',
+  {
+    confirmed: z.boolean(),
+  },
+  async (args) => textResult(await bridgeCommand('reloadExtension', args, 5_000)),
 );
 
 server.tool(
@@ -120,18 +320,20 @@ server.tool(
 
 server.tool(
   'chrome_bridge_windows',
-  'List Chrome windows with grouped tabs. By default this is scoped to windows containing the Codex Bridge tab group; pass includeAll only for explicitly approved diagnostics.',
+  'List Chrome windows with grouped tabs. By default this is scoped to windows containing the Codex Bridge tab group; includeAll requires confirmed=true for explicitly approved diagnostics.',
   {
     includeAll: z.boolean().optional(),
+    confirmed: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('windows', args)),
 );
 
 server.tool(
   'chrome_bridge_tabs',
-  'List Chrome tabs. By default this is scoped to the Codex Bridge tab group; pass includeAll only for explicitly approved diagnostics.',
+  'List Chrome tabs. By default this is scoped to the Codex Bridge tab group; includeAll requires confirmed=true for explicitly approved diagnostics.',
   {
     includeAll: z.boolean().optional(),
+    confirmed: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('tabs', args)),
 );
@@ -144,20 +346,61 @@ server.tool(
 );
 
 server.tool(
+  'chrome_bridge_workspace',
+  'Show the active Chrome Bridge workspace defaults, policy mode, scoped group counts, and optionally scoped tabs.',
+  {
+    includeTabs: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('workspace', args, 10_000)),
+);
+
+server.tool(
+  'chrome_bridge_set_workspace',
+  'Set local workspace defaults for group title/color and policy mode. Requires confirmed=true; policyMode supports scoped or strict.',
+  {
+    name: z.string().optional(),
+    groupTitle: z.string().optional(),
+    groupColor: z.string().optional(),
+    policyMode: z.enum(['scoped', 'strict']).optional(),
+    confirmed: z.boolean(),
+  },
+  async (args) => textResult(await bridgeCommand('setWorkspace', args, 10_000)),
+);
+
+server.tool(
+  'chrome_bridge_clear_workspace',
+  'Clear local workspace defaults and return to the default Codex Bridge group settings. Requires confirmed=true.',
+  {
+    confirmed: z.boolean(),
+  },
+  async (args) => textResult(await bridgeCommand('clearWorkspace', args, 10_000)),
+);
+
+server.tool(
   'chrome_bridge_ensure_tab',
   'Create or return the dedicated non-focused Codex Chrome tab, optionally navigating it to a URL.',
   {
-    url: z.string().url().optional(),
+    url: navigationUrlSchema.optional(),
     active: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('ensureTab', args, 30_000)),
 );
 
 server.tool(
+  'chrome_bridge_adopt_tab',
+  'Adopt the current active tab, or a specified tabId, into the Codex Bridge group. Requires confirmed=true because it changes tab grouping in the user browser.',
+  {
+    tabId: z.number().optional(),
+    confirmed: z.boolean(),
+  },
+  async (args) => textResult(await bridgeCommand('adoptTab', args, 30_000)),
+);
+
+server.tool(
   'chrome_bridge_open',
   'Open a URL in the Codex Bridge Chrome tab group. By default this reuses the dedicated tab; pass newTab to create another grouped tab.',
   {
-    url: z.string().url(),
+    url: navigationUrlSchema,
     tabId: z.number().optional(),
     active: z.boolean().optional(),
     newTab: z.boolean().optional(),
@@ -245,6 +488,50 @@ server.tool(
 );
 
 server.tool(
+  'chrome_bridge_observe',
+  'Read a ranked, bounded list of actionable elements from the selected tab without clicking or mutating page state.',
+  {
+    tabId: z.number().optional(),
+    limit: z.number().min(1).max(300).optional(),
+    maxTextChars: z.number().min(20).max(1000).optional(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('observe', args, 30_000)),
+);
+
+server.tool(
+  'chrome_bridge_find_elements',
+  'Read ranked actionable elements filtered by role, text, nearby text, placeholder, href, action kind, or risk hint.',
+  {
+    tabId: z.number().optional(),
+    role: z.string().optional(),
+    text: z.string().optional(),
+    nearText: z.string().optional(),
+    placeholder: z.string().optional(),
+    href: z.string().optional(),
+    actionKind: z.string().optional(),
+    risk: z.string().optional(),
+    limit: z.number().min(1).max(300).optional(),
+    maxTextChars: z.number().min(20).max(1000).optional(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('findElements', args, 30_000)),
+);
+
+server.tool(
+  'chrome_bridge_extract',
+  'Extract structured JSON from the selected tab: tables, forms, lists, and key-value blocks.',
+  {
+    tabId: z.number().optional(),
+    kind: z.enum(['all', 'tables', 'forms', 'lists', 'keyValues']).optional(),
+    maxItems: z.number().min(1).max(500).optional(),
+    maxTextChars: z.number().min(50).max(2000).optional(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('extractPage', args, 30_000)),
+);
+
+server.tool(
   'chrome_bridge_snapshot',
   'Read a structured snapshot from a Chrome tab: title, URL, headings, visible controls, tables, JSON-LD, and bounded visible text.',
   {
@@ -298,6 +585,36 @@ server.tool(
     }, args.fullPage || args.selector ? 60_000 : 30_000);
     const match = /^data:image\/png;base64,(.+)$/.exec(result.dataUrl || '');
     if (!match) throw new Error('Extension returned an invalid PNG data URL');
+    const outputPath = path.resolve(args.out);
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    await fs.writeFile(outputPath, Buffer.from(match[1], 'base64'));
+    return textResult({ ...result, dataUrl: undefined, out: outputPath });
+  },
+);
+
+server.tool(
+  'chrome_bridge_pdf',
+  'Export the selected Chrome tab as a PDF and save it to a local path.',
+  {
+    out: z.string(),
+    tabId: z.number().optional(),
+    landscape: z.boolean().optional(),
+    printBackground: z.boolean().optional(),
+    pageRanges: z.string().optional(),
+    scale: z.number().min(0.1).max(2).optional(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => {
+    const result = await bridgeCommand('printPdf', {
+      tabId: args.tabId,
+      landscape: args.landscape,
+      printBackground: args.printBackground,
+      pageRanges: args.pageRanges,
+      scale: args.scale,
+      allowExternal: args.allowExternal,
+    }, 60_000);
+    const match = /^data:application\/pdf;base64,(.+)$/.exec(result.dataUrl || '');
+    if (!match) throw new Error('Extension returned an invalid PDF data URL');
     const outputPath = path.resolve(args.out);
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, Buffer.from(match[1], 'base64'));
@@ -395,6 +712,60 @@ server.tool(
 );
 
 server.tool(
+  'chrome_bridge_select_options',
+  'Read options from a select element without changing page state.',
+  {
+    selector: z.string(),
+    tabId: z.number().optional(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('listSelectOptions', args, 30_000)),
+);
+
+server.tool(
+  'chrome_bridge_fill_form',
+  'Preview or apply field values to form controls. Defaults to dryRun; applying values requires confirmed=true.',
+  {
+    fields: z.record(z.union([z.string(), z.number(), z.boolean()])),
+    dryRun: z.boolean().optional(),
+    tabId: z.number().optional(),
+    confirmed: z.boolean().optional(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('fillForm', {
+    ...args,
+    dryRun: args.dryRun !== false,
+  }, 30_000)),
+);
+
+server.tool(
+  'chrome_bridge_handle_dialog',
+  'Accept or dismiss the currently open JavaScript dialog in the selected tab. Requires confirmed=true.',
+  {
+    tabId: z.number().optional(),
+    accept: z.boolean().optional(),
+    promptText: z.string().optional(),
+    confirmed: z.boolean(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('handleDialog', args, 30_000)),
+);
+
+server.tool(
+  'chrome_bridge_upload_file',
+  'Set local file paths on a file input element via Chrome Debugger. Requires confirmed=true.',
+  {
+    selector: z.string(),
+    file: z.string().optional(),
+    files: z.array(z.string()).optional(),
+    tabId: z.number().optional(),
+    confirmed: z.boolean(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('uploadFile', args, 60_000)),
+);
+
+server.tool(
   'chrome_bridge_scroll',
   'Scroll a Chrome tab. This is a local navigation action and should be used only on the selected work tab.',
   {
@@ -419,6 +790,16 @@ server.tool(
     allowExternal: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('traceStart', args, 30_000)),
+);
+
+server.tool(
+  'chrome_bridge_trace_summary',
+  'Read trace session metadata without returning console or network event logs.',
+  {
+    tabId: z.number().optional(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await bridgeCommand('traceSummary', args, 30_000)),
 );
 
 server.tool(
@@ -471,7 +852,7 @@ server.tool(
   'chrome_bridge_cookies_list',
   'List Chrome cookies metadata for a URL/domain. Requires confirmed=true; cookie values require includeValues and confirmSensitive.',
   {
-    url: z.string().url().optional(),
+    url: webUrlSchema.optional(),
     domain: z.string().optional(),
     name: z.string().optional(),
     limit: z.number().min(1).max(500).optional(),
@@ -500,8 +881,8 @@ server.tool(
   'chrome_bridge_request',
   'Run a bounded fetch from the extension context. Requires confirmed=true; credentials=include requires confirmSensitive.',
   {
-    url: z.string().url(),
-    method: z.string().optional(),
+    url: webUrlSchema,
+    method: z.enum(HTTP_METHODS).optional(),
     headers: z.record(z.string()).optional(),
     body: z.string().optional(),
     credentials: z.enum(['omit', 'include']).optional(),
@@ -529,6 +910,35 @@ server.tool(
     timeoutMs: z.number().min(5000).max(1800000).optional(),
   },
   async (args) => textResult(await bridgeCommand('askUser', args, args.timeoutMs ? args.timeoutMs + 5_000 : 305_000)),
+);
+
+server.tool(
+  'chrome_bridge_session_summary',
+  'Return a safe local session summary: bridge health, extension state, scoped group status, and version mismatch signals.',
+  {},
+  async () => textResult(await sessionSummary()),
+);
+
+server.tool(
+  'chrome_bridge_debug_bundle',
+  'Write a redacted local debug bundle with health, session summary, and trace summary metadata. Page artifacts and full trace events require explicit opt-in flags.',
+  {
+    out: z.string(),
+    tabId: z.number().optional(),
+    allowExternal: z.boolean().optional(),
+    includeSnapshot: z.boolean().optional(),
+    includeObserve: z.boolean().optional(),
+    includeScreenshot: z.boolean().optional(),
+    includeTraceEvents: z.boolean().optional(),
+  },
+  async (args) => textResult(await debugBundle(args)),
+);
+
+server.tool(
+  'chrome_bridge_command_catalog',
+  'Return local Chrome Bridge command metadata from the shared registry, including actions, risk tiers, default timeouts, CLI aliases, MCP tools, and confirmation requirements.',
+  {},
+  async () => textResult(commandCatalog()),
 );
 
 await server.connect(new StdioServerTransport());

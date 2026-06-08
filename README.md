@@ -35,12 +35,19 @@ Codex Chrome Bridge is for logged-in, human-owned Chrome workflows:
 
 - Real Chrome profile: uses the user's existing cookies, extensions, and logins.
 - Scoped by default: keeps work inside a `Codex Bridge` Chrome tab group.
+- Workspace policy: local named workspace defaults expose the active group title/color and support scoped or strict outside-tab policy.
+- Existing-tab adoption: can pull an already-open Chrome tab into the scoped group.
 - CLI and MCP: usable from a terminal or any MCP-capable client.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
+- Agent discovery: ranked read-only `observe` output for actionable elements and selectors.
+- Structured extraction: read tables, form structure, lists, and key-value blocks as JSON without returning current form values.
+- Export helpers: save screenshots and print the current tab to PDF locally.
 - Controlled interactions: clicks, typing, keyboard, select boxes, hover, and scroll.
+- Workflow helpers: privacy-preserving select option discovery and form fill previews, dialog handling, and file input uploads.
 - Debugging tools: bounded console/network trace through Chrome Debugger/CDP.
 - Browser data tools: guarded history, bookmarks, cookies, page storage, and extension-context fetch.
 - Human-in-the-loop: local prompt tab for user choices, manual confirmations, and CAPTCHA coordination.
+- Policy-aware diagnostics: session summaries and redacted debug bundles include workspace policy state; debug bundles omit page artifacts and full trace events unless explicitly requested.
 - Local verification: static `self-test` and real-browser `runtime-smoke`.
 
 ## Safety Model
@@ -50,6 +57,8 @@ Chrome Bridge can see private browser data because it runs in the user's real Ch
 The default posture is intentionally conservative:
 
 - Commands are scoped to the `Codex Bridge` tab group unless explicitly overridden.
+- Named workspace defaults can change the local group title/color. `scoped` requires explicit override for outside tabs; `strict` blocks outside tabs entirely.
+- Whole-browser inventory reads such as `tabs --all`, `windows --all`, and MCP `includeAll: true` require explicit confirmation.
 - Mutating actions require `confirmed=true` or `--confirm`.
 - Cookie values, whole-cookie-jar access, storage values, and credentialed requests require `confirmSensitive=true` or `--confirm-sensitive`.
 - The bridge server binds to `127.0.0.1`.
@@ -87,12 +96,27 @@ The smoke test opens a temporary `127.0.0.1` fixture tab inside the `Codex Bridg
 
 ```bash
 node ./bin/chrome-bridge.mjs ensure-tab
+node ./bin/chrome-bridge.mjs adopt-tab --confirm
 node ./bin/chrome-bridge.mjs open "https://example.com"
 node ./bin/chrome-bridge.mjs windows
 node ./bin/chrome-bridge.mjs tabs
+node ./bin/chrome-bridge.mjs workspace --tabs
+node ./bin/chrome-bridge.mjs command-catalog --markdown
+node ./bin/chrome-bridge.mjs observe --limit 30
+node ./bin/chrome-bridge.mjs find-elements --text "Submit"
+node ./bin/chrome-bridge.mjs find-elements --near-text "Billing address" --action type
+node ./bin/chrome-bridge.mjs extract --kind forms
 node ./bin/chrome-bridge.mjs snapshot --max-chars 60000
 node ./bin/chrome-bridge.mjs screenshot --out /tmp/chrome-bridge.png
+node ./bin/chrome-bridge.mjs pdf --out /tmp/chrome-bridge.pdf
 node ./bin/chrome-bridge.mjs text --max-chars 60000
+```
+
+Workspace defaults:
+
+```bash
+node ./bin/chrome-bridge.mjs set-workspace --name "analytics" --group-title "Codex Analytics" --group-color blue --policy-mode strict --confirm
+node ./bin/chrome-bridge.mjs clear-workspace --confirm
 ```
 
 Controlled interaction:
@@ -133,13 +157,23 @@ Useful MCP tools:
 - `chrome_bridge_health`
 - `chrome_bridge_windows`
 - `chrome_bridge_tabs`
+- `chrome_bridge_workspace`
+- `chrome_bridge_adopt_tab`
 - `chrome_bridge_open`
+- `chrome_bridge_observe`
+- `chrome_bridge_find_elements`
+- `chrome_bridge_extract`
 - `chrome_bridge_snapshot`
 - `chrome_bridge_screenshot`
+- `chrome_bridge_pdf`
 - `chrome_bridge_trace_start`
+- `chrome_bridge_trace_summary`
 - `chrome_bridge_cookies_list`
 - `chrome_bridge_storage_snapshot`
 - `chrome_bridge_ask_user`
+- `chrome_bridge_session_summary`
+- `chrome_bridge_debug_bundle`
+- `chrome_bridge_command_catalog`
 - `chrome_bridge_runtime_smoke`
 
 Full reference: [MCP](docs/MCP.md).
@@ -167,6 +201,7 @@ bin/        CLI entrypoint
 extension/  Chrome Manifest V3 extension
 mcp/        MCP stdio server
 server/     local HTTP/WebSocket bridge server
+shared/     command registry and payload contract metadata
 scripts/    macOS LaunchAgent helpers
 docs/       user and developer docs
 codex/      optional Codex skill handoff
@@ -179,21 +214,28 @@ codex/      optional Codex skill handoff
 | Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | CLI reference | [docs/CLI.md](docs/CLI.md) |
 | MCP reference | [docs/MCP.md](docs/MCP.md) |
+| Generated command catalog | [docs/COMMAND-CATALOG.md](docs/COMMAND-CATALOG.md) |
 | Chrome extension setup | [docs/EXTENSION.md](docs/EXTENSION.md) |
 | Safety and privacy | [docs/SAFETY.md](docs/SAFETY.md) |
+| Competitive analysis and roadmap | [docs/COMPETITIVE-ROADMAP.md](docs/COMPETITIVE-ROADMAP.md) |
 | Publishing checklist | [docs/PUBLISHING.md](docs/PUBLISHING.md) |
 | AI-readable project summary | [llms.txt](llms.txt) |
 
 ## Verification
 
 ```bash
+npm run docs:commands
 npm run check
+npm run check:registry
+npm run check:docs
+npm run check:bridge-contract
+npm run check:privacy
 npm run check:audit
 npm run check:pack
 npm run runtime-smoke
 ```
 
-`runtime-smoke` requires Chrome, the unpacked extension, and the bridge server. It only uses a local fixture page.
+`docs:commands` regenerates the checked-in command catalog, managed CLI usage blocks, and managed MCP tool-list block from the shared registry. `check:registry` verifies command registry invariants, direct payload validation samples, complete CLI/MCP catalog coverage, debugger-backed action serialization, package/manifest/registry parity, and generated command catalog drift. `check:docs` verifies the CLI reference mirrors every registry-owned usage signature, the CLI generated blocks stay grouped correctly, the MCP reference keeps its generated tool-list block in sync, and every registry-defined MCP tool is documented. `check:bridge-contract` starts an isolated local test server, does not touch Chrome, and verifies bridge boundary/error behavior including malformed JSON, oversized JSON handling, timeout handling, stale extension fail-closed behavior, and shutdown cleanup. `check:privacy` scans repository files for local home paths, private-key headers, common provider tokens, and obvious secret assignments. `check:pack` parses the dry-run npm tarball and verifies required runtime, extension, shared registry, generated docs, and verification files are included. `runtime-smoke` requires Chrome, the unpacked extension, and the bridge server. It only uses a local fixture page.
 
 ## Contributing
 
