@@ -65,6 +65,7 @@ const [
   workspaceTabsText,
   packageContentsCheckerText,
   privacyScannerText,
+  launchAgentInstallerText,
   checkWorkflowText,
   readmeText,
   publishingText,
@@ -103,6 +104,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/workspace-tabs.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'scripts/install-launch-agent.mjs'), 'utf8'),
   readRepoOnlyFile('.github/workflows/check.yml'),
   fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/PUBLISHING.md'), 'utf8'),
@@ -269,6 +271,17 @@ check(privacyScannerText.includes('LOCAL_HOME_PATTERN'), 'privacy scanner must c
 check(privacyScannerText.includes('private-key'), 'privacy scanner must check private-key headers');
 check(privacyScannerText.includes('secret-assignment'), 'privacy scanner must check obvious secret assignments');
 check(!privacyScannerText.includes('package-lock.json'), 'privacy scanner must include package-lock.json in leak checks');
+check(launchAgentInstallerText.includes('function plistString'), 'LaunchAgent installer must escape XML plist string values');
+for (const requiredEscapedValue of [
+  'plistString(label)',
+  'plistString(nodePath)',
+  "plistString(path.join(rootDir, 'bin/chrome-bridge.mjs'))",
+  'plistString(rootDir)',
+  "plistString(path.join(logsDir, 'stdout.log'))",
+  "plistString(path.join(logsDir, 'stderr.log'))",
+]) {
+  check(launchAgentInstallerText.includes(requiredEscapedValue), `LaunchAgent installer must XML-escape plist value: ${requiredEscapedValue}`);
+}
 check(CLI_USAGE_LINES.length === CLI_COMMANDS.length, 'CLI usage line count must match CLI command count');
 check(
   CLI_USAGE_GROUPS.reduce((sum, group) => sum + group.commands.length, 0) === CLI_COMMANDS.length,
