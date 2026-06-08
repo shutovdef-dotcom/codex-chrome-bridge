@@ -11,6 +11,7 @@ npm run check
 npm run check:registry
 npm run check:docs
 npm run check:bridge-contract
+npm run check:runtime-smoke-plan
 npm run check:privacy
 npm run check:audit
 npm run check:pack
@@ -29,6 +30,8 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 `runtime-smoke` opens temporary local fixture tabs and covers scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, screenshots, PDF export, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata. Its JSON output includes a counted `coverage` summary, and top-level `ok` is true only when every required coverage item passed.
 
 `check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
+
+`check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL and fails if `--coverage-plan` starts contacting the live bridge.
 
 `check:registry` also verifies that the GitHub Check workflow keeps the Node.js 20/22/24 matrix and runs `npm ci`, `npm run check`, `npm run check:audit`, and `npm run check:pack` without adding live `runtime-smoke` to CI.
 
