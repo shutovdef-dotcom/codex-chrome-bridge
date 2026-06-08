@@ -767,6 +767,8 @@ check(mcpDocsText.includes('chrome_bridge_doctor') && mcpDocsText.includes('live
 check(mcpText.includes('TAB_GROUP_COLORS') && mcpText.includes('groupColor: z.enum(TAB_GROUP_COLORS).optional()'), 'MCP workspace groupColor schema must use the shared tab group color enum');
 check(mcpText.includes('const chromeIdSchema = z.number().int().nonnegative()'), 'MCP tools must define a non-negative integer Chrome id schema');
 check(!mcpText.includes('tabId: z.number().optional()'), 'MCP tools must not accept unconstrained numeric tabId values');
+check(mcpText.includes('const selectIndexSchema = z.number().int().nonnegative()'), 'MCP select tool must define a non-negative integer option index schema');
+check(!mcpToolBlock('chrome_bridge_select').includes('index: z.number().optional()'), 'MCP select tool must not accept unconstrained numeric option indexes');
 for (const toolName of [
   'chrome_bridge_windows',
   'chrome_bridge_tabs',

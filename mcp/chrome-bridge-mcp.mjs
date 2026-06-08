@@ -40,6 +40,7 @@ const webUrlSchema = z.string().refine(
 );
 
 const chromeIdSchema = z.number().int().nonnegative();
+const selectIndexSchema = z.number().int().nonnegative();
 
 async function bridgeFetch(pathname, options = {}) {
   const response = await fetch(`${BRIDGE_URL}${pathname}`, options);
@@ -815,7 +816,7 @@ server.tool(
     selector: z.string(),
     value: z.string().optional(),
     label: z.string().optional(),
-    index: z.number().optional(),
+    index: selectIndexSchema.optional(),
     tabId: chromeIdSchema.optional(),
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
