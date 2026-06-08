@@ -613,6 +613,10 @@ check(mcpRuntimeSmokeBlock.includes('cliExitError'), 'MCP runtime smoke helper m
 check(mcpText.includes('verification.status="not-run"') && mcpText.includes('verification.status="passed"'), 'MCP runtime smoke tool description must document verification status semantics');
 check(mcpDocsText.includes('verification.status: "not-run"') && mcpDocsText.includes('verification.status: "passed"'), 'MCP docs must document runtime smoke verification status semantics');
 check(mcpText.includes('z.enum(HTTP_METHODS)'), 'MCP request method schema must use the shared HTTP method allowlist');
+check(functionBlock(cliText, 'summaryRecommendations').includes('health?.bridge?.version'), 'CLI session summary recommendations must inspect bridge server version');
+check(functionBlock(cliText, 'summaryRecommendations').includes('Restart the local Chrome Bridge server'), 'CLI session summary recommendations must suggest restarting a stale bridge server');
+check(functionBlock(mcpText, 'summaryRecommendations').includes('health?.bridge?.version'), 'MCP session summary recommendations must inspect bridge server version');
+check(functionBlock(mcpText, 'summaryRecommendations').includes('Restart the local Chrome Bridge server'), 'MCP session summary recommendations must suggest restarting a stale bridge server');
 check(cliText.includes('includeSnapshot') && cliText.includes('includeScreenshot'), 'CLI debug bundle page artifacts must be explicit opt-in');
 check(mcpText.includes('includeSnapshot: z.boolean().optional()') && mcpText.includes('includeScreenshot: z.boolean().optional()'), 'MCP debug bundle page artifacts must be explicit opt-in');
 check(cliText.includes('function redactDebugBundleValue(value)') && mcpText.includes('function redactDebugBundleValue(value)'), 'debug bundle JSON artifacts must pass through a redaction helper');
