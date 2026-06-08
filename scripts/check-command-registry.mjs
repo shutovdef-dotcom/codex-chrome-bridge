@@ -718,6 +718,7 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence
 check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('zeroIdChecks'), 'tab-group persistence checker must verify zero-valued Chrome tab/group IDs');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('freshSessionGroupChecks'), 'tab-group persistence checker must verify fresh session groups stay ephemeral before close');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-roadmap-coverage.mjs'), 'utf8').catch(() => '')).includes('check-tab-group-persistence.mjs'), 'roadmap coverage must include the tab-group persistence behavior checker');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-roadmap-coverage.mjs'), 'utf8').catch(() => '')).includes('deferredLiveVerification'), 'roadmap coverage output must expose a machine-readable deferred live verification gate');
 check(readmeText.includes('fake saved closed group chips'), 'README must document fake saved closed group chip prevention coverage');
 check(publishingText.includes('fake saved closed group chips'), 'publishing docs must document fake saved closed group chip prevention coverage');
 check(readmeText.includes('listener event callbacks') && readmeText.includes('future managed groups'), 'README must document listener event callback coverage for future managed groups');
