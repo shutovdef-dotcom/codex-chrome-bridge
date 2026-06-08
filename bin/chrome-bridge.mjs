@@ -90,9 +90,18 @@ function printJson(value) {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
 
+function parseChromeIdArg(value, name) {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  return parsed;
+}
+
 function targetPayload(args) {
   return {
-    tabId: args.tab ? Number(args.tab) : undefined,
+    tabId: parseChromeIdArg(args.tab, '--tab'),
     allowExternal: Boolean(args['allow-external']),
   };
 }
@@ -1880,7 +1889,7 @@ tool_timeout_sec = 60
   if (cmd === 'adopt-tab') {
     if (!args.confirm) throw new Error('adopt-tab requires --confirm');
     printJson(await command('adoptTab', {
-      tabId: args.tab ? Number(args.tab) : undefined,
+      tabId: parseChromeIdArg(args.tab, '--tab'),
       ...groupScopePayload(args),
       ...confirmationPayload(args),
     }, 30_000));
