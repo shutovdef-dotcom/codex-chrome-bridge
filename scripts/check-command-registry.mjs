@@ -47,6 +47,7 @@ const [
   tabCleanupText,
   tabInfoText,
   tabLoadingText,
+  traceActionsText,
   userPromptsText,
   workspaceTabsText,
   packageContentsCheckerText,
@@ -74,6 +75,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-info.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/tab-loading.js'), 'utf8').catch(() => ''),
+  fs.readFile(path.join(rootDir, 'extension/trace-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/user-prompts.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/workspace-tabs.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
@@ -542,7 +544,9 @@ const debuggerActionFunctions = {
 for (const action of DEBUGGER_SERIALIZED_ACTIONS) {
   const source = ['screenshot', 'printPdf'].includes(action)
     ? pageArtifactsText
-    : (['clickAt', 'hover', 'type', 'press', 'handleDialog', 'uploadFile'].includes(action) ? pageInteractionsText : backgroundText);
+    : (['clickAt', 'hover', 'type', 'press', 'handleDialog', 'uploadFile'].includes(action)
+      ? pageInteractionsText
+      : (['traceStart', 'traceStop'].includes(action) ? traceActionsText : backgroundText));
   const block = functionBlock(source, debuggerActionFunctions[action]);
   check(block, `${action} debugger action function is missing`);
   if (action === 'traceStart') {
@@ -622,6 +626,16 @@ check(!backgroundText.includes('function waitForTabComplete'), 'extension backgr
 check(!backgroundText.includes('function delay'), 'extension background must not own tab loading delay internals');
 check(functionBlock(tabLoadingText, 'waitForTabComplete').includes("tab.status === 'complete'"), 'extension tab loading module must wait for complete tab status');
 check(functionBlock(tabLoadingText, 'waitForTabComplete').includes('chrome.tabs.get'), 'extension tab loading module must poll Chrome tab state');
+check(backgroundText.includes("from './trace-actions.js';"), 'extension background must import trace actions from extension/trace-actions.js');
+for (const helperName of ['traceStart', 'traceEvents', 'traceSummaryCommand', 'traceStop']) {
+  check(!functionBlock(backgroundText, helperName), `extension background must not own trace action internals: ${helperName}`);
+}
+for (const helperName of ['traceStart', 'traceEvents', 'traceSummaryCommand', 'traceStop']) {
+  check(traceActionsText.includes(`export async function ${helperName}`), `extension trace actions module must export ${helperName}`);
+}
+check(functionBlock(traceActionsText, 'traceStart').includes("requireConfirmed(payload, 'traceStart')"), 'extension traceStart must require confirmation');
+check(functionBlock(traceActionsText, 'traceStart').includes('startTraceForTab(tab, payload)'), 'extension traceStart must call debugger trace start helper');
+check(functionBlock(traceActionsText, 'traceStop').includes('stopTraceForTab(tab, payload)'), 'extension traceStop must call debugger trace stop helper');
 check(backgroundText.includes("from './user-prompts.js';"), 'extension background must import user prompt lifecycle helpers from extension/user-prompts.js');
 check(!backgroundText.includes('pendingUserPrompts'), 'extension background must not own user prompt state');
 check(!backgroundText.includes('function normalizePromptChoices'), 'extension background must not own user prompt choice normalization');

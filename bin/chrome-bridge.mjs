@@ -296,6 +296,7 @@ async function selfTest() {
     tabCleanup: path.join(rootDir, 'extension/tab-cleanup.js'),
     tabInfo: path.join(rootDir, 'extension/tab-info.js'),
     tabLoading: path.join(rootDir, 'extension/tab-loading.js'),
+    traceActions: path.join(rootDir, 'extension/trace-actions.js'),
     userPrompts: path.join(rootDir, 'extension/user-prompts.js'),
     workspacePolicy: path.join(rootDir, 'extension/workspace-policy.js'),
     workspaceTabs: path.join(rootDir, 'extension/workspace-tabs.js'),
@@ -333,6 +334,7 @@ async function selfTest() {
     tabCleanup,
     tabInfo,
     tabLoading,
+    traceActions,
     userPrompts,
     workspacePolicy,
     workspaceTabs,
@@ -364,6 +366,7 @@ async function selfTest() {
     fs.readFile(paths.tabCleanup, 'utf8'),
     fs.readFile(paths.tabInfo, 'utf8'),
     fs.readFile(paths.tabLoading, 'utf8'),
+    fs.readFile(paths.traceActions, 'utf8'),
     fs.readFile(paths.userPrompts, 'utf8'),
     fs.readFile(paths.workspacePolicy, 'utf8'),
     fs.readFile(paths.workspaceTabs, 'utf8'),
@@ -400,6 +403,7 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.tabCleanup]),
     tryExec(process.execPath, ['--check', paths.tabInfo]),
     tryExec(process.execPath, ['--check', paths.tabLoading]),
+    tryExec(process.execPath, ['--check', paths.traceActions]),
     tryExec(process.execPath, ['--check', paths.userPrompts]),
     tryExec(process.execPath, ['--check', paths.workspacePolicy]),
     tryExec(process.execPath, ['--check', paths.workspaceTabs]),
@@ -457,6 +461,8 @@ async function selfTest() {
     { label: 'extension module', item: 'tab info exports', ok: tabInfo.includes('export function tabInfo') && tabInfo.includes('export function groupInfo') },
     { label: 'extension module', item: 'tab loading imports', ok: navigationActions.includes("from './tab-loading.js'") },
     { label: 'extension module', item: 'tab loading exports', ok: tabLoading.includes('export async function waitForTabComplete') },
+    { label: 'extension module', item: 'trace action imports', ok: background.includes("from './trace-actions.js'") },
+    { label: 'extension module', item: 'trace action exports', ok: traceActions.includes('export async function traceStart') && traceActions.includes('export async function traceStop') },
     { label: 'extension module', item: 'user prompt imports', ok: background.includes("from './user-prompts.js'") },
     { label: 'extension module', item: 'user prompt exports', ok: userPrompts.includes('export async function askUser') && userPrompts.includes('export function completeUserPrompt') },
     { label: 'extension module', item: 'workspace policy imports', ok: navigationActions.includes("from './workspace-policy.js'") },
@@ -611,7 +617,9 @@ async function selfTest() {
         && debuggerSession.includes('const debuggerLocks = new Map()')
         && debuggerSession.includes('async function withTabLock')
         && debuggerSession.includes('export async function withDebugger')
-        && debuggerSession.includes('return withTabLock(tabId'),
+        && debuggerSession.includes('return withTabLock(tabId')
+        && traceActions.includes('startTraceForTab')
+        && traceActions.includes('stopTraceForTab'),
     },
     { label: 'trace privacy', item: 'no response body capture', ok: !background.includes('Network.getResponseBody') },
     {
