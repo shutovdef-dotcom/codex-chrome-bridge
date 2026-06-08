@@ -806,9 +806,17 @@ export function commandCatalog() {
     version: BRIDGE_VERSION,
     commands: COMMAND_CATALOG,
     localCommands: LOCAL_COMMAND_CATALOG,
+    cliCommands: CLI_COMMANDS,
+    mcpTools: MCP_TOOLS,
     cliUsageLines: CLI_USAGE_LINES,
     cliUsageGroups: CLI_USAGE_GROUPS,
     debuggerSerializedActions: DEBUGGER_SERIALIZED_ACTIONS,
+    counts: {
+      actions: EXTENSION_ACTIONS.length,
+      localCommands: LOCAL_COMMAND_CATALOG.length,
+      cliCommands: CLI_COMMANDS.length,
+      mcpTools: MCP_TOOLS.length,
+    },
   };
 }
 

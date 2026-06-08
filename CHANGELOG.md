@@ -7,6 +7,7 @@
 - Added `check:mcp-runtime-smoke` to exercise the MCP runtime-smoke tool over stdio against fake bridge URLs, proving coverage-plan and stale-extension outputs stay structured without touching Chrome.
 - Added `chrome_bridge_doctor` and `check:mcp-local-tools` so MCP clients can inspect offline setup diagnostics while proving live checks stay opt-in.
 - Added MCP `chrome_bridge_extension_path` and `chrome_bridge_codex_config` setup tools so MCP clients can retrieve local install/config hints without touching Chrome.
+- Expanded `command-catalog` / `chrome_bridge_command_catalog` JSON with top-level CLI/MCP surface lists and counts, and made the MCP local-tools check verify catalog parity.
 - Split confirmed extension runtime actions into `extension/runtime-actions.js`.
 - Split trace command wrappers into `extension/trace-actions.js`.
 - Split page interaction, trusted input, dialog, and file-upload actions into `extension/page-interactions.js`.

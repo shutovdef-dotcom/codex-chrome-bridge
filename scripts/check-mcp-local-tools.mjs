@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { MCP_TOOLS } from '../shared/command-registry.mjs';
+import { CLI_COMMANDS, MCP_TOOLS } from '../shared/command-registry.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mcpPath = path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs');
@@ -101,6 +101,19 @@ await withMcpClient(async (client) => {
     arguments: {},
   }), 'MCP command catalog');
 
+  check(catalogParsed?.cliCommands?.length === CLI_COMMANDS.length, 'MCP command catalog must expose every registry CLI command');
+  check(catalogParsed?.mcpTools?.length === MCP_TOOLS.length, 'MCP command catalog must expose every registry MCP tool');
+  check(catalogParsed?.counts?.cliCommands === CLI_COMMANDS.length, 'MCP command catalog must expose registry CLI command count');
+  check(catalogParsed?.counts?.mcpTools === MCP_TOOLS.length, 'MCP command catalog must expose registry MCP tool count');
+  const catalogCommandNames = new Set(catalogParsed?.cliCommands || []);
+  const catalogToolNames = new Set(catalogParsed?.mcpTools || []);
+  for (const command of CLI_COMMANDS) {
+    check(catalogCommandNames.has(command), `MCP command catalog is missing registry CLI command: ${command}`);
+  }
+  for (const tool of MCP_TOOLS) {
+    check(catalogToolNames.has(tool), `MCP command catalog is missing registry tool: ${tool}`);
+  }
+
   const doctorEntry = catalogParsed?.localCommands?.find((entry) => entry.id === 'doctor');
   check(Boolean(doctorEntry), 'MCP command catalog must include local doctor command');
   check(doctorEntry?.mcp?.includes('chrome_bridge_doctor'), 'MCP command catalog must map doctor to chrome_bridge_doctor');
@@ -129,7 +142,10 @@ if (failures.length) {
 
 process.stdout.write(`${JSON.stringify({
   ok: true,
+  registryCommandCount: CLI_COMMANDS.length,
   registryToolCount: MCP_TOOLS.length,
+  catalogCommandCount: CLI_COMMANDS.length,
+  catalogToolCount: MCP_TOOLS.length,
   listedToolCount: MCP_TOOLS.length,
   checkedTools: ['chrome_bridge_doctor', 'chrome_bridge_extension_path', 'chrome_bridge_codex_config', 'chrome_bridge_command_catalog'],
   doctorOfflineByDefault: true,
