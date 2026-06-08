@@ -23,6 +23,7 @@
 - Strengthened the MCP runtime-smoke contract check to assert the same deferred live verification `nextCommand` and `finalCommands` metadata exposed by the CLI coverage plan.
 - Preserved structured CLI JSON in the MCP `runtime-smoke` wrapper when the smoke command exits nonzero, so failed or skipped verification metadata remains machine-readable for MCP clients.
 - Made `check:mcp-runtime-smoke` expose stale bridge-server CLI-exit preservation in its machine-readable verifier summary, matching the stale-extension evidence.
+- Made `check:mcp-runtime-smoke` expose stale extension and stale bridge-server structured-output preservation in its machine-readable verifier summary.
 - Added `check:mcp-runtime-smoke` to exercise the MCP runtime-smoke tool over stdio against fake bridge URLs, proving coverage-plan and stale-extension outputs stay structured without touching Chrome.
 - Added `chrome_bridge_doctor` and `check:mcp-local-tools` so MCP clients can inspect offline setup diagnostics while proving live checks stay opt-in.
 - Added MCP `chrome_bridge_extension_path` and `chrome_bridge_codex_config` setup tools so MCP clients can retrieve local install/config hints without touching Chrome.

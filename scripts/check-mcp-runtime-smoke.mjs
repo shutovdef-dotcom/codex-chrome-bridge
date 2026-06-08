@@ -201,6 +201,7 @@ if (coveragePlanParsed) {
 }
 
 let staleParsed;
+let staleExtensionStructuredOutput = false;
 await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   staleParsed = await withMcpClient({ CHROME_BRIDGE_URL: bridgeUrl }, async (client) => (
     parseToolJson(await callRuntimeSmoke(client, {}), 'MCP stale-extension runtime smoke')
@@ -215,10 +216,12 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   check(staleParsed.verification?.liveVerificationRequired === true, 'MCP stale-extension runtime smoke must still require final live verification');
   check(staleParsed.verification?.observed?.extensionVersion === staleExtensionVersion, 'MCP stale-extension verification metadata must include observed extension version');
   check(typeof staleParsed.cliExitError === 'string' && staleParsed.cliExitError.length > 0, 'MCP stale-extension runtime smoke must preserve cliExitError');
-  check(!Object.prototype.hasOwnProperty.call(staleParsed, 'stdout'), 'MCP stale-extension runtime smoke must not fall back to raw stdout wrapping');
+  staleExtensionStructuredOutput = !Object.prototype.hasOwnProperty.call(staleParsed, 'stdout');
+  check(staleExtensionStructuredOutput, 'MCP stale-extension runtime smoke must not fall back to raw stdout wrapping');
 });
 
 let staleBridgeParsed;
+let staleBridgeStructuredOutput = false;
 await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   staleBridgeParsed = await withMcpClient({ CHROME_BRIDGE_URL: bridgeUrl }, async (client) => (
     parseToolJson(await callRuntimeSmoke(client, {}), 'MCP stale-bridge runtime smoke')
@@ -233,7 +236,8 @@ await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   check(staleBridgeParsed.verification?.liveVerificationRequired === true, 'MCP stale-bridge runtime smoke must still require final live verification');
   check(staleBridgeParsed.verification?.observed?.bridgeVersion === staleBridgeVersion, 'MCP stale-bridge verification metadata must include observed bridge version');
   check(typeof staleBridgeParsed.cliExitError === 'string' && staleBridgeParsed.cliExitError.length > 0, 'MCP stale-bridge runtime smoke must preserve cliExitError');
-  check(!Object.prototype.hasOwnProperty.call(staleBridgeParsed, 'stdout'), 'MCP stale-bridge runtime smoke must not fall back to raw stdout wrapping');
+  staleBridgeStructuredOutput = !Object.prototype.hasOwnProperty.call(staleBridgeParsed, 'stdout');
+  check(staleBridgeStructuredOutput, 'MCP stale-bridge runtime smoke must not fall back to raw stdout wrapping');
 });
 
 if (failures.length) {
@@ -254,4 +258,6 @@ process.stdout.write(`${JSON.stringify({
   staleBridgeStatus: staleBridgeParsed?.verification?.status,
   staleExtensionCliExitPreserved: Boolean(staleParsed?.cliExitError),
   staleBridgeCliExitPreserved: Boolean(staleBridgeParsed?.cliExitError),
+  staleExtensionStructuredOutput,
+  staleBridgeStructuredOutput,
 }, null, 2)}\n`);
