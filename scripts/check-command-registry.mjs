@@ -176,7 +176,7 @@ uniqueValues(CLI_USAGE_LINES, 'CLI usage lines');
 uniqueValues(DEBUGGER_SERIALIZED_ACTIONS, 'debugger serialized actions');
 uniqueValues(MCP_TOOLS, 'MCP tools');
 
-check(BRIDGE_VERSION === '0.4.0', `unexpected bridge version: ${BRIDGE_VERSION}`);
+check(BRIDGE_VERSION === '0.4.1', `unexpected bridge version: ${BRIDGE_VERSION}`);
 check(packageJson.version === BRIDGE_VERSION, `package.json version ${packageJson.version} does not match registry ${BRIDGE_VERSION}`);
 check(manifest.manifest_version === 3, `extension manifest version must be 3, got ${manifest.manifest_version}`);
 check(manifest.version === BRIDGE_VERSION, `extension manifest version ${manifest.version} does not match registry ${BRIDGE_VERSION}`);
