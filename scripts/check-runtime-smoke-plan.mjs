@@ -91,6 +91,10 @@ if (parsed) {
   check(parsed.verification?.status === 'not-run', 'coverage plan verification status must be not-run');
   check(parsed.verification?.liveVerificationRequired === true, 'coverage plan must require final live verification');
   check(
+    parsed.nextCommand === 'chrome-bridge reload-extension --confirm',
+    'coverage plan nextCommand must point at the first live verification prep step',
+  );
+  check(
     parsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm'),
     'coverage plan final commands must include confirmed extension reload before live smoke',
   );
