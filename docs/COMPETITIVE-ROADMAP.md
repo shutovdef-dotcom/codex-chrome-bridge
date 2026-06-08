@@ -287,11 +287,11 @@ This repository iteration implements the merged Phase 0-4 roadmap:
 
 After this change set lands cleanly, the highest-value next implementation is:
 
-1. continuing to trim `background.js` into smaller Chrome API modules after runtime smoke is available
+1. running the deferred real-browser verification once the live bridge is free
 2. using the command catalog to generate more of the CLI/MCP reference prose
 3. adding additional policy modes only after `scoped` and `strict` both have runtime coverage
 
-That sequence reduces maintenance risk as the browser surface continues growing.
+That sequence proves the now-modular browser surface in Chrome before expanding policy behavior further.
 
 ## Deferred Runtime Verification
 
