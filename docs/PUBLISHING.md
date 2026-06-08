@@ -43,7 +43,7 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 
 `check:mcp-runtime-smoke` starts the MCP server over stdio against fake bridge URLs, calls `chrome_bridge_runtime_smoke`, and verifies coverage-plan plus stale-extension metadata stays structured for MCP clients without touching Chrome.
 
-`check:mcp-local-tools` starts the MCP server over stdio, calls local diagnostic tools such as `chrome_bridge_doctor`, and verifies they remain offline by default.
+`check:mcp-local-tools` starts the MCP server over stdio, calls local diagnostic tools such as `chrome_bridge_doctor`, and verifies they remain offline by default. It also mirrors the fake live doctor bridge-version check through MCP so CLI and MCP upgrade diagnostics stay in parity without touching Chrome.
 
 `check:registry` also verifies that the GitHub Check workflow keeps the Node.js 20/22/24 matrix and runs `npm ci`, `npm run check`, `npm run check:audit`, and `npm run check:pack` without adding live `runtime-smoke` to CI.
 

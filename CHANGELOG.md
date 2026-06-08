@@ -11,6 +11,7 @@
 - Added structured `verification.finalMcpCalls` to `runtime-smoke --coverage-plan` so MCP clients can follow the same deferred live verification sequence without translating CLI commands.
 - Added bridge contract coverage proving confirmed `reloadExtension` remains available for stale-extension recovery during upgrade verification while other stale-version commands fail closed.
 - Made `doctor --live-checks` report expected/observed bridge-server versions and added fake-health/fake-osascript CLI coverage for that metadata without touching Chrome.
+- Mirrored the fake live doctor bridge-version check through MCP so `chrome_bridge_doctor` upgrade diagnostics stay in parity with the CLI.
 - Strengthened the MCP runtime-smoke contract check to assert the same deferred live verification `nextCommand` and `finalCommands` metadata exposed by the CLI coverage plan.
 - Preserved structured CLI JSON in the MCP `runtime-smoke` wrapper when the smoke command exits nonzero, so failed or skipped verification metadata remains machine-readable for MCP clients.
 - Added `check:mcp-runtime-smoke` to exercise the MCP runtime-smoke tool over stdio against fake bridge URLs, proving coverage-plan and stale-extension outputs stay structured without touching Chrome.

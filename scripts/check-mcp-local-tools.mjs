@@ -1,9 +1,12 @@
 #!/usr/bin/env node
+import fs from 'node:fs/promises';
+import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { CLI_COMMANDS, MCP_TOOLS } from '../shared/command-registry.mjs';
+import { BRIDGE_VERSION, CLI_COMMANDS, MCP_TOOLS } from '../shared/command-registry.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mcpPath = path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs');
@@ -39,12 +42,12 @@ function parseToolJson(result, label) {
   }
 }
 
-async function withMcpClient(fn) {
+async function withMcpClient(fn, env = {}) {
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [mcpPath],
     cwd: rootDir,
-    env: inheritedEnv({ CHROME_BRIDGE_URL: 'http://127.0.0.1:9' }),
+    env: inheritedEnv({ CHROME_BRIDGE_URL: 'http://127.0.0.1:9', ...env }),
     stderr: 'pipe',
   });
   const client = new Client({ name: 'chrome-bridge-mcp-local-tools-check', version: '0.1.0' });
@@ -65,6 +68,54 @@ async function withMcpClient(fn) {
   }
 }
 
+async function withFakeLiveDoctor(fn) {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-mcp-doctor-check-'));
+  const fakeBinDir = path.join(tmpDir, 'bin');
+  await fs.mkdir(fakeBinDir);
+  const fakeOsascript = path.join(fakeBinDir, 'osascript');
+  await fs.writeFile(fakeOsascript, '#!/bin/sh\nprintf "Codex Bridge Fake Chrome Title\\n"\n');
+  await fs.chmod(fakeOsascript, 0o755);
+
+  const server = http.createServer((req, res) => {
+    if (req.url !== '/health') {
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unexpected path' }));
+      return;
+    }
+
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      bridge: {
+        version: BRIDGE_VERSION,
+      },
+      extension: {
+        connected: true,
+        info: {
+          version: BRIDGE_VERSION,
+        },
+      },
+    }));
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  try {
+    const { port } = server.address();
+    return await fn({
+      bridgeUrl: `http://127.0.0.1:${port}`,
+      pathEnv: `${fakeBinDir}${path.delimiter}${process.env.PATH || ''}`,
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+}
+
+let doctorLiveBridgeCurrent = null;
 await withMcpClient(async (client) => {
   const tools = await client.listTools();
   const toolNames = new Set((tools.tools || []).map((tool) => tool.name));
@@ -135,6 +186,26 @@ await withMcpClient(async (client) => {
   check(codexConfigText?.includes('mcp/chrome-bridge-mcp.mjs'), 'MCP codex-config tool must point at the local MCP server file');
 });
 
+await withFakeLiveDoctor(async ({ bridgeUrl, pathEnv }) => {
+  await withMcpClient(async (client) => {
+    const liveDoctorParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_doctor',
+      arguments: { liveChecks: true },
+    }), 'MCP doctor live checks');
+    if (!liveDoctorParsed) return;
+
+    check(liveDoctorParsed.liveChecks === true, 'MCP doctor live check fixture must report liveChecks=true');
+    check(liveDoctorParsed.health?.ok === true, 'MCP doctor live check fixture must read fake health');
+    check(liveDoctorParsed.checks?.expectedBridgeVersion === BRIDGE_VERSION, 'MCP doctor live checks must report expected bridge version');
+    check(liveDoctorParsed.checks?.bridgeVersion === BRIDGE_VERSION, 'MCP doctor live checks must report observed bridge version');
+    check(liveDoctorParsed.checks?.bridgeCurrent === true, 'MCP doctor live checks must confirm bridge version is current');
+    doctorLiveBridgeCurrent = liveDoctorParsed.checks?.bridgeCurrent;
+  }, {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    PATH: pathEnv,
+  });
+});
+
 if (failures.length) {
   for (const failure of failures) process.stderr.write(`- ${failure}\n`);
   process.exit(1);
@@ -149,4 +220,5 @@ process.stdout.write(`${JSON.stringify({
   listedToolCount: MCP_TOOLS.length,
   checkedTools: ['chrome_bridge_doctor', 'chrome_bridge_extension_path', 'chrome_bridge_codex_config', 'chrome_bridge_command_catalog'],
   doctorOfflineByDefault: true,
+  doctorLiveBridgeCurrent,
 }, null, 2)}\n`);
