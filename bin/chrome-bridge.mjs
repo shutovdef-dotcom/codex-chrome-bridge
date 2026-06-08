@@ -432,13 +432,13 @@ async function selfTest() {
     { label: 'extension module', item: 'debugger session exports', ok: debuggerSession.includes('export async function withDebugger') && debuggerSession.includes('export function recordDebuggerEvent') },
     { label: 'extension module', item: 'extension error imports', ok: background.includes("from './extension-errors.js'") },
     { label: 'extension module', item: 'extension error exports', ok: extensionErrors.includes('export function extensionErrorCode') },
-    { label: 'extension module', item: 'keyboard events imports', ok: background.includes("from './keyboard-events.js'") },
+    { label: 'extension module', item: 'keyboard events imports', ok: pageInteractions.includes("from './keyboard-events.js'") },
     { label: 'extension module', item: 'keyboard events exports', ok: keyboardEvents.includes('export function keyEventPayload') },
     { label: 'extension module', item: 'navigation action imports', ok: background.includes("from './navigation-actions.js'") },
     { label: 'extension module', item: 'navigation action exports', ok: navigationActions.includes('export async function openTab') && navigationActions.includes('export async function closeGroup') },
     { label: 'extension module', item: 'offscreen lifecycle imports', ok: background.includes("from './offscreen-lifecycle.js'") },
     { label: 'extension module', item: 'offscreen lifecycle exports', ok: offscreenLifecycle.includes('export async function startBridge') },
-    { label: 'extension module', item: 'page execution imports', ok: background.includes("from './page-execution.js'") },
+    { label: 'extension module', item: 'page execution imports', ok: pageInteractions.includes("from './page-execution.js'") },
     { label: 'extension module', item: 'page execution exports', ok: pageExecution.includes('export async function execute') },
     { label: 'extension module', item: 'page artifact imports', ok: background.includes("from './page-artifacts.js'") },
     { label: 'extension module', item: 'page artifact exports', ok: pageArtifacts.includes('export async function screenshot') && pageArtifacts.includes('export async function printPdf') },
@@ -453,7 +453,7 @@ async function selfTest() {
     { label: 'extension module', item: 'tab cleanup imports', ok: navigationActions.includes("from './tab-cleanup.js'") },
     { label: 'extension module', item: 'tab cleanup exports', ok: tabCleanup.includes('export async function closeTabsWithGroupPersistenceMitigation') },
     { label: 'extension module', item: 'tab cleanup fail closed', ok: tabCleanup.includes('throw new Error') && tabCleanup.includes('before close') },
-    { label: 'extension module', item: 'tab info imports', ok: background.includes("from './tab-info.js'") },
+    { label: 'extension module', item: 'tab info imports', ok: pageInteractions.includes("from './tab-info.js'") && navigationActions.includes("from './tab-info.js'") },
     { label: 'extension module', item: 'tab info exports', ok: tabInfo.includes('export function tabInfo') && tabInfo.includes('export function groupInfo') },
     { label: 'extension module', item: 'tab loading imports', ok: navigationActions.includes("from './tab-loading.js'") },
     { label: 'extension module', item: 'tab loading exports', ok: tabLoading.includes('export async function waitForTabComplete') },
@@ -618,7 +618,7 @@ async function selfTest() {
       label: 'safety gate',
       item: 'press trusted input is opt-in',
       ok: pressBlock.includes('trusted: Boolean(args.trusted)')
-        && background.includes('if (payload.trusted === true)')
+        && pageInteractions.includes('if (payload.trusted === true)')
         && usage().includes('press --key <key> --confirm [--selector <css>] [--trusted]'),
     },
     {

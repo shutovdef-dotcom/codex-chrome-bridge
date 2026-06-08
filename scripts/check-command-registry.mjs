@@ -612,7 +612,7 @@ check(functionBlock(navigationActionsText, 'openTab').includes('createGroupedTab
 check(functionBlock(navigationActionsText, 'setWorkspace').includes("requireConfirmed(payload, 'setWorkspace')"), 'extension setWorkspace must require confirmation');
 check(functionBlock(navigationActionsText, 'closeTab').includes('closeTabsWithGroupPersistenceMitigation([tab])'), 'closeTab must use ungroup-before-close mitigation');
 check(functionBlock(navigationActionsText, 'closeGroup').includes('closeTabsWithGroupPersistenceMitigation(tabs)'), 'closeGroup must use ungroup-before-close mitigation');
-check(backgroundText.includes("import { tabInfo } from './tab-info.js';") && navigationActionsText.includes("import { groupInfo, tabInfo } from './tab-info.js';"), 'extension tab/group serializers must be imported by active extension modules');
+check(pageInteractionsText.includes("import { tabInfo } from './tab-info.js';") && navigationActionsText.includes("import { groupInfo, tabInfo } from './tab-info.js';"), 'extension tab/group serializers must be imported by active extension modules');
 check(!backgroundText.includes('function groupInfo'), 'extension background must not own tab/group serializer internals');
 check(!backgroundText.includes('function tabInfo'), 'extension background must not own tab/group serializer internals');
 check(functionBlock(tabInfoText, 'groupInfo').includes('collapsed'), 'extension tab info module must serialize tab group metadata');
@@ -658,7 +658,7 @@ check(!backgroundText.includes('function ensureOffscreen'), 'extension backgroun
 check(!backgroundText.includes('async function startBridge'), 'extension background must not own offscreen lifecycle internals');
 check(functionBlock(offscreenLifecycleText, 'ensureOffscreen').includes('chrome.offscreen.createDocument'), 'offscreen lifecycle module must create the offscreen document');
 check(functionBlock(offscreenLifecycleText, 'startBridge').includes('ensureOffscreen'), 'offscreen lifecycle module must export startup retry helper');
-check(backgroundText.includes("import { execute } from './page-execution.js';"), 'extension background must import page execution helper from extension/page-execution.js');
+check(pageInteractionsText.includes("import { execute } from './page-execution.js';"), 'extension page interactions must import page execution helper from extension/page-execution.js');
 check(!functionBlock(backgroundText, 'execute'), 'extension background must not own page execution helper internals');
 check(pageExecutionText.includes('export async function execute'), 'extension page execution module must export execute');
 check(functionBlock(pageExecutionText, 'execute').includes('chrome.scripting.executeScript'), 'extension page execution module must own chrome.scripting execution');

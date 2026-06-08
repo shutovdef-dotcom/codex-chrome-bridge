@@ -1,0 +1,238 @@
+import {
+  clickAtInPage,
+  fillFormInPage,
+  hoverInPage,
+  pressKeyInPage,
+  selectOptionInPage,
+} from './page-scripts.js';
+import { execute } from './page-execution.js';
+import { sendDebuggerCommand, withDebugger } from './debugger-session.js';
+import { requireConfirmed } from './safety-gates.js';
+import { keyEventPayload } from './keyboard-events.js';
+import { tabInfo } from './tab-info.js';
+import { getTargetTab } from './workspace-tabs.js';
+
+export async function scroll(payload) {
+  const tab = await getTargetTab(payload);
+  return execute(tab.id, ({ x, y }) => {
+    window.scrollBy(Number(x || 0), Number(y || 0));
+    return {
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+    };
+  }, [{ x: payload.x || 0, y: payload.y || 0 }]);
+}
+
+export async function click(payload) {
+  if (!payload.confirmed) throw new Error('click requires confirmed=true');
+  if (!payload.selector) throw new Error('click requires selector');
+  const tab = await getTargetTab(payload);
+  return execute(tab.id, ({ selector }) => {
+    const element = document.querySelector(selector);
+    if (!element) throw new Error(`No element matches selector: ${selector}`);
+    element.click();
+    return { clicked: selector, url: location.href, title: document.title };
+  }, [{ selector: payload.selector }]);
+}
+
+export async function clickAt(payload) {
+  requireConfirmed(payload, 'clickAt');
+  const tab = await getTargetTab(payload);
+  const x = Number(payload.x);
+  const y = Number(payload.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error('clickAt requires numeric x and y');
+
+  if (payload.trusted) {
+    return withDebugger(tab.id, async () => {
+      await sendDebuggerCommand(tab.id, 'Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        x,
+        y,
+        button: payload.button || 'left',
+        clickCount: 1,
+      });
+      await sendDebuggerCommand(tab.id, 'Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x,
+        y,
+        button: payload.button || 'left',
+        clickCount: 1,
+      });
+      return { clicked: { x, y, trusted: true }, tab: tabInfo(await chrome.tabs.get(tab.id)) };
+    });
+  }
+
+  const result = await execute(tab.id, clickAtInPage, [{ x, y, button: payload.button || 'left' }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+export async function hover(payload) {
+  const tab = await getTargetTab(payload);
+  const x = payload.x === undefined ? undefined : Number(payload.x);
+  const y = payload.y === undefined ? undefined : Number(payload.y);
+
+  if (payload.trusted) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error('trusted hover requires numeric x and y');
+    return withDebugger(tab.id, async () => {
+      await sendDebuggerCommand(tab.id, 'Input.dispatchMouseEvent', {
+        type: 'mouseMoved',
+        x,
+        y,
+      });
+      return { hovered: { x, y, trusted: true }, tab: tabInfo(await chrome.tabs.get(tab.id)) };
+    });
+  }
+
+  const result = await execute(tab.id, hoverInPage, [{
+    selector: payload.selector,
+    x,
+    y,
+  }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+export async function typeInto(payload) {
+  if (!payload.confirmed) throw new Error('type requires confirmed=true');
+  if (!payload.selector) throw new Error('type requires selector');
+  if (typeof payload.text !== 'string') throw new Error('type requires text');
+  const tab = await getTargetTab(payload);
+
+  if (payload.trusted) {
+    await execute(tab.id, ({ selector }) => {
+      const element = document.querySelector(selector);
+      if (!element) throw new Error(`No element matches selector: ${selector}`);
+      element.focus();
+      return true;
+    }, [{ selector: payload.selector }]);
+    return withDebugger(tab.id, async () => {
+      await sendDebuggerCommand(tab.id, 'Input.insertText', { text: payload.text });
+      return { typed: payload.selector, length: payload.text.length, trusted: true, tab: tabInfo(await chrome.tabs.get(tab.id)) };
+    });
+  }
+
+  return execute(tab.id, ({ selector, text }) => {
+    const element = document.querySelector(selector);
+    if (!element) throw new Error(`No element matches selector: ${selector}`);
+    element.focus();
+    element.value = text;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+    return { typed: selector, length: text.length, url: location.href, title: document.title };
+  }, [{ selector: payload.selector, text: payload.text }]);
+}
+
+export async function pressKey(payload) {
+  requireConfirmed(payload, 'press');
+  const tab = await getTargetTab(payload);
+  const key = String(payload.key || '');
+  if (!key) throw new Error('press requires key');
+
+  if (payload.selector) {
+    await execute(tab.id, ({ selector }) => {
+      const element = document.querySelector(selector);
+      if (!element) throw new Error(`No element matches selector: ${selector}`);
+      element.focus();
+      return true;
+    }, [{ selector: payload.selector }]);
+  }
+
+  if (payload.trusted === true) {
+    return withDebugger(tab.id, async () => {
+      const event = keyEventPayload(key, payload);
+      await sendDebuggerCommand(tab.id, 'Input.dispatchKeyEvent', { ...event, type: 'keyDown' });
+      if (event.text) {
+        await sendDebuggerCommand(tab.id, 'Input.dispatchKeyEvent', { ...event, type: 'char' });
+      }
+      await sendDebuggerCommand(tab.id, 'Input.dispatchKeyEvent', { ...event, type: 'keyUp' });
+      return { pressed: key, trusted: true, tab: tabInfo(await chrome.tabs.get(tab.id)) };
+    });
+  }
+
+  const result = await execute(tab.id, pressKeyInPage, [{
+    key,
+    code: payload.code,
+    ctrlKey: Boolean(payload.ctrlKey),
+    metaKey: Boolean(payload.metaKey),
+    altKey: Boolean(payload.altKey),
+    shiftKey: Boolean(payload.shiftKey),
+  }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+export async function selectOption(payload) {
+  requireConfirmed(payload, 'select');
+  if (!payload.selector) throw new Error('select requires selector');
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, selectOptionInPage, [{
+    selector: payload.selector,
+    value: payload.value,
+    label: payload.label,
+    index: payload.index === undefined ? undefined : Number(payload.index),
+  }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+export async function fillForm(payload) {
+  const dryRun = payload.dryRun !== false;
+  if (!dryRun) requireConfirmed(payload, 'fillForm');
+  if (!payload.fields || typeof payload.fields !== 'object') throw new Error('fillForm requires fields object');
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, fillFormInPage, [{
+    fields: payload.fields,
+    dryRun,
+  }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+export async function handleDialog(payload) {
+  requireConfirmed(payload, 'handleDialog');
+  const tab = await getTargetTab(payload);
+  return withDebugger(tab.id, async () => {
+    await sendDebuggerCommand(tab.id, 'Page.enable');
+    await sendDebuggerCommand(tab.id, 'Page.handleJavaScriptDialog', {
+      accept: payload.accept !== false,
+      promptText: typeof payload.promptText === 'string' ? payload.promptText : undefined,
+    });
+    return {
+      handled: true,
+      accepted: payload.accept !== false,
+      tab: tabInfo(await chrome.tabs.get(tab.id)),
+    };
+  });
+}
+
+export async function uploadFile(payload) {
+  requireConfirmed(payload, 'uploadFile');
+  if (!payload.selector) throw new Error('uploadFile requires selector');
+  const files = Array.isArray(payload.files)
+    ? payload.files.map(String)
+    : (payload.file ? [String(payload.file)] : []);
+  if (!files.length) throw new Error('uploadFile requires file or files');
+  const tab = await getTargetTab(payload);
+  return withDebugger(tab.id, async () => {
+    await sendDebuggerCommand(tab.id, 'DOM.enable');
+    const documentResult = await sendDebuggerCommand(tab.id, 'DOM.getDocument', {
+      depth: -1,
+      pierce: true,
+    });
+    const rootNodeId = documentResult?.root?.nodeId;
+    if (!rootNodeId) throw new Error('Failed to read DOM root for uploadFile');
+    const queryResult = await sendDebuggerCommand(tab.id, 'DOM.querySelector', {
+      nodeId: rootNodeId,
+      selector: payload.selector,
+    });
+    if (!queryResult?.nodeId) throw new Error(`No element matches selector: ${payload.selector}`);
+    await sendDebuggerCommand(tab.id, 'DOM.setFileInputFiles', {
+      nodeId: queryResult.nodeId,
+      files,
+    });
+    return {
+      uploaded: true,
+      selector: payload.selector,
+      fileCount: files.length,
+      tab: tabInfo(await chrome.tabs.get(tab.id)),
+    };
+  });
+}

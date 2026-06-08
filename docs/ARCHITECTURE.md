@@ -16,6 +16,7 @@ The `extension/` directory contains a Manifest V3 extension:
 - `offscreen-lifecycle.js` owns creation and retry-safe startup of the MV3 offscreen bridge document.
 - `page-artifacts.js` owns screenshot and PDF artifact capture.
 - `page-execution.js` owns the `chrome.scripting.executeScript` execution boundary for injected page helpers.
+- `page-interactions.js` owns page mutation, trusted input, dialog, and file-upload actions.
 - `page-read-actions.js` owns page inspection and read actions such as observe, extract, text, HTML, select-option discovery, and storage snapshots.
 - `page-scripts.js` contains self-contained functions injected into web pages through `chrome.scripting.executeScript`.
 - `safety-gates.js` owns confirmation and sensitive-confirmation runtime guards.
