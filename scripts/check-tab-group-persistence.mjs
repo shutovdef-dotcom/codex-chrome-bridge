@@ -26,6 +26,7 @@ function createFakeChrome() {
     [101, { id: 101, title: 'Codex Bridge Session A', color: 'purple', windowId: 1, saved: true }],
     [202, { id: 202, title: 'Unrelated', color: 'blue', windowId: 1, saved: true }],
     [303, { id: 303, title: 'Codex Bridge Session B', color: 'purple', windowId: 1 }],
+    [404, { id: 404, title: 'Project Runtime Session', color: 'cyan', windowId: 1, saved: true }],
   ]);
   const tabs = new Map([
     [11, { id: 11, windowId: 1, groupId: 101 }],
@@ -33,6 +34,7 @@ function createFakeChrome() {
     [21, { id: 21, windowId: 1, groupId: 202 }],
     [31, { id: 31, windowId: 1, groupId: 303 }],
     [32, { id: 32, windowId: 1, groupId: 303 }],
+    [41, { id: 41, windowId: 1, groupId: 404 }],
   ]);
   const updates = [];
   const savedClosedGroupChips = [];
@@ -45,6 +47,7 @@ function createFakeChrome() {
           const result = {};
           for (const key of keys) {
             if (key === 'codexManagedGroupTitles') result[key] = ['Codex Bridge Session A'];
+            if (key === 'codexManagedGroupIds') result[key] = [404];
           }
           return result;
         },
@@ -146,6 +149,17 @@ const unrelatedChange = await handleManagedTabGroupChange({
   saved: true,
 });
 check(unrelatedChange.managed === false, 'unrelated group change must not be treated as managed');
+
+const managedByStoredIdChange = await handleManagedTabGroupChange({
+  id: 404,
+  title: 'Project Runtime Session',
+  color: 'cyan',
+  windowId: 1,
+  saved: true,
+});
+check(managedByStoredIdChange.managed === true, 'custom session group remembered by id must be recognized');
+check(managedByStoredIdChange.disabled === true, 'custom session group remembered by id must disable saved state');
+check(managedByStoredIdChange.remembered === 1, 'custom session group remembered by id must remember member tabs');
 
 const membership = await rememberManagedTabGroupMembership({ id: 11, windowId: 1, groupId: 101 });
 check(membership.remembered === true, 'managed tab membership update must be remembered');
