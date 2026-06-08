@@ -179,6 +179,9 @@ command('observe', { cli: 'observe', mcp: 'chrome_bridge_observe', riskTier: 're
 command('findElements', { cli: 'find-elements', mcp: 'chrome_bridge_find_elements', riskTier: 'read', allowedKeys: ['role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk'] });
 check(pageReadActionsText.includes('collectObserve') && pageReadActionsText.includes('elementFilters'), 'Phase 1 must implement observe and find-elements through read-only page scripts');
 check(pageScriptsText.includes('nearText') && pageScriptsText.includes('actionKind') && pageScriptsText.includes('risk'), 'Phase 1 page scripts must support ranked/filterable discovery metadata');
+check(pageScriptsText.includes('function stableSelectorFor') && pageScriptsText.includes('document.querySelector(selector) === element'), 'Phase 1 discovery selectors must use a stable querySelector-verified fallback');
+check(pageScriptsText.includes('nth-of-type'), 'Phase 1 discovery selectors must fall back to an nth-of-type path when short attributes are unavailable');
+check(cliDocsText.includes('querySelector-verified selectors'), 'Phase 1 CLI docs must explain querySelector-verified discovery selectors');
 check(readmeText.includes('## Existing-Tab Workflow') && cliDocsText.includes('## Existing-Tab Workflow'), 'Phase 1 docs must expose existing-tab workflow');
 
 // Phase 2: structured extraction and debug artifacts.
