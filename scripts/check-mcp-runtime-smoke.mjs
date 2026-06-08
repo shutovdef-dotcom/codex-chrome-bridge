@@ -190,6 +190,14 @@ if (coveragePlanParsed) {
     coveragePlanParsed.verification?.successCriteria?.requiredCoverageCount === coveragePlanParsed.coverage?.requiredCount,
     'MCP coverage-plan success criteria must match required coverage count',
   );
+  check(
+    coveragePlanParsed.verification?.successCriteria?.bridgeVersion === BRIDGE_VERSION,
+    'MCP coverage-plan success criteria must require current bridge version',
+  );
+  check(
+    coveragePlanParsed.verification?.successCriteria?.extensionVersion === BRIDGE_VERSION,
+    'MCP coverage-plan success criteria must require current extension version',
+  );
 }
 
 let staleParsed;
@@ -240,6 +248,8 @@ process.stdout.write(`${JSON.stringify({
   coveragePlanNextCommand: coveragePlanParsed?.nextCommand,
   coveragePlanFinalCommandCount: coveragePlanParsed?.verification?.finalCommands?.length || 0,
   coveragePlanFinalMcpCallCount: coveragePlanParsed?.verification?.finalMcpCalls?.length || 0,
+  successCriteriaBridgeVersion: coveragePlanParsed?.verification?.successCriteria?.bridgeVersion,
+  successCriteriaExtensionVersion: coveragePlanParsed?.verification?.successCriteria?.extensionVersion,
   staleExtensionStatus: staleParsed?.verification?.status,
   staleBridgeStatus: staleBridgeParsed?.verification?.status,
   staleExtensionCliExitPreserved: Boolean(staleParsed?.cliExitError),

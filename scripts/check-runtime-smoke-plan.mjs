@@ -161,6 +161,8 @@ if (parsed) {
   );
   check(parsed.verification?.successCriteria?.ok === true, 'coverage plan success criteria must require top-level ok=true');
   check(parsed.verification?.successCriteria?.coverageOk === true, 'coverage plan success criteria must require coverage.ok=true');
+  check(parsed.verification?.successCriteria?.bridgeVersion === BRIDGE_VERSION, 'coverage plan success criteria must require current bridge version');
+  check(parsed.verification?.successCriteria?.extensionVersion === BRIDGE_VERSION, 'coverage plan success criteria must require current extension version');
   check(parsed.coverage?.ok === false, 'coverage plan coverage.ok must remain false until live smoke runs');
   check(parsed.coverage?.requiredCount > 0, 'coverage plan must include at least one required coverage item');
   check(parsed.coverage?.requiredCount === parsed.coverage?.missingCount, 'coverage plan must mark every required item missing before live smoke runs');
@@ -219,6 +221,8 @@ process.stdout.write(`${JSON.stringify({
   liveBridge: parsed.liveBridge,
   verificationStatus: parsed.verification.status,
   liveVerificationRequired: parsed.verification.liveVerificationRequired,
+  successCriteriaBridgeVersion: parsed.verification.successCriteria.bridgeVersion,
+  successCriteriaExtensionVersion: parsed.verification.successCriteria.extensionVersion,
   requiredCount: parsed.coverage.requiredCount,
   staleExtensionStatus: staleParsed?.verification?.status,
   staleBridgeStatus: staleBridgeParsed?.verification?.status,
