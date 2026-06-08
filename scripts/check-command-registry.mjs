@@ -32,6 +32,7 @@ const [
   cliText,
   mcpText,
   backgroundText,
+  debuggerSessionText,
   extensionErrorsText,
   offscreenLifecycleText,
   pageScriptsText,
@@ -48,6 +49,7 @@ const [
   fs.readFile(path.join(rootDir, 'bin/chrome-bridge.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/debugger-session.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/extension-errors.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
@@ -539,6 +541,16 @@ check(!backgroundText.includes('function requireConfirmed'), 'extension backgrou
 check(!backgroundText.includes('function requireSensitiveConfirmed'), 'extension background must not own confirmation gate internals');
 check(functionBlock(safetyGatesText, 'requireConfirmed').includes('confirmed=true'), 'safety gates module must enforce mutation confirmation');
 check(functionBlock(safetyGatesText, 'requireSensitiveConfirmed').includes('confirmSensitive=true'), 'safety gates module must enforce sensitive confirmation');
+check(backgroundText.includes("from './debugger-session.js';"), 'extension background must import debugger session helpers from extension/debugger-session.js');
+check(!backgroundText.includes('traceSessions'), 'extension background must not own debugger trace session state');
+check(!backgroundText.includes('debuggerLocks'), 'extension background must not own debugger lock state');
+check(!backgroundText.includes('function withDebugger'), 'extension background must not own debugger lifecycle internals');
+check(!backgroundText.includes('function sendDebuggerCommand'), 'extension background must not own debugger command internals');
+check(!backgroundText.includes('function recordDebuggerEvent'), 'extension background must not own debugger event internals');
+check(functionBlock(debuggerSessionText, 'withDebugger').includes('chrome.debugger.attach'), 'extension debugger session module must own debugger attach lifecycle');
+check(functionBlock(debuggerSessionText, 'sendDebuggerCommand').includes('chrome.debugger.sendCommand'), 'extension debugger session module must own debugger commands');
+check(functionBlock(debuggerSessionText, 'recordDebuggerEvent').includes('Network.responseReceived'), 'extension debugger session module must record trace debugger events');
+check(debuggerSessionText.includes('traceSessions') && debuggerSessionText.includes('MAX_TRACE_EVENTS'), 'extension debugger session module must own trace session buffering');
 check(backgroundText.includes("import { groupInfo, tabInfo } from './tab-info.js';"), 'extension background must import tab/group serializers from extension/tab-info.js');
 check(!backgroundText.includes('function groupInfo'), 'extension background must not own tab/group serializer internals');
 check(!backgroundText.includes('function tabInfo'), 'extension background must not own tab/group serializer internals');

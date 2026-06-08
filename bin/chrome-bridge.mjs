@@ -281,6 +281,7 @@ async function selfTest() {
   const paths = {
     manifest: path.join(rootDir, 'extension/manifest.json'),
     background: path.join(rootDir, 'extension/background.js'),
+    debuggerSession: path.join(rootDir, 'extension/debugger-session.js'),
     extensionErrors: path.join(rootDir, 'extension/extension-errors.js'),
     offscreenLifecycle: path.join(rootDir, 'extension/offscreen-lifecycle.js'),
     pageScripts: path.join(rootDir, 'extension/page-scripts.js'),
@@ -307,6 +308,7 @@ async function selfTest() {
   const [
     manifestText,
     background,
+    debuggerSession,
     extensionErrors,
     offscreenLifecycle,
     pageScripts,
@@ -327,6 +329,7 @@ async function selfTest() {
   ] = await Promise.all([
     fs.readFile(paths.manifest, 'utf8'),
     fs.readFile(paths.background, 'utf8'),
+    fs.readFile(paths.debuggerSession, 'utf8'),
     fs.readFile(paths.extensionErrors, 'utf8'),
     fs.readFile(paths.offscreenLifecycle, 'utf8'),
     fs.readFile(paths.pageScripts, 'utf8'),
@@ -352,6 +355,7 @@ async function selfTest() {
 
   const syntaxChecks = await Promise.all([
     tryExec(process.execPath, ['--check', paths.background]),
+    tryExec(process.execPath, ['--check', paths.debuggerSession]),
     tryExec(process.execPath, ['--check', paths.extensionErrors]),
     tryExec(process.execPath, ['--check', paths.offscreenLifecycle]),
     tryExec(process.execPath, ['--check', paths.pageScripts]),
@@ -382,6 +386,8 @@ async function selfTest() {
     { label: 'manifest version', item: EXPECTED_EXTENSION_VERSION, ok: manifest.version === EXPECTED_EXTENSION_VERSION },
     { label: 'offscreen version', item: EXPECTED_EXTENSION_VERSION, ok: offscreen.includes(`EXTENSION_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
     { label: 'ask page script', item: 'codex-bridge-user-answer', ok: ask.includes('codex-bridge-user-answer') },
+    { label: 'extension module', item: 'debugger session imports', ok: background.includes("from './debugger-session.js'") },
+    { label: 'extension module', item: 'debugger session exports', ok: debuggerSession.includes('export async function withDebugger') && debuggerSession.includes('export function recordDebuggerEvent') },
     { label: 'extension module', item: 'extension error imports', ok: background.includes("from './extension-errors.js'") },
     { label: 'extension module', item: 'extension error exports', ok: extensionErrors.includes('export function extensionErrorCode') },
     { label: 'extension module', item: 'offscreen lifecycle imports', ok: background.includes("from './offscreen-lifecycle.js'") },
