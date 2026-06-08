@@ -121,7 +121,7 @@ By default, tab operations stay inside the configured workspace tab group, initi
 
 `workspace` reports the local workspace defaults, policy mode, group counts, and optionally scoped tabs. `set-workspace` stores local defaults for the group title/color and explicit policy mode. It requires `--confirm`. `scoped` keeps outside tabs explicit-only through `--allow-external`; `strict` blocks outside tabs even when `--allow-external` is passed.
 
-`close-tab` and `close-group` remove scoped tabs from their Chrome tab group before closing them. This helps prevent Chrome from leaving new saved closed `Codex Bridge` group chips under the URL bar after bridge cleanup.
+`close-tab` and `close-group` remove scoped tabs from their Chrome tab group before closing them. This helps prevent Chrome from leaving new saved closed `Codex Bridge` group chips under the URL bar after bridge cleanup. If Chrome cannot ungroup a grouped bridge tab, the close command fails closed instead of closing it in-place.
 
 `tabs --all` and `windows --all` require `--confirm` because they can expose unrelated tab URLs and titles outside the scoped workspace group.
 

@@ -32,14 +32,17 @@ export async function closeTabsWithGroupPersistenceMitigation(tabInputs, options
     .filter((tab) => Number.isInteger(tab.groupId) && tab.groupId >= 0)
     .map((tab) => tab.id);
   let ungroupedBeforeClose = false;
-  let ungroupError = null;
 
-  if (groupedTabIds.length && chrome.tabs.ungroup) {
+  if (groupedTabIds.length) {
+    if (!chrome.tabs.ungroup) {
+      throw new Error('Unable to ungroup tabs before close: chrome.tabs.ungroup is unavailable');
+    }
+
     try {
       await chrome.tabs.ungroup(groupedTabIds);
       ungroupedBeforeClose = true;
     } catch (error) {
-      ungroupError = String(error?.message || error);
+      throw new Error(`Unable to ungroup tabs before close: ${String(error?.message || error)}`);
     }
   }
 
@@ -52,7 +55,7 @@ export async function closeTabsWithGroupPersistenceMitigation(tabInputs, options
     missingTabIds,
     ungroupedBeforeClose,
     ungroupedTabIds: ungroupedBeforeClose ? groupedTabIds : [],
-    ungroupUnavailable: Boolean(groupedTabIds.length) && !chrome.tabs.ungroup,
-    ungroupError,
+    ungroupUnavailable: false,
+    ungroupError: null,
   };
 }
