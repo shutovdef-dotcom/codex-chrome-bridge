@@ -16,6 +16,7 @@ npm run check:roadmap
 npm run check:cli-local-tools
 npm run check:mcp-runtime-smoke
 npm run check:mcp-local-tools
+npm run check:tab-group-persistence
 npm run check:privacy
 npm run check:audit
 npm run check:pack
@@ -44,6 +45,8 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 `check:mcp-runtime-smoke` starts the MCP server over stdio against fake bridge URLs, calls `chrome_bridge_runtime_smoke`, and verifies coverage-plan plus stale-extension/stale-bridge metadata stays structured for MCP clients without touching Chrome.
 
 `check:mcp-local-tools` starts the MCP server over stdio, calls local diagnostic tools such as `chrome_bridge_doctor`, and verifies they remain offline by default. It also mirrors the fake live doctor bridge-version and fake stale-bridge session-summary checks through MCP so CLI and MCP upgrade diagnostics stay in parity without touching Chrome.
+
+`check:tab-group-persistence` runs the extension tab-group persistence module against fake Chrome APIs, proving managed group listeners, saved-group disablement, removal metadata, and stale membership cleanup without touching Chrome.
 
 `check:registry` also verifies that the GitHub Check workflow keeps the Node.js 20/22/24 matrix and runs `npm ci`, `npm run check`, `npm run check:audit`, and `npm run check:pack` without adding live `runtime-smoke` to CI.
 

@@ -51,6 +51,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'scripts/check-cli-local-tools.mjs',
   'scripts/check-mcp-runtime-smoke.mjs',
   'scripts/check-mcp-local-tools.mjs',
+  'scripts/check-tab-group-persistence.mjs',
   'scripts/check-package-contents.mjs',
   'scripts/check-privacy-scan.mjs',
   'README.md',

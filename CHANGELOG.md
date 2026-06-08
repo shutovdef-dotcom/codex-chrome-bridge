@@ -8,6 +8,7 @@
 - Added a background startup sweep plus tab-group create/update listeners so managed `Codex Bridge` groups are automatically marked unsaved when Chrome exposes saved-tab-group API support, reducing future saved closed group chips beyond command-driven cleanup.
 - Broadened saved tab-group persistence mitigation so startup sweeps and tab-group listeners treat `Codex Bridge ...` session titles plus remembered bridge-created workspace titles as managed groups.
 - Added tab-group removal and tab membership listeners so bridge-owned groups are remembered, re-marked unsaved on best-effort lifecycle events, and forgotten when removed instead of leaving stale managed membership behind.
+- Added `check:tab-group-persistence` to exercise managed tab-group lifecycle behavior against fake Chrome APIs without touching the live browser.
 - Made `runtime-smoke --coverage-plan` report the full deferred live verification sequence, including confirmed extension reload and `doctor --live-checks`, without touching Chrome.
 - Added structured `verification.finalMcpCalls` to `runtime-smoke --coverage-plan` so MCP clients can follow the same deferred live verification sequence without translating CLI commands.
 - Added bridge contract coverage proving confirmed `reloadExtension` remains available for stale-extension recovery during upgrade verification while other stale-version commands fail closed.
