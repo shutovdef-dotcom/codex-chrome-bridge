@@ -44,12 +44,14 @@ import {
 import {
   recordDebuggerDetach,
   recordDebuggerEvent,
-  startTraceForTab,
-  stopTraceForTab,
-  traceEventsForTab,
-  traceSummaryForTab,
 } from './debugger-session.js';
 import { requireConfirmed } from './safety-gates.js';
+import {
+  traceEvents,
+  traceStart,
+  traceStop,
+  traceSummaryCommand,
+} from './trace-actions.js';
 import {
   askUser,
   completeUserPrompt,
@@ -62,10 +64,6 @@ import {
   fetchUrl,
   historySearch,
 } from './browser-data.js';
-import {
-  getTargetTab,
-} from './workspace-tabs.js';
-
 chrome.runtime.onInstalled.addListener(startBridge);
 chrome.runtime.onStartup.addListener(startBridge);
 chrome.action.onClicked.addListener(startBridge);
@@ -227,25 +225,4 @@ async function reloadExtension(payload = {}) {
     reloading: true,
     message: 'Codex Chrome Bridge extension reload requested',
   };
-}
-
-async function traceStart(payload) {
-  requireConfirmed(payload, 'traceStart');
-  const tab = await getTargetTab(payload);
-  return startTraceForTab(tab, payload);
-}
-
-async function traceEvents(payload) {
-  const tab = await getTargetTab(payload);
-  return traceEventsForTab(tab, payload);
-}
-
-async function traceSummaryCommand(payload) {
-  const tab = await getTargetTab(payload);
-  return traceSummaryForTab(tab.id, tab);
-}
-
-async function traceStop(payload) {
-  const tab = await getTargetTab(payload);
-  return stopTraceForTab(tab, payload);
 }

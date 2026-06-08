@@ -653,7 +653,7 @@ check(
     && functionBlock(userPromptsText, 'completeUserPrompt').includes('closeTabsWithGroupPersistenceMitigation([prompt.tabId], { ignoreMissing: true })'),
   'extension user prompt module must keep ungroup-before-close cleanup mitigation',
 );
-check(backgroundText.includes("from './workspace-tabs.js';"), 'extension background must import workspace tab helpers from extension/workspace-tabs.js');
+check(navigationActionsText.includes("from './workspace-tabs.js';") && pageInteractionsText.includes("from './workspace-tabs.js';") && traceActionsText.includes("from './workspace-tabs.js';"), 'extension action modules must import workspace tab helpers from extension/workspace-tabs.js');
 for (const helperName of ['storageGet', 'storageSet', 'storageRemove', 'getTargetTab', 'getStoredCodexGroup', 'getCodexGroupTabs', 'ensureCodexGroupForTab', 'assertCodexScopedTab']) {
   check(!functionBlock(backgroundText, helperName), `extension background must not own workspace tab helper internals: ${helperName}`);
 }

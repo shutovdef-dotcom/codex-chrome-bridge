@@ -467,7 +467,7 @@ async function selfTest() {
     { label: 'extension module', item: 'user prompt exports', ok: userPrompts.includes('export async function askUser') && userPrompts.includes('export function completeUserPrompt') },
     { label: 'extension module', item: 'workspace policy imports', ok: navigationActions.includes("from './workspace-policy.js'") },
     { label: 'extension module', item: 'workspace policy exports', ok: workspacePolicy.includes('export async function groupOptions') },
-    { label: 'extension module', item: 'workspace tabs imports', ok: background.includes("from './workspace-tabs.js'") },
+    { label: 'extension module', item: 'workspace tabs imports', ok: navigationActions.includes("from './workspace-tabs.js'") && pageInteractions.includes("from './workspace-tabs.js'") && traceActions.includes("from './workspace-tabs.js'") },
     { label: 'extension module', item: 'workspace tabs exports', ok: workspaceTabs.includes('export async function getTargetTab') && workspaceTabs.includes('export async function ensureCodexGroupForTab') },
     { label: 'registry version', item: EXPECTED_EXTENSION_VERSION, ok: registry.includes(`BRIDGE_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
     { label: 'server registry version', item: EXPECTED_EXTENSION_VERSION, ok: server.includes('BRIDGE_VERSION') },
