@@ -87,6 +87,14 @@ function parseLocalCliJson(stdout) {
   }
 }
 
+async function localCliText(command) {
+  const result = await execFileAsync(process.execPath, [
+    path.join(rootDir, 'bin/chrome-bridge.mjs'),
+    command,
+  ], { timeout: 5_000 });
+  return result.stdout.trimEnd();
+}
+
 async function localSelfTest() {
   try {
     const result = await execFileAsync(process.execPath, [
@@ -383,6 +391,20 @@ server.tool(
     liveChecks: z.boolean().optional(),
   },
   async (args) => textResult(await localDoctor(args)),
+);
+
+server.tool(
+  'chrome_bridge_extension_path',
+  'Return the local unpacked Chrome extension directory path. This is offline and does not contact Chrome or the bridge.',
+  {},
+  async () => textResult(await localCliText('extension-path')),
+);
+
+server.tool(
+  'chrome_bridge_codex_config',
+  'Return a Codex MCP configuration snippet for this local Chrome Bridge server using the current Node executable. This is offline and does not contact Chrome or the bridge.',
+  {},
+  async () => textResult(await localCliText('codex-config')),
 );
 
 server.tool(

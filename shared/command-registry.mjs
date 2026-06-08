@@ -576,7 +576,7 @@ const LOCAL_COMMAND_DOCS = Object.freeze({
     defaultTimeoutMs: 5_000,
     summary: 'Print the unpacked extension directory path.',
     cli: ['extension-path'],
-    mcp: [],
+    mcp: ['chrome_bridge_extension_path'],
     usesLiveBridge: false,
   },
   'codex-config': {
@@ -585,7 +585,7 @@ const LOCAL_COMMAND_DOCS = Object.freeze({
     defaultTimeoutMs: 5_000,
     summary: 'Print a Codex MCP configuration snippet using the current Node executable.',
     cli: ['codex-config'],
-    mcp: [],
+    mcp: ['chrome_bridge_codex_config'],
     usesLiveBridge: false,
   },
 });
@@ -944,6 +944,8 @@ export const MCP_TOOLS = Object.freeze([
   'chrome_bridge_self_test',
   'chrome_bridge_runtime_smoke',
   'chrome_bridge_doctor',
+  'chrome_bridge_extension_path',
+  'chrome_bridge_codex_config',
   'chrome_bridge_windows',
   'chrome_bridge_tabs',
   'chrome_bridge_group',

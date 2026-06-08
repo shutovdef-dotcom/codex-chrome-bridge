@@ -68,6 +68,8 @@ await withMcpClient(async (client) => {
   const tools = await client.listTools();
   const toolNames = new Set((tools.tools || []).map((tool) => tool.name));
   check(toolNames.has('chrome_bridge_doctor'), 'MCP tools list must expose chrome_bridge_doctor');
+  check(toolNames.has('chrome_bridge_extension_path'), 'MCP tools list must expose chrome_bridge_extension_path');
+  check(toolNames.has('chrome_bridge_codex_config'), 'MCP tools list must expose chrome_bridge_codex_config');
   check(toolNames.has('chrome_bridge_command_catalog'), 'MCP tools list must expose chrome_bridge_command_catalog');
 
   const doctorParsed = parseToolJson(await client.callTool({
@@ -93,6 +95,21 @@ await withMcpClient(async (client) => {
   check(Boolean(doctorEntry), 'MCP command catalog must include local doctor command');
   check(doctorEntry?.mcp?.includes('chrome_bridge_doctor'), 'MCP command catalog must map doctor to chrome_bridge_doctor');
   check(doctorEntry?.liveBridge === 'optional', 'MCP command catalog must mark doctor live bridge behavior optional');
+
+  const extensionPath = await client.callTool({
+    name: 'chrome_bridge_extension_path',
+    arguments: {},
+  });
+  const extensionPathText = extensionPath?.content?.find((item) => item?.type === 'text')?.text;
+  check(typeof extensionPathText === 'string' && extensionPathText.endsWith('/extension'), 'MCP extension path tool must return the unpacked extension path');
+
+  const codexConfig = await client.callTool({
+    name: 'chrome_bridge_codex_config',
+    arguments: {},
+  });
+  const codexConfigText = codexConfig?.content?.find((item) => item?.type === 'text')?.text;
+  check(codexConfigText?.includes('[mcp_servers.chrome-bridge]'), 'MCP codex-config tool must return a Codex MCP server section');
+  check(codexConfigText?.includes('mcp/chrome-bridge-mcp.mjs'), 'MCP codex-config tool must point at the local MCP server file');
 });
 
 if (failures.length) {
@@ -102,6 +119,6 @@ if (failures.length) {
 
 process.stdout.write(`${JSON.stringify({
   ok: true,
-  checkedTools: ['chrome_bridge_doctor', 'chrome_bridge_command_catalog'],
+  checkedTools: ['chrome_bridge_doctor', 'chrome_bridge_extension_path', 'chrome_bridge_codex_config', 'chrome_bridge_command_catalog'],
   doctorOfflineByDefault: true,
 }, null, 2)}\n`);
