@@ -521,11 +521,15 @@ for (const smokeStep of [
   'strict policy rejects outside tab even with allowExternal',
   'session summary covers strict policy',
   'debug bundle default redaction',
+  'cleanup close outside smoke group',
+  'cleanup close smoke tab',
   'clear strict smoke workspace',
 ]) {
   check(runtimeSmokeBlock.includes(smokeStep), `runtime-smoke must cover deferred roadmap step: ${smokeStep}`);
 }
 check(runtimeSmokeBlock.includes("debugBundle({") && runtimeSmokeBlock.includes('readJsonFile'), 'runtime-smoke must inspect debug-bundle files without enabling page artifacts');
+check(runtimeSmokeBlock.includes('assertTabCleanupMitigation'), 'runtime-smoke must assert tab cleanup mitigation metadata');
+check(runtimeSmokeBlock.includes('savedGroupPersistence'), 'runtime-smoke must assert saved tab-group persistence metadata');
 check(debuggerSessionText.includes('const debuggerLocks = new Map()'), 'extension must maintain per-tab debugger locks');
 check(functionBlock(debuggerSessionText, 'withTabLock').includes('debuggerLocks.set(tabId, next)'), 'withTabLock must serialize debugger work per tab');
 check(functionBlock(debuggerSessionText, 'withDebugger').includes('return withTabLock(tabId'), 'withDebugger must run under the per-tab debugger lock');
