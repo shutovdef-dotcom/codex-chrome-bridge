@@ -1043,6 +1043,8 @@ for (const helperName of ['listTabs', 'listWindows', 'ensureCodexTab', 'adoptTab
 }
 check(functionBlock(navigationActionsText, 'openTab').includes('createGroupedTab(payload)'), 'extension navigation actions module must keep grouped new-tab creation path');
 check(functionBlock(navigationActionsText, 'setWorkspace').includes("requireConfirmed(payload, 'setWorkspace')"), 'extension setWorkspace must require confirmation');
+check(functionBlock(navigationActionsText, 'activateTab').includes('waitForActivatedTab(tab.id'), 'extension activateTab must wait for Chrome to report the tab as active');
+check(functionBlock(navigationActionsText, 'waitForActivatedTab').includes('chrome.tabs.get(tabId)') && functionBlock(navigationActionsText, 'waitForActivatedTab').includes('candidate.active'), 'extension activateTab active-state wait helper must poll Chrome tab state');
 check(functionBlock(navigationActionsText, 'closeTab').includes('closeTabsWithGroupPersistenceMitigation([tab])'), 'closeTab must use ungroup-before-close mitigation');
 check(functionBlock(navigationActionsText, 'closeGroup').includes('closeTabsWithGroupPersistenceMitigation(tabs)'), 'closeGroup must use ungroup-before-close mitigation');
 check(pageInteractionsText.includes("import { tabInfo } from './tab-info.js';") && navigationActionsText.includes("import { groupInfo, tabInfo } from './tab-info.js';"), 'extension tab/group serializers must be imported by active extension modules');
