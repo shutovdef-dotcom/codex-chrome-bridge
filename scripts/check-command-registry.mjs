@@ -657,6 +657,7 @@ check(mcpText.includes('liveChecks: z.boolean().optional()'), 'MCP doctor tool m
 check(functionBlock(mcpText, 'localDoctor').includes("if (args.liveChecks) cliArgs.push('--live-checks')"), 'MCP doctor helper must keep live checks behind liveChecks=true');
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpDocsText.includes('chrome_bridge_doctor') && mcpDocsText.includes('liveChecks: true'), 'MCP docs must include doctor liveChecks in the live verification sequence');
+check(mcpText.includes('TAB_GROUP_COLORS') && mcpText.includes('groupColor: z.enum(TAB_GROUP_COLORS).optional()'), 'MCP workspace groupColor schema must use the shared tab group color enum');
 check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
 check(mcpText.includes("if (args.coveragePlan) cliArgs.push('--coverage-plan')"), 'MCP runtime smoke helper must forward coveragePlan to CLI');
 check(mcpText.includes('extension v${BRIDGE_VERSION}'), 'MCP runtime smoke tool description must derive the required extension version from BRIDGE_VERSION');
