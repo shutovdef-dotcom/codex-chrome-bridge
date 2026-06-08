@@ -38,6 +38,7 @@ const [
   keyboardEventsText,
   offscreenLifecycleText,
   pageExecutionText,
+  pageArtifactsText,
   pageReadActionsText,
   pageScriptsText,
   safetyGatesText,
@@ -62,6 +63,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/keyboard-events.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-execution.js'), 'utf8').catch(() => ''),
+  fs.readFile(path.join(rootDir, 'extension/page-artifacts.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-read-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
@@ -174,6 +176,7 @@ for (const requiredPackageFile of [
   'extension/page-scripts.js',
   'extension/offscreen-lifecycle.js',
   'extension/page-execution.js',
+  'extension/page-artifacts.js',
   'extension/page-read-actions.js',
   'extension/tab-cleanup.js',
   'extension/safety-gates.js',
@@ -641,6 +644,15 @@ check(!functionBlock(backgroundText, 'execute'), 'extension background must not 
 check(pageExecutionText.includes('export async function execute'), 'extension page execution module must export execute');
 check(functionBlock(pageExecutionText, 'execute').includes('chrome.scripting.executeScript'), 'extension page execution module must own chrome.scripting execution');
 check(functionBlock(pageExecutionText, 'execute').includes("world: options.world || 'ISOLATED'"), 'extension page execution module must preserve isolated-world default');
+check(backgroundText.includes("from './page-artifacts.js';"), 'extension background must import page artifact actions from extension/page-artifacts.js');
+for (const helperName of ['screenshot', 'printPdf']) {
+  check(!functionBlock(backgroundText, helperName), `extension background must not own page artifact action internals: ${helperName}`);
+  check(pageArtifactsText.includes(`export async function ${helperName}`), `extension page artifacts module must export ${helperName}`);
+}
+check(functionBlock(pageArtifactsText, 'screenshot').includes('chrome.tabs.captureVisibleTab'), 'extension page artifacts module must own viewport screenshot capture');
+check(functionBlock(pageArtifactsText, 'screenshot').includes('Page.captureScreenshot'), 'extension page artifacts module must own debugger screenshot capture');
+check(functionBlock(pageArtifactsText, 'screenshot').includes('setTimeout'), 'extension page artifacts module must own viewport capture delay');
+check(functionBlock(pageArtifactsText, 'printPdf').includes('Page.printToPDF'), 'extension page artifacts module must own PDF printing');
 check(backgroundText.includes("from './page-read-actions.js';"), 'extension background must import page read actions from extension/page-read-actions.js');
 for (const helperName of ['waitForSelector', 'observe', 'findElements', 'elementFilters', 'extractPage', 'snapshot', 'pageText', 'pageHTML', 'listSelectOptions', 'storageSnapshot']) {
   check(!functionBlock(backgroundText, helperName), `extension background must not own page read action internals: ${helperName}`);
