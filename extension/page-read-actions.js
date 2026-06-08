@@ -1,0 +1,87 @@
+import {
+  collectExtract,
+  collectHTML,
+  collectObserve,
+  collectSnapshot,
+  collectStorageSnapshot,
+  collectText,
+  listSelectOptionsInPage,
+  waitForSelectorInPage,
+} from './page-scripts.js';
+import { execute } from './page-execution.js';
+import { requireConfirmed, requireSensitiveConfirmed } from './safety-gates.js';
+import { tabInfo } from './tab-info.js';
+import { getTargetTab } from './workspace-tabs.js';
+
+export async function waitForSelector(payload) {
+  if (!payload.selector) throw new Error('waitForSelector requires selector');
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, waitForSelectorInPage, [{
+    selector: payload.selector,
+    timeoutMs: Number(payload.timeoutMs || 10_000),
+    visible: payload.visible !== false,
+  }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+export async function observe(payload) {
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectObserve, [payload]);
+  return { tab: tabInfo(tab), ...result };
+}
+
+export async function findElements(payload) {
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectObserve, [payload]);
+  return { tab: tabInfo(tab), ...result, filters: elementFilters(payload) };
+}
+
+function elementFilters(payload = {}) {
+  return Object.fromEntries(['role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk']
+    .filter((key) => payload[key] !== undefined)
+    .map((key) => [key, payload[key]]));
+}
+
+export async function extractPage(payload) {
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectExtract, [payload]);
+  return { tab: tabInfo(tab), ...result };
+}
+
+export async function snapshot(payload) {
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectSnapshot, [payload]);
+  return { tab: tabInfo(tab), ...result };
+}
+
+export async function pageText(payload) {
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectText, [payload]);
+  return { tab: tabInfo(tab), ...result };
+}
+
+export async function pageHTML(payload) {
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectHTML, [payload]);
+  return { tab: tabInfo(tab), ...result };
+}
+
+export async function listSelectOptions(payload) {
+  if (!payload.selector) throw new Error('listSelectOptions requires selector');
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, listSelectOptionsInPage, [{
+    selector: payload.selector,
+  }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+}
+
+export async function storageSnapshot(payload) {
+  requireConfirmed(payload, 'storageSnapshot');
+  if (payload.includeValues) requireSensitiveConfirmed(payload, 'storageSnapshot includeValues');
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectStorageSnapshot, [{
+    includeValues: Boolean(payload.includeValues),
+    maxValueChars: Math.min(Math.max(Number(payload.maxValueChars || 500), 50), 5_000),
+  }]);
+  return { tab: tabInfo(tab), ...result };
+}

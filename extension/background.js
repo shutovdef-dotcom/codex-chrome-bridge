@@ -1,22 +1,25 @@
 import {
   clickAtInPage,
-  collectExtract,
-  collectHTML,
-  collectObserve,
-  collectSnapshot,
-  collectStorageSnapshot,
-  collectText,
   elementClipForSelector,
   fillFormInPage,
   hoverInPage,
-  listSelectOptionsInPage,
   pressKeyInPage,
   selectOptionInPage,
-  waitForSelectorInPage,
 } from './page-scripts.js';
 import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js';
 import { startBridge } from './offscreen-lifecycle.js';
 import { execute } from './page-execution.js';
+import {
+  extractPage,
+  findElements,
+  listSelectOptions,
+  observe,
+  pageHTML,
+  pageText,
+  snapshot,
+  storageSnapshot,
+  waitForSelector,
+} from './page-read-actions.js';
 import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';
 import { groupInfo, tabInfo } from './tab-info.js';
 import { waitForTabComplete } from './tab-loading.js';
@@ -499,17 +502,6 @@ async function reloadTab(payload) {
   return tabInfo(loaded);
 }
 
-async function waitForSelector(payload) {
-  if (!payload.selector) throw new Error('waitForSelector requires selector');
-  const tab = await getTargetTab(payload);
-  const result = await execute(tab.id, waitForSelectorInPage, [{
-    selector: payload.selector,
-    timeoutMs: Number(payload.timeoutMs || 10_000),
-    visible: payload.visible !== false,
-  }]);
-  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
-}
-
 async function traceStart(payload) {
   requireConfirmed(payload, 'traceStart');
   const tab = await getTargetTab(payload);
@@ -529,48 +521,6 @@ async function traceSummaryCommand(payload) {
 async function traceStop(payload) {
   const tab = await getTargetTab(payload);
   return stopTraceForTab(tab, payload);
-}
-
-async function observe(payload) {
-  const tab = await getTargetTab(payload);
-  const result = await execute(tab.id, collectObserve, [payload]);
-  return { tab: tabInfo(tab), ...result };
-}
-
-async function findElements(payload) {
-  const tab = await getTargetTab(payload);
-  const result = await execute(tab.id, collectObserve, [payload]);
-  return { tab: tabInfo(tab), ...result, filters: elementFilters(payload) };
-}
-
-function elementFilters(payload = {}) {
-  return Object.fromEntries(['role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk']
-    .filter((key) => payload[key] !== undefined)
-    .map((key) => [key, payload[key]]));
-}
-
-async function extractPage(payload) {
-  const tab = await getTargetTab(payload);
-  const result = await execute(tab.id, collectExtract, [payload]);
-  return { tab: tabInfo(tab), ...result };
-}
-
-async function snapshot(payload) {
-  const tab = await getTargetTab(payload);
-  const result = await execute(tab.id, collectSnapshot, [payload]);
-  return { tab: tabInfo(tab), ...result };
-}
-
-async function pageText(payload) {
-  const tab = await getTargetTab(payload);
-  const result = await execute(tab.id, collectText, [payload]);
-  return { tab: tabInfo(tab), ...result };
-}
-
-async function pageHTML(payload) {
-  const tab = await getTargetTab(payload);
-  const result = await execute(tab.id, collectHTML, [payload]);
-  return { tab: tabInfo(tab), ...result };
 }
 
 async function screenshot(payload) {
@@ -805,15 +755,6 @@ async function selectOption(payload) {
   return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
 }
 
-async function listSelectOptions(payload) {
-  if (!payload.selector) throw new Error('listSelectOptions requires selector');
-  const tab = await getTargetTab(payload);
-  const result = await execute(tab.id, listSelectOptionsInPage, [{
-    selector: payload.selector,
-  }]);
-  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
-}
-
 async function fillForm(payload) {
   const dryRun = payload.dryRun !== false;
   if (!dryRun) requireConfirmed(payload, 'fillForm');
@@ -875,15 +816,4 @@ async function uploadFile(payload) {
       tab: tabInfo(await chrome.tabs.get(tab.id)),
     };
   });
-}
-
-async function storageSnapshot(payload) {
-  requireConfirmed(payload, 'storageSnapshot');
-  if (payload.includeValues) requireSensitiveConfirmed(payload, 'storageSnapshot includeValues');
-  const tab = await getTargetTab(payload);
-  const result = await execute(tab.id, collectStorageSnapshot, [{
-    includeValues: Boolean(payload.includeValues),
-    maxValueChars: Math.min(Math.max(Number(payload.maxValueChars || 500), 50), 5_000),
-  }]);
-  return { tab: tabInfo(tab), ...result };
 }
