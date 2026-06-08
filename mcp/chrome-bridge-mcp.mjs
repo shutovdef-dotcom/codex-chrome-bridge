@@ -10,6 +10,7 @@ import { z } from 'zod';
 import {
   BRIDGE_VERSION,
   HTTP_METHODS,
+  TAB_GROUP_COLORS,
   commandCatalog,
   commandDefaultTimeoutMs,
 } from '../shared/command-registry.mjs';
@@ -453,7 +454,7 @@ server.tool(
   {
     name: z.string().optional(),
     groupTitle: z.string().optional(),
-    groupColor: z.string().optional(),
+    groupColor: z.enum(TAB_GROUP_COLORS).optional(),
     policyMode: z.enum(['scoped', 'strict']).optional(),
     confirmed: z.boolean(),
   },
