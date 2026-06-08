@@ -14,28 +14,37 @@ const logsDir = path.join(os.homedir(), 'Library/Logs/CodexChromeBridge');
 const plistPath = path.join(launchAgentsDir, `${label}.plist`);
 const nodePath = process.execPath;
 
+function plistString(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
+}
+
 const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>${label}</string>
+  <string>${plistString(label)}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>${nodePath}</string>
-    <string>${path.join(rootDir, 'bin/chrome-bridge.mjs')}</string>
+    <string>${plistString(nodePath)}</string>
+    <string>${plistString(path.join(rootDir, 'bin/chrome-bridge.mjs'))}</string>
     <string>server</string>
   </array>
   <key>WorkingDirectory</key>
-  <string>${rootDir}</string>
+  <string>${plistString(rootDir)}</string>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
   <true/>
   <key>StandardOutPath</key>
-  <string>${path.join(logsDir, 'stdout.log')}</string>
+  <string>${plistString(path.join(logsDir, 'stdout.log'))}</string>
   <key>StandardErrorPath</key>
-  <string>${path.join(logsDir, 'stderr.log')}</string>
+  <string>${plistString(path.join(logsDir, 'stderr.log'))}</string>
 </dict>
 </plist>
 `;
@@ -52,4 +61,3 @@ await execFileAsync('launchctl', ['kickstart', '-k', `${domain}/${label}`]);
 process.stdout.write(`Installed ${label}\n`);
 process.stdout.write(`Plist: ${plistPath}\n`);
 process.stdout.write(`Logs: ${logsDir}\n`);
-
