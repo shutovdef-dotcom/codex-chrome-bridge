@@ -177,6 +177,24 @@ function mcpToolBlock(name) {
   return mcpText.slice(start, next < 0 ? undefined : next);
 }
 
+function cliCommandBlock(command) {
+  const marker = `if (cmd === '${command}')`;
+  const start = cliText.indexOf(marker);
+  if (start < 0) return '';
+  const braceStart = cliText.indexOf('{', start);
+  if (braceStart < 0) return '';
+  let depth = 0;
+  for (let index = braceStart; index < cliText.length; index += 1) {
+    const char = cliText[index];
+    if (char === '{') depth += 1;
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) return cliText.slice(start, index + 1);
+    }
+  }
+  return '';
+}
+
 uniqueValues(MANIFEST_PERMISSIONS, 'manifest permissions');
 uniqueValues(EXTENSION_ACTIONS, 'extension actions');
 uniqueValues(CLI_COMMANDS, 'CLI commands');
@@ -363,6 +381,23 @@ for (const command of CLI_COMMANDS) {
 check(cliUsageBlock.includes('CLI_USAGE_LINES'), 'CLI usage() must be derived from registry CLI_USAGE_LINES');
 check(cliUsageLineForCommand('open').includes('--allow-external'), 'CLI open usage must document the supported --allow-external flag');
 check(cliUsageLineForCommand('doctor').includes('--live-checks'), 'CLI doctor usage must document explicit live checks');
+for (const [action, command] of [
+  ['windows', 'windows'],
+  ['tabs', 'tabs'],
+  ['group', 'group'],
+  ['ensureTab', 'ensure-tab'],
+  ['adoptTab', 'adopt-tab'],
+  ['open', 'open'],
+  ['closeGroup', 'close-group'],
+]) {
+  const usageLine = cliUsageLineForCommand(command);
+  const block = cliCommandBlock(command);
+  check(COMMAND_PAYLOAD_SCHEMAS[action].includes('groupTitle'), `${action} schema must allow groupTitle for scoped group overrides`);
+  check(COMMAND_PAYLOAD_SCHEMAS[action].includes('groupColor'), `${action} schema must allow groupColor for scoped group overrides`);
+  check(usageLine.includes('--group-title <title>'), `${command} usage must document --group-title`);
+  check(usageLine.includes('--group-color <color>'), `${command} usage must document --group-color`);
+  check(block.includes('...groupScopePayload(args)'), `${command} CLI command must pass group scope overrides to ${action}`);
+}
 for (const tool of MCP_TOOLS) {
   check(catalogMcpTools.has(tool), `MCP tool is not represented in any catalog metadata: ${tool}`);
 }
