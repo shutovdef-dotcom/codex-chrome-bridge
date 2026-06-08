@@ -41,11 +41,11 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 
 `check:roadmap` verifies the merged Phase 0-4 roadmap against registry metadata, source boundaries, docs, and the offline runtime-smoke coverage plan without touching Chrome.
 
-`check:cli-local-tools` exercises CLI setup diagnostics and command-catalog output against a dead bridge URL, proving those local commands stay offline by default. It also runs `doctor --live-checks` against a fake `/health` server and fake `osascript` binary to prove live doctor reports current bridge-server version metadata without touching Chrome, and verifies `session-summary` stale-bridge recommendations against a fake bridge.
+`check:cli-local-tools` exercises CLI setup diagnostics and command-catalog output against a dead bridge URL, proving those local commands stay offline by default. It also runs `doctor --live-checks` against a fake `/health` server and fake `osascript` binary to prove live doctor reports current bridge-server version metadata without touching Chrome, verifies `session-summary` stale-bridge recommendations against a fake bridge, and verifies CLI group scope payload forwarding for scoped group commands against a fake `/command` bridge.
 
 `check:mcp-runtime-smoke` starts the MCP server over stdio against fake bridge URLs, calls `chrome_bridge_runtime_smoke`, and verifies coverage-plan plus stale-extension/stale-bridge metadata, structured JSON output, and CLI-exit preservation stay intact for MCP clients without touching Chrome.
 
-`check:mcp-local-tools` starts the MCP server over stdio, calls local diagnostic tools such as `chrome_bridge_doctor`, and verifies they remain offline by default. It also mirrors the fake live doctor bridge-version and fake stale-bridge session-summary checks through MCP so CLI and MCP upgrade diagnostics stay in parity without touching Chrome.
+`check:mcp-local-tools` starts the MCP server over stdio, calls local diagnostic tools such as `chrome_bridge_doctor`, and verifies they remain offline by default. It also mirrors the fake live doctor bridge-version and fake stale-bridge session-summary checks through MCP, and verifies MCP group scope payload forwarding for scoped group tools against a fake `/command` bridge so CLI and MCP upgrade diagnostics stay in parity without touching Chrome.
 
 `check:tab-group-persistence` runs the extension tab-group persistence and cleanup modules against fake Chrome APIs, proving managed group listeners, saved-group disablement, removal metadata, fake saved closed group chips prevention, and stale membership cleanup without touching Chrome.
 
