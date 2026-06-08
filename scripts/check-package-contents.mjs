@@ -17,6 +17,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'extension/keyboard-events.js',
   'extension/offscreen.js',
   'extension/offscreen-lifecycle.js',
+  'extension/page-execution.js',
   'extension/page-scripts.js',
   'extension/safety-gates.js',
   'extension/tab-cleanup.js',

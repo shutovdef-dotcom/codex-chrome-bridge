@@ -37,6 +37,7 @@ const [
   extensionErrorsText,
   keyboardEventsText,
   offscreenLifecycleText,
+  pageExecutionText,
   pageScriptsText,
   safetyGatesText,
   tabCleanupText,
@@ -59,6 +60,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/extension-errors.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/keyboard-events.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/page-execution.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
@@ -169,6 +171,7 @@ for (const requiredPackageFile of [
   'extension/extension-errors.js',
   'extension/page-scripts.js',
   'extension/offscreen-lifecycle.js',
+  'extension/page-execution.js',
   'extension/tab-cleanup.js',
   'extension/safety-gates.js',
   'extension/workspace-policy.js',
@@ -630,6 +633,11 @@ check(!backgroundText.includes('function ensureOffscreen'), 'extension backgroun
 check(!backgroundText.includes('async function startBridge'), 'extension background must not own offscreen lifecycle internals');
 check(functionBlock(offscreenLifecycleText, 'ensureOffscreen').includes('chrome.offscreen.createDocument'), 'offscreen lifecycle module must create the offscreen document');
 check(functionBlock(offscreenLifecycleText, 'startBridge').includes('ensureOffscreen'), 'offscreen lifecycle module must export startup retry helper');
+check(backgroundText.includes("import { execute } from './page-execution.js';"), 'extension background must import page execution helper from extension/page-execution.js');
+check(!functionBlock(backgroundText, 'execute'), 'extension background must not own page execution helper internals');
+check(pageExecutionText.includes('export async function execute'), 'extension page execution module must export execute');
+check(functionBlock(pageExecutionText, 'execute').includes('chrome.scripting.executeScript'), 'extension page execution module must own chrome.scripting execution');
+check(functionBlock(pageExecutionText, 'execute').includes("world: options.world || 'ISOLATED'"), 'extension page execution module must preserve isolated-world default');
 check(backgroundText.includes("import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';"), 'extension background must import tab cleanup helper from extension/tab-cleanup.js');
 check(!backgroundText.includes('function tabIdForClose'), 'extension background must not own tab cleanup helper internals');
 check(!backgroundText.includes('async function closeTabsWithGroupPersistenceMitigation'), 'extension background must not own tab cleanup helper internals');
