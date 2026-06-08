@@ -1069,6 +1069,8 @@ check(tabGroupPersistenceText.includes('BRIDGE_MANAGED_TITLE_PREFIXES'), 'extens
 check(functionBlock(tabGroupPersistenceText, 'isManagedCodexGroup').includes('isBridgeManagedTitle(title)'), 'extension tab-group persistence managed-group guard must recognize Codex Bridge session title families');
 check(tabGroupPersistenceText.includes('codexManagedGroupTitles'), 'extension tab-group persistence startup sweep must include remembered bridge-created workspace titles');
 check(workspaceTabsText.includes('codexManagedGroupTitles'), 'extension workspace grouping must remember bridge-created workspace titles for future sweeps');
+check(tabGroupPersistenceText.includes('codexManagedGroupIds'), 'extension tab-group persistence must include session-scoped managed group ids');
+check(workspaceTabsText.includes('chrome.storage.session') && workspaceTabsText.includes('codexManagedGroupIds'), 'extension workspace grouping must remember managed group ids in session storage only');
 const tabGroupPersistenceListenersBlock = functionBlock(tabGroupPersistenceText, 'installTabGroupPersistenceListeners');
 check(tabGroupPersistenceListenersBlock.includes('chrome.tabGroups.onCreated'), 'extension tab-group persistence listeners must watch created Codex groups');
 check(tabGroupPersistenceListenersBlock.includes('chrome.tabGroups.onUpdated'), 'extension tab-group persistence listeners must watch updated Codex groups');

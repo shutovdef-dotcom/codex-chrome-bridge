@@ -47,6 +47,14 @@ function createFakeChrome() {
           const result = {};
           for (const key of keys) {
             if (key === 'codexManagedGroupTitles') result[key] = ['Codex Bridge Session A'];
+          }
+          return result;
+        },
+      },
+      session: {
+        async get(keys) {
+          const result = {};
+          for (const key of keys) {
             if (key === 'codexManagedGroupIds') result[key] = [404];
           }
           return result;

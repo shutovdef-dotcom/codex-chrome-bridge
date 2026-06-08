@@ -15,6 +15,7 @@
 - Added `check:roadmap` to verify merged Phase 0-4 roadmap coverage against registry, source, docs, and offline runtime-smoke coverage metadata without touching Chrome.
 - Added a background startup sweep plus tab-group create/update listeners so managed `Codex Bridge` groups are automatically marked unsaved when Chrome exposes saved-tab-group API support, reducing future saved closed group chips beyond command-driven cleanup.
 - Broadened saved tab-group persistence mitigation so startup sweeps and tab-group listeners treat `Codex Bridge ...` session titles plus remembered bridge-created workspace titles as managed groups.
+- Added session-scoped remembered group IDs so future custom bridge-created session groups stay covered by saved closed tab-group chip mitigation even when their titles do not start with `Codex Bridge`.
 - Added tab-group removal and tab membership listeners so bridge-owned groups are remembered, re-marked unsaved on best-effort lifecycle events, and forgotten when removed instead of leaving stale managed membership behind.
 - Added `check:tab-group-persistence` to exercise managed tab-group lifecycle behavior against fake Chrome APIs without touching the live browser.
 - Made `runtime-smoke --coverage-plan` report the full deferred live verification sequence, including confirmed extension reload and `doctor --live-checks`, without touching Chrome.

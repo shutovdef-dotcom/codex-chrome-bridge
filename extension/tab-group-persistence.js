@@ -25,6 +25,11 @@ function titleSet(values) {
   return new Set(values.map(normalizedString).filter(Boolean));
 }
 
+async function storageSessionGet(keys) {
+  if (!chrome.storage?.session?.get) return {};
+  return chrome.storage.session.get(keys);
+}
+
 function isBridgeManagedTitle(title) {
   const normalized = normalizedString(title);
   return normalized === DEFAULT_GROUP_TITLE
@@ -97,19 +102,28 @@ export async function disableSavedTabGroupsForTabs(tabs = []) {
 }
 
 async function managedGroupContext() {
-  const stored = await chrome.storage.local.get([
-    'codexGroupId',
-    'codexGroupTitle',
-    'codexManagedGroupTitles',
-    'codexWorkspaceGroupTitle',
-  ]).catch(() => ({}));
-  const options = await groupOptions().catch(() => ({ title: DEFAULT_GROUP_TITLE }));
+  const [stored, sessionStored] = await Promise.all([
+    chrome.storage.local.get([
+      'codexGroupId',
+      'codexGroupTitle',
+      'codexManagedGroupTitles',
+      'codexWorkspaceGroupTitle',
+    ]).catch(() => ({})),
+    storageSessionGet([
+      'codexManagedGroupIds',
+    ]).catch(() => ({})),
+  ]);
+  const managedGroupIds = Array.isArray(sessionStored.codexManagedGroupIds)
+    ? sessionStored.codexManagedGroupIds
+    : [];
   const rememberedTitles = Array.isArray(stored.codexManagedGroupTitles)
     ? stored.codexManagedGroupTitles
     : [];
+  const options = await groupOptions().catch(() => ({ title: DEFAULT_GROUP_TITLE }));
 
   return {
-    groupIds: integerSet([stored.codexGroupId]),
+    localGroupIds: integerSet([stored.codexGroupId]),
+    sessionGroupIds: integerSet(managedGroupIds),
     groupTitles: titleSet([
       DEFAULT_GROUP_TITLE,
       ...rememberedTitles,
@@ -125,7 +139,8 @@ async function isManagedCodexGroup(group) {
   const context = await managedGroupContext();
   const title = normalizedString(group.title);
   if (context.groupTitles.has(title) || isBridgeManagedTitle(title)) return true;
-  return !title && context.groupIds.has(group.id);
+  if (context.sessionGroupIds.has(group.id)) return true;
+  return !title && context.localGroupIds.has(group.id);
 }
 
 function rememberManagedTab(tab, group) {

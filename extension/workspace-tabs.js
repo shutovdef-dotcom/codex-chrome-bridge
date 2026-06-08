@@ -16,6 +16,16 @@ export async function storageSet(values) {
   return chrome.storage.local.set(values);
 }
 
+async function storageSessionGet(keys) {
+  if (!chrome.storage?.session?.get) return {};
+  return chrome.storage.session.get(keys);
+}
+
+async function storageSessionSet(values) {
+  if (!chrome.storage?.session?.set) return;
+  await chrome.storage.session.set(values);
+}
+
 export async function storageRemove(keys) {
   return chrome.storage.local.remove(keys);
 }
@@ -32,6 +42,15 @@ async function rememberedManagedGroupTitles(title) {
     : [];
   const titles = [...existing, normalized].map(normalizedTitle).filter(Boolean);
   return [...new Set(titles)].slice(-32);
+}
+
+async function rememberedManagedGroupIds(groupId) {
+  const stored = await storageSessionGet(['codexManagedGroupIds']).catch(() => ({}));
+  const existing = Array.isArray(stored.codexManagedGroupIds)
+    ? stored.codexManagedGroupIds
+    : [];
+  const ids = [...existing, groupId].filter((value) => Number.isInteger(value) && value >= 0);
+  return [...new Set(ids)].slice(-128);
 }
 
 async function getStoredCodexTab(payload = {}) {
@@ -169,6 +188,7 @@ export async function ensureCodexGroupForTab(tab, payload = {}) {
   });
   await disableSavedTabGroupIfSupported(group);
   const codexManagedGroupTitles = await rememberedManagedGroupTitles(options.title);
+  const codexManagedGroupIds = await rememberedManagedGroupIds(group.id);
 
   await storageSet({
     codexGroupId: group.id,
@@ -179,6 +199,7 @@ export async function ensureCodexGroupForTab(tab, payload = {}) {
     codexTabId: tab.id,
     codexWindowId: tab.windowId,
   });
+  await storageSessionSet({ codexManagedGroupIds });
 
   return group;
 }
