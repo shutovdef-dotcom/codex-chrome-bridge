@@ -236,6 +236,7 @@ check(mcpRuntimeSmokeCheckerText.includes('chrome_bridge_runtime_smoke') && mcpR
 check(mcpLocalToolsCheckerText.includes('chrome_bridge_command_catalog') && mcpLocalToolsCheckerText.includes('unexpected MCP tool'), 'Deferred verification must cover MCP local tools and listTools parity');
 check(tabGroupPersistenceCheckerText.includes('createFakeChrome') && tabGroupPersistenceCheckerText.includes('savedGroupPersistence'), 'Deferred verification must cover tab-group persistence lifecycle with fake Chrome APIs');
 check(roadmapText.includes('Deferred Runtime Verification') && publishingText.includes('verification.status: "passed"'), 'Deferred live runtime verification criteria must be documented');
+check(roadmapText.includes('top-level `nextCommand` / `nextAction`'), 'Deferred runtime roadmap must document top-level recovery metadata');
 check(roadmapText.includes('verification.nextCommand') && roadmapText.includes('verification.nextAction'), 'Deferred runtime roadmap must document contextual next recovery metadata');
 check(roadmapText.includes('verification.finalCommands') && roadmapText.includes('verification.finalMcpCalls'), 'Deferred runtime roadmap must document final CLI/MCP recovery metadata');
 check(roadmapText.includes('chrome-bridge reload-extension --confirm'), 'Deferred runtime roadmap must document the exact extension reload command');
@@ -250,6 +251,8 @@ if (coveragePlan) {
   check(coveragePlan.liveBridge === false, 'offline coverage plan must not touch the live bridge');
   check(coveragePlan.verification?.status === 'not-run', 'offline coverage plan must not claim live verification');
   check(coveragePlan.verification?.liveVerificationRequired === true, 'offline coverage plan must require final live verification');
+  check(coveragePlan.nextCommand === 'chrome-bridge reload-extension --confirm', 'offline coverage plan must include top-level first recovery command');
+  check(coveragePlan.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'), 'offline coverage plan must include top-level first recovery action');
   check(coveragePlan.verification?.nextCommand === 'chrome-bridge reload-extension --confirm', 'offline coverage plan must include the first recovery command');
   check(coveragePlan.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'), 'offline coverage plan must include the first recovery action');
   check(coveragePlan.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'), 'offline coverage plan must include final live CLI commands');
@@ -286,6 +289,6 @@ process.stdout.write(`${JSON.stringify({
   phases: 5,
   liveBridge: false,
   runtimeSmokeDeferred: true,
-  recoveryMetadata: Boolean(coveragePlan?.verification?.nextCommand && coveragePlan?.verification?.finalMcpCalls?.length),
+  recoveryMetadata: Boolean(coveragePlan?.nextCommand && coveragePlan?.nextAction && coveragePlan?.verification?.nextCommand && coveragePlan?.verification?.finalMcpCalls?.length),
   requiredLiveCoverageCount: coveragePlan?.coverage?.requiredCount || null,
 }, null, 2)}\n`);
