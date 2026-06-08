@@ -993,8 +993,55 @@ export const MCP_TOOLS = Object.freeze([
 export const GENERATED_MCP_TOOLS_BEGIN = '<!-- BEGIN GENERATED MCP TOOLS -->';
 export const GENERATED_MCP_TOOLS_END = '<!-- END GENERATED MCP TOOLS -->';
 
+function mcpToolMetadata(tool) {
+  const action = COMMAND_CATALOG.find((entry) => entry.mcp.includes(tool));
+  if (action) {
+    return {
+      tool,
+      contract: action.action,
+      riskTier: action.riskTier,
+      defaultTimeoutMs: action.defaultTimeoutMs,
+      confirm: formatConfirmation(action),
+      liveBridge: 'yes',
+      summary: action.summary,
+    };
+  }
+
+  const localCommand = LOCAL_COMMAND_CATALOG.find((entry) => entry.mcp.includes(tool));
+  if (localCommand) {
+    return {
+      tool,
+      contract: localCommand.id,
+      riskTier: localCommand.riskTier,
+      defaultTimeoutMs: localCommand.defaultTimeoutMs,
+      confirm: 'no',
+      liveBridge: localCommand.liveBridge,
+      summary: localCommand.summary,
+    };
+  }
+
+  throw new Error(`Missing MCP metadata for tool: ${tool}`);
+}
+
 export function mcpToolReferenceMarkdown() {
-  return MCP_TOOLS.map((tool) => `- \`${tool}\``).join('\n');
+  const rows = MCP_TOOLS.map((tool) => {
+    const entry = mcpToolMetadata(tool);
+    return `| ${[
+      `\`${entry.tool}\``,
+      `\`${entry.contract}\``,
+      entry.riskTier,
+      formatTimeoutMs(entry.defaultTimeoutMs),
+      entry.confirm,
+      entry.liveBridge,
+      entry.summary,
+    ].map(tableCell).join(' | ')} |`;
+  });
+
+  return [
+    '| Tool | Contract | Risk | Default Timeout | Confirm | Live Bridge | Summary |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+    ...rows,
+  ].join('\n');
 }
 
 export function generatedMcpToolsBlock() {

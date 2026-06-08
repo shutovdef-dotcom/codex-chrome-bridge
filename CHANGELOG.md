@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Expanded the generated MCP reference block from a plain tool list into a registry-derived table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
 - Ungroup bridge-owned tabs before closing them in `close-tab`, `close-group`, prompt cleanup, and runtime smoke cleanup so Chrome does not create new saved closed `Codex Bridge` group chips.
 - Added `adopt-tab` / `chrome_bridge_adopt_tab` to pull an already-open Chrome tab into the scoped `Codex Bridge` group with explicit confirmation.
 - Added `pdf` / `chrome_bridge_pdf` to export the selected real Chrome tab as a PDF.
@@ -29,7 +30,7 @@
 - Expanded generated command catalog Markdown with default timeouts and payload keys so agent-facing docs match the registry metadata.
 - Expanded generated command catalog Markdown with registry-owned CLI usage signatures and made CLI `--help` derive from the same registry.
 - Made the CLI reference usage blocks generated from registry-owned CLI usage groups.
-- Made the MCP reference tool list a generated block derived from the shared registry.
+- Made the MCP reference tool block generated from the shared registry.
 - Clarified generated command catalog payload-key metadata as direct `/command` payload keys so MCP agents do not confuse it with MCP argument schemas.
 - Fixed the generated `open` CLI usage signature to document its supported `--allow-external` flag.
 - Added `npm run check:registry` to verify command registry invariants, package/manifest/registry version and permission parity, complete CLI/MCP catalog coverage, generated catalog drift, and representative payload validation cases.
@@ -37,7 +38,7 @@
 - Added `npm run check:bridge-contract` to verify local bridge boundary behavior without Chrome, including disabled long-poll fallback, unsupported action rejection, malformed JSON/payload/timeout rejection, unsafe host rejection, stale/missing extension-version fail-closed behavior, shutdown cleanup, and extension error code/detail propagation.
 - Hardened extension ingress so WebSocket and optional long-poll extension requests require a `chrome-extension://` origin and contract tests reject missing or non-extension origins.
 - Hardened bridge shutdown so extension WebSockets close cleanly and pending commands fail fast with `BRIDGE_SHUTTING_DOWN`.
-- Added `npm run check:docs` to keep exact CLI usage signatures, generated MCP tool lists, and MCP reference coverage in sync with the shared command registry.
+- Added `npm run check:docs` to keep exact CLI usage signatures, generated MCP tool metadata, and MCP reference coverage in sync with the shared command registry.
 - Added `npm run check:privacy` to scan repository files for local home paths, private-key headers, common provider tokens, and obvious secret assignments.
 - Hardened `npm run check:pack` so it parses the dry-run tarball and verifies required runtime, extension, shared registry, generated docs, and verification files are included.
 - Added registry checks that keep the GitHub Check workflow aligned with the supported Node.js matrix, audit gate, package gate, and no-live-browser CI policy.

@@ -271,10 +271,10 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - derive server, CLI, and MCP default command timeouts from the shared registry
   - derive CLI `--help` usage signatures from the shared registry
   - derive CLI reference usage groups from the shared registry
-  - derive the MCP reference tool list from the shared registry
+  - derive the MCP reference tool table from the shared registry
   - expose the shared command catalog through CLI and MCP for agents that need local risk, timeout, direct payload-key, local diagnostic/tooling command, live-bridge, and confirmation metadata
   - generate `docs/COMMAND-CATALOG.md` from that registry, including CLI usage signatures, and fail self-test on catalog drift
-  - add docs coverage checks so CLI exact usage signatures and MCP generated tool lists cannot silently omit registry-defined commands/tools
+  - add docs coverage checks so CLI exact usage signatures and MCP generated tool metadata cannot silently omit registry-defined commands/tools
   - add dedicated registry and bridge contract checkers for schema uniqueness, package/manifest/registry parity, complete CLI/MCP catalog coverage, payload validation samples, generated catalog drift, local bridge boundary behavior, malformed JSON/oversized-body/timeout handling, shutdown cleanup, and extension error code/detail propagation
   - add static registry checks for debugger-backed action serialization
   - derive the server allowlist and direct `/command` payload validation from that registry
