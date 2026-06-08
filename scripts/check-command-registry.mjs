@@ -530,6 +530,9 @@ for (const smokeStep of [
 check(runtimeSmokeBlock.includes("debugBundle({") && runtimeSmokeBlock.includes('readJsonFile'), 'runtime-smoke must inspect debug-bundle files without enabling page artifacts');
 check(runtimeSmokeBlock.includes('assertTabCleanupMitigation'), 'runtime-smoke must assert tab cleanup mitigation metadata');
 check(runtimeSmokeBlock.includes('savedGroupPersistence'), 'runtime-smoke must assert saved tab-group persistence metadata');
+check(runtimeSmokeBlock.includes('RUNTIME_SMOKE_REQUIRED_COVERAGE'), 'runtime-smoke must declare required coverage names');
+check(runtimeSmokeBlock.includes('const coverage = runtimeSmokeCoverage(steps)'), 'runtime-smoke must compute machine-readable coverage from completed steps');
+check(runtimeSmokeBlock.includes('coverage,'), 'runtime-smoke result must include machine-readable coverage');
 check(debuggerSessionText.includes('const debuggerLocks = new Map()'), 'extension must maintain per-tab debugger locks');
 check(functionBlock(debuggerSessionText, 'withTabLock').includes('debuggerLocks.set(tabId, next)'), 'withTabLock must serialize debugger work per tab');
 check(functionBlock(debuggerSessionText, 'withDebugger').includes('return withTabLock(tabId'), 'withDebugger must run under the per-tab debugger lock');
