@@ -1359,6 +1359,7 @@ async function runtimeSmoke(args = {}) {
   let strictWorkspaceSet = false;
   let debugBundleDir = null;
   let smokeUploadFile = null;
+  let fatalError = null;
   const smokeId = String(Date.now());
   const adoptSourceGroupTitle = `Codex Bridge Smoke Adopt Source ${smokeId}`;
   const strictGroupTitle = `Codex Bridge Smoke Strict ${smokeId}`;
@@ -1797,6 +1798,12 @@ async function runtimeSmoke(args = {}) {
       allowExternal: true,
       maxChars: 1_000,
     }, 30_000));
+  } catch (error) {
+    fatalError = error;
+    const message = String(error?.message || error);
+    if (!steps.some((step) => step.ok === false && step.error === message)) {
+      steps.push({ name: 'runtime smoke fatal error', ok: false, error: message });
+    }
   } finally {
     if (outsideTabId) {
       await run('cleanup close outside smoke group', () => command('closeGroup', {
@@ -1828,7 +1835,9 @@ async function runtimeSmoke(args = {}) {
     if (smokeUploadFile) {
       await fs.rm(smokeUploadFile, { force: true }).catch(() => {});
     }
-    await closeServer(fixture.server);
+    await closeServer(fixture.server).catch((error) => {
+      steps.push({ name: 'cleanup close smoke fixture server', ok: false, error: String(error?.message || error) });
+    });
   }
 
   const failures = steps.filter((step) => !step.ok);
@@ -1857,6 +1866,7 @@ async function runtimeSmoke(args = {}) {
       failures: failures.length,
     },
     coverage,
+    fatalError: fatalError ? String(fatalError?.message || fatalError) : undefined,
     nextCommand: verification.nextCommand,
     nextAction: verification.nextAction,
     verification,
