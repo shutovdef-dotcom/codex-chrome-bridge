@@ -155,6 +155,7 @@ if (coveragePlanParsed) {
   check(coveragePlanParsed.ok === true, 'MCP coverage-plan runtime smoke must succeed');
   check(coveragePlanParsed.mode === 'coverage-plan', 'MCP coverage-plan runtime smoke must report mode=coverage-plan');
   check(coveragePlanParsed.liveBridge === false, 'MCP coverage-plan runtime smoke must not touch the live bridge');
+  check(coveragePlanParsed.finalVerificationComplete === false, 'MCP coverage-plan must not look like final live verification is complete');
   check(
     coveragePlanParsed.nextCommand === 'chrome-bridge reload-extension --confirm',
     'MCP coverage-plan nextCommand must point at the first live verification prep step',
@@ -222,6 +223,7 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   if (!staleParsed) return;
 
   check(staleParsed.ok === false, 'MCP stale-extension runtime smoke output must fail top-level ok');
+  check(staleParsed.finalVerificationComplete === false, 'MCP stale-extension runtime smoke must not look like final live verification is complete');
   check(staleParsed.skipped === true, 'MCP stale-extension runtime smoke must be skipped before fixture work');
   check(staleParsed.extensionVersion === staleExtensionVersion, 'MCP stale-extension runtime smoke must report observed extension version');
   check(staleParsed.verification?.status === 'skipped', 'MCP stale-extension verification status must be skipped');
@@ -270,6 +272,7 @@ await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   if (!staleBridgeParsed) return;
 
   check(staleBridgeParsed.ok === false, 'MCP stale-bridge runtime smoke output must fail top-level ok');
+  check(staleBridgeParsed.finalVerificationComplete === false, 'MCP stale-bridge runtime smoke must not look like final live verification is complete');
   check(staleBridgeParsed.skipped === true, 'MCP stale-bridge runtime smoke must be skipped before fixture work');
   check(staleBridgeParsed.bridgeVersion === staleBridgeVersion, 'MCP stale-bridge runtime smoke must report observed bridge version');
   check(staleBridgeParsed.verification?.status === 'skipped', 'MCP stale-bridge verification status must be skipped');
@@ -316,6 +319,7 @@ if (failures.length) {
 process.stdout.write(`${JSON.stringify({
   ok: true,
   coveragePlanStatus: coveragePlanParsed?.verification?.status,
+  coveragePlanFinalVerificationComplete: coveragePlanParsed?.finalVerificationComplete,
   coveragePlanLiveBridge: coveragePlanParsed?.liveBridge,
   coveragePlanNextCommand: coveragePlanParsed?.nextCommand,
   coveragePlanTopLevelNextAction: coveragePlanParsed?.nextAction,

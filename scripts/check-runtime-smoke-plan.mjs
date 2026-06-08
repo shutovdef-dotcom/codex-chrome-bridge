@@ -129,6 +129,7 @@ if (parsed) {
   check(parsed.ok === true, 'coverage plan command must succeed');
   check(parsed.mode === 'coverage-plan', 'coverage plan output must report mode=coverage-plan');
   check(parsed.liveBridge === false, 'coverage plan output must report liveBridge=false');
+  check(parsed.finalVerificationComplete === false, 'coverage plan must not look like final live verification is complete');
   check(parsed.verification?.status === 'not-run', 'coverage plan verification status must be not-run');
   check(parsed.verification?.liveVerificationRequired === true, 'coverage plan must require final live verification');
   check(
@@ -199,6 +200,7 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
 
   check(result.ok === false, 'stale-extension runtime smoke must exit nonzero');
   check(staleParsed.ok === false, 'stale-extension runtime smoke output must fail top-level ok');
+  check(staleParsed.finalVerificationComplete === false, 'stale-extension runtime smoke must not look like final live verification is complete');
   check(staleParsed.skipped === true, 'stale-extension runtime smoke must be skipped before fixture work');
   check(staleParsed.extensionVersion === staleExtensionVersion, 'stale-extension runtime smoke must report observed extension version');
   check(staleParsed.verification?.status === 'skipped', 'stale-extension runtime smoke verification status must be skipped');
@@ -251,6 +253,7 @@ await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
 
   check(result.ok === false, 'stale-bridge runtime smoke must exit nonzero');
   check(staleBridgeParsed.ok === false, 'stale-bridge runtime smoke output must fail top-level ok');
+  check(staleBridgeParsed.finalVerificationComplete === false, 'stale-bridge runtime smoke must not look like final live verification is complete');
   check(staleBridgeParsed.skipped === true, 'stale-bridge runtime smoke must be skipped before fixture work');
   check(staleBridgeParsed.bridgeVersion === staleBridgeVersion, 'stale-bridge runtime smoke must report observed bridge version');
   check(staleBridgeParsed.verification?.status === 'skipped', 'stale-bridge runtime smoke verification status must be skipped');
@@ -298,6 +301,7 @@ process.stdout.write(`${JSON.stringify({
   mode: parsed.mode,
   liveBridge: parsed.liveBridge,
   verificationStatus: parsed.verification.status,
+  finalVerificationComplete: parsed.finalVerificationComplete,
   liveVerificationRequired: parsed.verification.liveVerificationRequired,
   successCriteriaBridgeVersion: parsed.verification.successCriteria.bridgeVersion,
   successCriteriaExtensionVersion: parsed.verification.successCriteria.extensionVersion,
