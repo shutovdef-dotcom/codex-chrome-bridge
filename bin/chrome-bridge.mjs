@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs/promises';
 import http from 'node:http';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFile, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -791,6 +792,10 @@ async function writeJsonFile(filePath, value) {
   await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+async function readJsonFile(filePath) {
+  return JSON.parse(await fs.readFile(filePath, 'utf8'));
+}
+
 async function writeDataUrlFile(filePath, dataUrl, expectedPrefix) {
   const match = new RegExp(`^${expectedPrefix},(.+)$`).exec(dataUrl || '');
   if (!match) throw new Error(`Invalid data URL for ${filePath}`);
@@ -931,11 +936,17 @@ async function runtimeSmoke(args = {}) {
   const fixture = await startSmokeServer();
   const steps = [];
   let tabId = null;
+  let outsideTabId = null;
+  let strictWorkspaceSet = false;
+  let debugBundleDir = null;
+  const smokeId = String(Date.now());
+  const strictGroupTitle = `Codex Bridge Smoke Strict ${smokeId}`;
+  const outsideGroupTitle = `Codex Bridge Smoke Outside ${smokeId}`;
 
   const run = async (name, fn, options = {}) => {
     try {
       const result = await fn();
-      if (options.assert) options.assert(result);
+      if (options.assert) await options.assert(result);
       steps.push({ name, ok: true, result: summarizeStepResult(result) });
       return result;
     } catch (error) {
@@ -965,6 +976,62 @@ async function runtimeSmoke(args = {}) {
       },
     });
     tabId = opened.id;
+
+    await run('set strict smoke workspace', () => command('setWorkspace', {
+      name: `smoke-${smokeId}`,
+      groupTitle: strictGroupTitle,
+      groupColor: 'cyan',
+      policyMode: 'strict',
+      confirmed: true,
+    }, 10_000), {
+      assert: (result) => {
+        if (result.workspace?.title !== strictGroupTitle) throw new Error('strict workspace title was not applied');
+        if (result.policy?.mode !== 'strict') throw new Error('strict workspace policy was not applied');
+      },
+    });
+    strictWorkspaceSet = true;
+
+    await run('workspace includes smoke tab', () => command('workspace', { includeTabs: true }, 10_000), {
+      assert: (result) => {
+        if (result.workspace?.title !== strictGroupTitle) throw new Error('workspace did not report strict smoke group title');
+        if (result.policy?.mode !== 'strict') throw new Error('workspace did not report strict policy');
+        if (!result.tabs?.some((tab) => tab.id === tabId)) throw new Error('workspace tabs did not include smoke tab');
+      },
+    });
+
+    await run('session summary covers strict policy', () => sessionSummary(), {
+      assert: (result) => {
+        if (result.workspace?.policy?.mode !== 'strict') throw new Error('session summary did not report strict policy');
+        if (!result.workspace?.tabs?.some((tab) => tab.id === tabId)) throw new Error('session summary did not include smoke tab');
+        if (!result.recommendations?.some((item) => item.includes('Strict workspace policy is active'))) {
+          throw new Error('session summary did not recommend strict-policy awareness');
+        }
+      },
+    });
+
+    debugBundleDir = await fs.mkdtemp(path.join(tmpdir(), 'chrome-bridge-smoke-bundle-'));
+    await run('debug bundle default redaction', () => debugBundle({ out: debugBundleDir }), {
+      assert: async (result) => {
+        const expectedFiles = ['session-summary.json', 'health.json', 'trace-summary.json', 'manifest.json'];
+        for (const expectedFile of expectedFiles) {
+          if (!result.files?.includes(expectedFile)) throw new Error(`debug bundle omitted ${expectedFile}`);
+        }
+        for (const omittedFile of ['snapshot.json', 'observe.json', 'screenshot.json', 'screenshot.png', 'trace-events.json']) {
+          if (result.files?.includes(omittedFile)) throw new Error(`debug bundle included ${omittedFile} by default`);
+        }
+
+        const manifest = await readJsonFile(path.join(debugBundleDir, 'manifest.json'));
+        if (manifest.privacy?.pageArtifacts?.snapshot !== 'omitted-by-default') throw new Error('debug bundle snapshot artifact was not omitted by default');
+        if (manifest.privacy?.pageArtifacts?.observe !== 'omitted-by-default') throw new Error('debug bundle observe artifact was not omitted by default');
+        if (manifest.privacy?.pageArtifacts?.screenshot !== 'omitted-by-default') throw new Error('debug bundle screenshot artifact was not omitted by default');
+        if (manifest.privacy?.traceEvents !== 'summarized-by-default') throw new Error('debug bundle trace events were not summarized by default');
+
+        const summaryJson = await readJsonFile(path.join(debugBundleDir, 'session-summary.json'));
+        const serializedSummary = JSON.stringify(summaryJson);
+        if (serializedSummary.includes(fixture.url)) throw new Error('debug bundle leaked the fixture URL in redacted summary');
+        if (!serializedSummary.includes('[redacted]')) throw new Error('debug bundle summary did not redact page metadata');
+      },
+    });
 
     await run('group includes smoke tab', () => command('group', {}, 10_000), {
       assert: (result) => {
@@ -1210,12 +1277,46 @@ async function runtimeSmoke(args = {}) {
       confirmed: true,
       credentials: 'include',
     }, 30_000));
+
+    const outsideOpened = await run('open outside smoke group tab', () => command('open', {
+      url: `${fixture.url}?outside=1`,
+      newTab: true,
+      groupTitle: outsideGroupTitle,
+      groupColor: 'grey',
+    }, 30_000), {
+      assert: (result) => {
+        if (!result?.id) throw new Error('outside smoke open did not return a tab id');
+        if (result.group?.title !== outsideGroupTitle) throw new Error('outside smoke tab was not placed in the alternate group');
+      },
+    });
+    outsideTabId = outsideOpened.id;
+
+    await expectReject('strict policy rejects outside tab even with allowExternal', () => command('text', {
+      tabId: outsideTabId,
+      allowExternal: true,
+      maxChars: 1_000,
+    }, 30_000));
   } finally {
+    if (outsideTabId) {
+      await run('cleanup close outside smoke group', () => command('closeGroup', {
+        groupTitle: outsideGroupTitle,
+        confirmed: true,
+      }, 30_000), { required: false });
+    }
+    if (strictWorkspaceSet) {
+      await run('clear strict smoke workspace', () => command('clearWorkspace', {
+        confirmed: true,
+      }, 10_000), { required: false });
+    }
     if (tabId && !args['keep-tab']) {
       await run('cleanup close smoke tab', () => command('closeTab', {
         tabId,
         confirmed: true,
+        allowExternal: true,
       }, 30_000), { required: false });
+    }
+    if (debugBundleDir) {
+      await fs.rm(debugBundleDir, { recursive: true, force: true }).catch(() => {});
     }
     await closeServer(fixture.server);
   }

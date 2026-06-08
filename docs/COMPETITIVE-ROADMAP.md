@@ -299,6 +299,5 @@ The current implementation can be statically verified while another session is u
 
 1. Reload or restart the unpacked extension and local bridge server.
 2. Run `npm run runtime-smoke`.
-3. Manually spot-check one scoped tab workflow covering `workspace`, `set-workspace --policy-mode strict`, `session-summary`, `debug-bundle`, `observe`, `find-elements --near-text`, `extract`, and `pdf`.
-4. Confirm strict policy blocks outside tabs even when `--allow-external` is passed.
-5. Review the generated debug bundle to ensure private values, page artifacts, and full trace events are redacted or omitted by default.
+3. Confirm the smoke output includes passing steps for `workspace`, `setWorkspace` strict policy, `session-summary`, default `debug-bundle`, `observe`, `find-elements` nearby text, `extract`, `pdf`, and strict outside-tab blocking.
+4. If a release needs human UX assurance, manually spot-check one scoped tab workflow after the automated smoke pass.

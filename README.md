@@ -91,7 +91,7 @@ node ./bin/chrome-bridge.mjs health
 node ./bin/chrome-bridge.mjs runtime-smoke
 ```
 
-The smoke test opens a temporary `127.0.0.1` fixture tab inside the `Codex Bridge` group, checks reads, screenshots, interactions, tracing, browser-data safety gates, and closes the test tab.
+The smoke test opens temporary `127.0.0.1` fixture tabs, checks scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction, screenshots, PDF export, interactions, tracing, browser-data safety gates, and cleanup.
 
 ## Common Commands
 

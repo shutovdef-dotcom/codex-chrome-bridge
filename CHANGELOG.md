@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Expanded `runtime-smoke` to cover strict workspace policy, outside-tab blocking, session-summary recommendations, and debug-bundle default redaction/omission checks.
 - Added a generated CLI command metadata table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
 - Expanded the generated MCP reference block from a plain tool list into a registry-derived table with contract IDs, risk tiers, timeouts, confirmation requirements, live-bridge flags, and summaries.
 - Ungroup bridge-owned tabs before closing them in `close-tab`, `close-group`, prompt cleanup, and runtime smoke cleanup so Chrome does not create new saved closed `Codex Bridge` group chips.
