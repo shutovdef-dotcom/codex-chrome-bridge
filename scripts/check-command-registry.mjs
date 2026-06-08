@@ -68,6 +68,8 @@ const [
   launchAgentInstallerText,
   checkWorkflowText,
   readmeText,
+  architectureText,
+  extensionDocsText,
   publishingText,
   roadmapText,
   mcpDocsText,
@@ -107,6 +109,8 @@ const [
   fs.readFile(path.join(rootDir, 'scripts/install-launch-agent.mjs'), 'utf8'),
   readRepoOnlyFile('.github/workflows/check.yml'),
   fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'docs/ARCHITECTURE.md'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'docs/EXTENSION.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/PUBLISHING.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/COMPETITIVE-ROADMAP.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/MCP.md'), 'utf8'),
@@ -682,6 +686,8 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence
 check((await fs.readFile(path.join(rootDir, 'scripts/check-roadmap-coverage.mjs'), 'utf8').catch(() => '')).includes('check-tab-group-persistence.mjs'), 'roadmap coverage must include the tab-group persistence behavior checker');
 check(readmeText.includes('fake saved closed group chips'), 'README must document fake saved closed group chip prevention coverage');
 check(publishingText.includes('fake saved closed group chips'), 'publishing docs must document fake saved closed group chip prevention coverage');
+check(architectureText.includes('session-scoped bridge-created group IDs') && architectureText.includes('Chrome session storage'), 'architecture docs must document session-scoped managed group ids');
+check(extensionDocsText.includes('session-scoped bridge-created group IDs') && extensionDocsText.includes('Chrome session storage'), 'extension setup docs must document session-scoped managed group ids');
 if (isRepositoryCheckout || pullRequestTemplateText) {
   check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
   check(pullRequestTemplateText.includes('npm run check:roadmap'), 'pull request template must include roadmap coverage check');
