@@ -26,7 +26,7 @@ The tool reference table below is generated from the shared registry by `npm run
 
 `chrome_bridge_tabs` and `chrome_bridge_windows` stay scoped by default. Passing `includeAll: true` requires `confirmed: true` because it can expose unrelated tab URLs and titles.
 
-`chrome_bridge_runtime_smoke` accepts `coveragePlan: true` to print the required smoke coverage checklist offline. Without `coveragePlan`, it is a live real-browser check and should wait until no other session is using the bridge.
+`chrome_bridge_runtime_smoke` accepts `coveragePlan: true` to print the required smoke coverage checklist offline. The coverage-plan output reports `verification.status: "not-run"` and does not touch Chrome. Without `coveragePlan`, it is a live real-browser check and should wait until no other session is using the bridge; treat it as complete only when it reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 
 Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-context requests and cookie URL filters accept `http:` and `https:` URLs. Unsafe script/data/file-style URL schemes are rejected by the shared command contract before extension dispatch.
 
