@@ -11,6 +11,7 @@ import {
   CLI_COMMANDS,
   COMMAND_PAYLOAD_SCHEMAS,
   MCP_TOOLS,
+  validateCommandPayload,
 } from '../shared/command-registry.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -169,6 +170,18 @@ async function withFakeCommandBridge(fn) {
       return;
     }
 
+    try {
+      validateCommandPayload(parsed.action, parsed.payload || {});
+    } catch (error) {
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: false,
+        code: 'INVALID_PAYLOAD',
+        error: String(error?.message || error),
+      }));
+      return;
+    }
+
     receivedCommands.push(parsed);
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({
@@ -252,7 +265,35 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
 });
 
 let groupScopePayloadChecks = 0;
+let inventoryIncludeAllChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
+  const includeAllCases = [
+    { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
+    { action: 'windows', args: ['windows', '--all'], confirmedArgs: ['windows', '--all', '--confirm'] },
+  ];
+
+  for (const testCase of includeAllCases) {
+    const beforeReject = receivedCommands.length;
+    const rejected = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI ${testCase.args[0]} --all must fail without --confirm`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes(`${testCase.args[0]} --all requires --confirm`),
+      `CLI ${testCase.args[0]} --all rejection must explain --confirm`,
+    );
+    check(receivedCommands.length === beforeReject, `CLI ${testCase.args[0]} --all without confirm must not contact the bridge`);
+    inventoryIncludeAllChecks += 1;
+
+    const beforeAccept = receivedCommands.length;
+    const accepted = await runCli(testCase.confirmedArgs, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(accepted.ok, `CLI ${testCase.args[0]} --all --confirm must succeed against fake command bridge`);
+    const parsed = parseJsonOutput(accepted, `CLI ${testCase.args[0]} --all --confirm fake command bridge`);
+    const commandPayload = receivedCommands[beforeAccept]?.payload || parsed?.payload;
+    check(receivedCommands[beforeAccept]?.action === testCase.action, `CLI ${testCase.args[0]} --all --confirm must dispatch ${testCase.action}`);
+    check(commandPayload?.includeAll === true, `CLI ${testCase.args[0]} --all --confirm must forward includeAll`);
+    check(commandPayload?.confirmed === true, `CLI ${testCase.args[0]} --all --confirm must forward confirmed`);
+    inventoryIncludeAllChecks += 1;
+  }
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -318,6 +359,7 @@ process.stdout.write(`${JSON.stringify({
   doctorOfflineByDefault: true,
   doctorLiveBridgeCurrent: liveDoctorBridgeCurrent,
   sessionSummaryStaleBridgeRecommendation,
+  inventoryIncludeAllChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,

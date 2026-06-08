@@ -11,6 +11,7 @@ import {
   CLI_COMMANDS,
   COMMAND_PAYLOAD_SCHEMAS,
   MCP_TOOLS,
+  validateCommandPayload,
 } from '../shared/command-registry.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -193,6 +194,18 @@ async function withFakeCommandBridge(fn) {
       return;
     }
 
+    try {
+      validateCommandPayload(parsed.action, parsed.payload || {});
+    } catch (error) {
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: false,
+        code: 'INVALID_PAYLOAD',
+        error: String(error?.message || error),
+      }));
+      return;
+    }
+
     receivedCommands.push(parsed);
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({
@@ -331,10 +344,15 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
   });
 });
 
+let inventoryIncludeAllChecks = 0;
 let groupScopePayloadChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const groupTitle = 'Codex Bridge MCP Group Scope';
   const groupColor = 'cyan';
+  const includeAllCases = [
+    { action: 'windows', tool: 'chrome_bridge_windows' },
+    { action: 'tabs', tool: 'chrome_bridge_tabs' },
+  ];
   const cases = [
     { action: 'windows', tool: 'chrome_bridge_windows', args: { groupTitle, groupColor } },
     { action: 'tabs', tool: 'chrome_bridge_tabs', args: { groupTitle, groupColor } },
@@ -346,6 +364,40 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   ];
 
   await withMcpClient(async (client) => {
+    for (const testCase of includeAllCases) {
+      const beforeReject = receivedCommands.length;
+      try {
+        const rejected = await client.callTool({
+          name: testCase.tool,
+          arguments: { includeAll: true },
+        });
+        const rejectedText = rejected?.content?.find((item) => item?.type === 'text')?.text || '';
+        check(rejected?.isError === true, `MCP ${testCase.tool} includeAll must return a tool error without confirmed=true`);
+        check(
+          rejectedText.includes(`${testCase.action} requires confirmed=true`),
+          `MCP ${testCase.tool} includeAll tool error must explain confirmed=true`,
+        );
+      } catch (error) {
+        check(
+          String(error?.message || error).includes(`${testCase.action} requires confirmed=true`),
+          `MCP ${testCase.tool} includeAll rejection must explain confirmed=true`,
+        );
+      }
+      check(receivedCommands.length === beforeReject, `MCP ${testCase.tool} unconfirmed includeAll must not be accepted by fake bridge`);
+      inventoryIncludeAllChecks += 1;
+
+      const beforeAccept = receivedCommands.length;
+      const parsed = parseToolJson(await client.callTool({
+        name: testCase.tool,
+        arguments: { includeAll: true, confirmed: true },
+      }), `MCP ${testCase.tool} confirmed includeAll fake command bridge`);
+      const commandPayload = receivedCommands[beforeAccept]?.payload || parsed?.payload;
+      check(receivedCommands[beforeAccept]?.action === testCase.action, `MCP ${testCase.tool} confirmed includeAll must dispatch ${testCase.action}`);
+      check(commandPayload?.includeAll === true, `MCP ${testCase.tool} confirmed includeAll must forward includeAll`);
+      check(commandPayload?.confirmed === true, `MCP ${testCase.tool} confirmed includeAll must forward confirmed`);
+      inventoryIncludeAllChecks += 1;
+    }
+
     for (const testCase of cases) {
       check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupTitle'), `${testCase.action} schema must allow groupTitle before MCP behavior checks`);
       check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupColor'), `${testCase.action} schema must allow groupColor before MCP behavior checks`);
@@ -381,5 +433,6 @@ process.stdout.write(`${JSON.stringify({
   doctorOfflineByDefault: true,
   doctorLiveBridgeCurrent,
   sessionSummaryStaleBridgeRecommendation,
+  inventoryIncludeAllChecks,
   groupScopePayloadChecks,
 }, null, 2)}\n`);
