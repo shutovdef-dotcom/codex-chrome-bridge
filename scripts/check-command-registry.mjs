@@ -497,9 +497,12 @@ check(!cliText.includes('/opt/homebrew/bin/node'), 'CLI codex-config must not ha
 check(cliText.includes("if (!args.confirm) throw new Error('reload-extension requires --confirm')"), 'CLI reload-extension must require --confirm');
 check(CLI_USAGE_LINES.includes('chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]'), 'runtime-smoke CLI usage must expose offline coverage-plan mode');
 check(packageJson.scripts?.['runtime-smoke:plan'] === 'node ./bin/chrome-bridge.mjs runtime-smoke --coverage-plan', 'package scripts must expose offline runtime smoke coverage plan');
+check(packageJson.scripts?.['check:runtime-smoke-plan'] === 'node ./scripts/check-runtime-smoke-plan.mjs', 'package scripts must expose runtime smoke plan contract check');
+check(packageJson.scripts?.check?.includes('npm run check:runtime-smoke-plan'), 'npm run check must include runtime smoke plan contract check');
 check(readmeText.includes('npm run runtime-smoke:plan') && readmeText.includes('runtime-smoke --coverage-plan'), 'README must document offline runtime smoke coverage plan');
 check(publishingText.includes('npm run runtime-smoke:plan'), 'publishing checklist must use the canonical offline runtime smoke plan script');
 check(roadmapText.includes('npm run runtime-smoke:plan'), 'deferred runtime roadmap must use the canonical offline runtime smoke plan script');
+check(packageContentsCheckerText.includes("'scripts/check-runtime-smoke-plan.mjs'"), 'package contents must include runtime smoke plan checker');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
