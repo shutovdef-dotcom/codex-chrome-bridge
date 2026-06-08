@@ -272,6 +272,7 @@ let inventoryIncludeAllChecks = 0;
 let privateSensitiveChecks = 0;
 let unsafeUrlMethodChecks = 0;
 let selectTargetChecks = 0;
+let selectIndexChecks = 0;
 let tabIdChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
   const includeAllCases = [
@@ -398,6 +399,23 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
   );
   selectTargetChecks += 1;
 
+  for (const invalidIndex of ['nope', '-1']) {
+    const beforeInvalidSelectIndex = receivedCommands.length;
+    const beforeInvalidSelectIndexRejects = invalidPayloadRequests.length;
+    const rejected = await runCli(['select', '--selector', '#country', '--index', invalidIndex, '--confirm'], { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI select --index ${invalidIndex} must fail`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes('--index must be a non-negative integer'),
+      `CLI select --index ${invalidIndex} rejection must explain non-negative integer`,
+    );
+    check(receivedCommands.length === beforeInvalidSelectIndex, `CLI select --index ${invalidIndex} must not be accepted by fake command bridge`);
+    check(
+      invalidPayloadRequests.length === beforeInvalidSelectIndexRejects,
+      `CLI select --index ${invalidIndex} must fail fast before contacting fake command bridge`,
+    );
+    selectIndexChecks += 1;
+  }
+
   const beforeSelectIndex = receivedCommands.length;
   const selectIndex = await runCli(['select', '--selector', '#country', '--index', '0', '--confirm'], { CHROME_BRIDGE_URL: bridgeUrl });
   check(selectIndex.ok, 'CLI select with index 0 must succeed against fake command bridge');
@@ -407,7 +425,7 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
   check(selectIndexPayload?.selector === '#country', 'CLI select with index 0 must forward selector');
   check(selectIndexPayload?.index === 0, 'CLI select with index 0 must forward numeric index 0');
   check(selectIndexPayload?.confirmed === true, 'CLI select with index 0 must forward confirmed');
-  selectTargetChecks += 1;
+  selectIndexChecks += 1;
 
   for (const invalidTab of ['nope', '-1']) {
     const beforeInvalidTab = receivedCommands.length;
@@ -504,6 +522,7 @@ process.stdout.write(`${JSON.stringify({
   privateSensitiveChecks,
   unsafeUrlMethodChecks,
   selectTargetChecks,
+  selectIndexChecks,
   tabIdChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
