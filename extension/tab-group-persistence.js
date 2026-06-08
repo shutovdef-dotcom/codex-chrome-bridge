@@ -195,11 +195,11 @@ export async function handleManagedTabGroupChange(group) {
 
 export async function handleManagedTabGroupRemoved(group) {
   const managed = await isManagedCodexGroup(group);
-  if (managed) {
-    await disableSavedTabGroupIfSupported(group);
-  }
+  const savedGroupPersistence = managed
+    ? await disableSavedTabGroupIfSupported(group)
+    : undefined;
   if (group) forgetManagedGroupTabs(group.id);
-  return { groupId: group?.id, managed };
+  return { groupId: group?.id, managed, savedGroupPersistence };
 }
 
 async function handleManagedTabRemoved(tabId, removeInfo = {}) {
