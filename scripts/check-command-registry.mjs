@@ -543,6 +543,8 @@ check(readmeText.includes('npm run check:mcp-runtime-smoke'), 'README must docum
 check(readmeText.includes('npm run check:mcp-local-tools'), 'README must document MCP local tools contract check');
 check(readmeText.includes('npm run check:tab-group-persistence'), 'README must document tab-group persistence behavior check');
 check(readmeText.includes('stale-extension/stale-bridge'), 'README must document stale-extension and stale-bridge verifier metadata');
+check(readmeText.includes('structured JSON output'), 'README must document structured JSON verifier output');
+check(readmeText.includes('CLI-exit preservation'), 'README must document CLI-exit preservation verifier evidence');
 check(publishingText.includes('npm run runtime-smoke:plan'), 'publishing checklist must use the canonical offline runtime smoke plan script');
 check(publishingText.includes('npm run check:roadmap'), 'publishing checklist must include roadmap coverage contract check');
 check(publishingText.includes('npm run check:cli-local-tools'), 'publishing checklist must include CLI local tools contract check');
