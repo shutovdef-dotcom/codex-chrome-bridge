@@ -607,6 +607,7 @@ check(readmeText.includes('structured JSON output'), 'README must document struc
 check(readmeText.includes('CLI-exit preservation'), 'README must document CLI-exit preservation verifier evidence');
 check(readmeText.includes('node ./bin/chrome-bridge.mjs reload-extension --confirm'), 'README must document exact live extension reload command');
 check(readmeText.includes('node ./bin/chrome-bridge.mjs doctor --live-checks'), 'README must document exact live doctor command');
+check(readmeText.includes('packaged registry check'), 'README must document package-layout registry verification');
 check(readmeSmokeSummary.includes('existing-tab adoption'), 'README smoke summary must mention existing-tab adoption coverage');
 check(readmeSmokeSummary.includes('dialog handling'), 'README smoke summary must mention dialog handling coverage');
 check(readmeSmokeSummary.includes('file input upload'), 'README smoke summary must mention file input upload coverage');
@@ -619,6 +620,7 @@ check(publishingText.includes('npm run check:mcp-local-tools'), 'publishing chec
 check(publishingText.includes('CLI group scope payload forwarding'), 'publishing docs must mention CLI group scope payload forwarding checks');
 check(publishingText.includes('MCP group scope payload forwarding'), 'publishing docs must mention MCP group scope payload forwarding checks');
 check(publishingText.includes('npm run check:tab-group-persistence'), 'publishing checklist must include tab-group persistence behavior check');
+check(publishingText.includes('packaged registry check'), 'publishing docs must mention package-layout registry verification');
 check(roadmapText.includes('npm run runtime-smoke:plan'), 'deferred runtime roadmap must use the canonical offline runtime smoke plan script');
 check(packageContentsCheckerText.includes("'scripts/check-runtime-smoke-plan.mjs'"), 'package contents must include runtime smoke plan checker');
 check(packageContentsCheckerText.includes("'scripts/check-roadmap-coverage.mjs'"), 'package contents must include roadmap coverage checker');
