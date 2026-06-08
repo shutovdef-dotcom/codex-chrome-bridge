@@ -15,6 +15,21 @@ import {
   storageSet,
 } from './workspace-tabs.js';
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForActivatedTab(tabId, timeoutMs = 2_000) {
+  const started = Date.now();
+  let candidate = await chrome.tabs.get(tabId);
+  while (!candidate.active && Date.now() - started < timeoutMs) {
+    await delay(100);
+    candidate = await chrome.tabs.get(tabId);
+  }
+  if (!candidate.active) throw new Error('Tab did not become active after activation');
+  return candidate;
+}
+
 export async function listTabs(payload = {}) {
   if (payload.includeAll) requireConfirmed(payload, 'tabs includeAll');
   const tabs = await chrome.tabs.query({});
@@ -245,7 +260,7 @@ export async function activateTab(payload) {
   if (payload.focusWindow) {
     await chrome.windows.update(tab.windowId, { focused: true });
   }
-  return tabInfo(await chrome.tabs.get(tab.id));
+  return tabInfo(await waitForActivatedTab(tab.id));
 }
 
 export async function closeTab(payload) {
