@@ -5,6 +5,16 @@ function tabIdForClose(input) {
   return Number.isInteger(tabId) && tabId >= 0 ? tabId : null;
 }
 
+function savedClosedGroupChipPrevention(groupedTabIds, ungroupedBeforeClose) {
+  const attempted = groupedTabIds.length > 0;
+  return {
+    attempted,
+    method: attempted ? 'ungroup-before-close' : 'not-needed',
+    prevented: attempted && ungroupedBeforeClose,
+    groupedTabIds,
+  };
+}
+
 export async function closeTabsWithGroupPersistenceMitigation(tabInputs, options = {}) {
   const inputs = Array.isArray(tabInputs) ? tabInputs : [tabInputs];
   const seen = new Set();
@@ -57,6 +67,7 @@ export async function closeTabsWithGroupPersistenceMitigation(tabInputs, options
     closedTabIds: tabIds,
     missingTabIds,
     savedGroupPersistence,
+    savedClosedGroupChipPrevention: savedClosedGroupChipPrevention(groupedTabIds, ungroupedBeforeClose),
     ungroupedBeforeClose,
     ungroupedTabIds: ungroupedBeforeClose ? groupedTabIds : [],
     ungroupUnavailable: false,

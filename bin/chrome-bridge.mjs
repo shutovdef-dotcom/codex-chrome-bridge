@@ -1272,6 +1272,12 @@ async function runtimeSmoke(args = {}) {
     if (!Array.isArray(cleanup.ungroupedTabIds) || !cleanup.ungroupedTabIds.length) {
       throw new Error('cleanup did not report ungrouped grouped tab ids');
     }
+    if (cleanup.savedClosedGroupChipPrevention?.prevented !== true) {
+      throw new Error('cleanup did not report saved closed group chip prevention');
+    }
+    if (cleanup.savedClosedGroupChipPrevention?.method !== 'ungroup-before-close') {
+      throw new Error('cleanup did not report ungroup-before-close chip prevention');
+    }
   };
 
   try {
