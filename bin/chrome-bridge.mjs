@@ -1595,6 +1595,11 @@ async function runtimeSmoke(args = {}) {
         if (result.id !== tabId || !result.active) throw new Error('dialog smoke tab was not activated');
       },
     });
+    await run('trace start', () => command('traceStart', {
+      tabId,
+      confirmed: true,
+      maxEvents: 100,
+    }, 30_000));
     const dialogTarget = await run('wait for dialog target', () => command('waitForSelector', {
       tabId,
       selector: '#dialog-button',
@@ -1693,12 +1698,6 @@ async function runtimeSmoke(args = {}) {
     await run('wait for select side-effect', () => command('waitForSelector', {
       tabId,
       selector: '#selected[data-value="b"]',
-    }, 30_000));
-
-    await run('trace start', () => command('traceStart', {
-      tabId,
-      confirmed: true,
-      maxEvents: 100,
     }, 30_000));
     await run('click selector', () => command('click', {
       tabId,
