@@ -228,7 +228,7 @@ These commands require `--confirm`.
 
 <!-- BEGIN GENERATED CLI USAGE: browser-data -->
 ```bash
-chrome-bridge history [--query <text>] --confirm [--limit 25]
+chrome-bridge history [--query <text>] --confirm [--limit 25] [--start-time <ms>] [--end-time <ms>]
 chrome-bridge bookmarks [--query <text>] --confirm [--limit 50]
 chrome-bridge cookies [--url <url> | --domain <domain>] --confirm [--include-values --confirm-sensitive] [--limit 50]
 chrome-bridge storage [--tab <id>] --confirm [--include-values --confirm-sensitive] [--allow-external]

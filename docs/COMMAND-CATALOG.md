@@ -110,7 +110,7 @@ chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-networ
 chrome-bridge trace-summary [--tab <id>] [--allow-external]
 chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]
 chrome-bridge trace-stop [--tab <id>] [--limit 100] [--allow-external]
-chrome-bridge history [--query <text>] --confirm [--limit 25]
+chrome-bridge history [--query <text>] --confirm [--limit 25] [--start-time <ms>] [--end-time <ms>]
 chrome-bridge bookmarks [--query <text>] --confirm [--limit 50]
 chrome-bridge cookies [--url <url> | --domain <domain>] --confirm [--include-values --confirm-sensitive] [--limit 50]
 chrome-bridge storage [--tab <id>] --confirm [--include-values --confirm-sensitive] [--allow-external]

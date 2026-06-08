@@ -2280,6 +2280,8 @@ tool_timeout_sec = 60
       ...confirmationPayload(args),
       query: args.query || '',
       limit: parseNumberRangeArg(args.limit, '--limit', 1, 200),
+      startTime: parseNumberRangeArg(args['start-time'], '--start-time', 0, Number.MAX_SAFE_INTEGER),
+      endTime: parseNumberRangeArg(args['end-time'], '--end-time', 0, Number.MAX_SAFE_INTEGER),
     }, 30_000));
     return;
   }
