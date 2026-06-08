@@ -277,6 +277,7 @@ let tabIdChecks = 0;
 let clickAtCoordinateChecks = 0;
 let hoverCoordinateChecks = 0;
 let traceMaxEventsChecks = 0;
+let privateLimitChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -567,6 +568,77 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
   check(traceMaxEventsMinPayload?.confirmed === true, 'CLI trace-start --max-events 50 must forward confirmed');
   traceMaxEventsChecks += 1;
 
+  const privateLimitInvalidCases = [
+    {
+      label: 'history invalid limit',
+      args: ['history', '--limit', 'nope', '--confirm'],
+      message: '--limit must be between 1 and 200',
+    },
+    {
+      label: 'history too small limit',
+      args: ['history', '--limit', '0', '--confirm'],
+      message: '--limit must be between 1 and 200',
+    },
+    {
+      label: 'bookmarks too large limit',
+      args: ['bookmarks', '--limit', '201', '--confirm'],
+      message: '--limit must be between 1 and 200',
+    },
+    {
+      label: 'cookies too large limit',
+      args: ['cookies', '--url', 'https://example.com', '--limit', '501', '--confirm'],
+      message: '--limit must be between 1 and 500',
+    },
+  ];
+  for (const testCase of privateLimitInvalidCases) {
+    const beforeInvalidLimit = receivedCommands.length;
+    const beforeInvalidLimitRejects = invalidPayloadRequests.length;
+    const rejected = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI ${testCase.label} must fail`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes(testCase.message),
+      `CLI ${testCase.label} rejection must explain limit bounds`,
+    );
+    check(receivedCommands.length === beforeInvalidLimit, `CLI ${testCase.label} must not be accepted by fake command bridge`);
+    check(
+      invalidPayloadRequests.length === beforeInvalidLimitRejects,
+      `CLI ${testCase.label} must fail fast before contacting fake command bridge`,
+    );
+    privateLimitChecks += 1;
+  }
+
+  const privateLimitValidCases = [
+    {
+      label: 'history min limit',
+      action: 'historySearch',
+      args: ['history', '--limit', '1', '--confirm'],
+      expectedLimit: 1,
+    },
+    {
+      label: 'bookmarks min limit',
+      action: 'bookmarksSearch',
+      args: ['bookmarks', '--limit', '1', '--confirm'],
+      expectedLimit: 1,
+    },
+    {
+      label: 'cookies min limit',
+      action: 'cookiesList',
+      args: ['cookies', '--url', 'https://example.com', '--limit', '1', '--confirm'],
+      expectedLimit: 1,
+    },
+  ];
+  for (const testCase of privateLimitValidCases) {
+    const beforeValidLimit = receivedCommands.length;
+    const accepted = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(accepted.ok, `CLI ${testCase.label} must succeed against fake command bridge`);
+    const parsed = parseJsonOutput(accepted, `CLI ${testCase.label} fake command bridge`);
+    const commandPayload = receivedCommands[beforeValidLimit]?.payload || parsed?.payload;
+    check(receivedCommands[beforeValidLimit]?.action === testCase.action, `CLI ${testCase.label} must dispatch ${testCase.action}`);
+    check(commandPayload?.limit === testCase.expectedLimit, `CLI ${testCase.label} must forward numeric limit`);
+    check(commandPayload?.confirmed === true, `CLI ${testCase.label} must forward confirmed`);
+    privateLimitChecks += 1;
+  }
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -641,6 +713,7 @@ process.stdout.write(`${JSON.stringify({
   clickAtCoordinateChecks,
   hoverCoordinateChecks,
   traceMaxEventsChecks,
+  privateLimitChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
