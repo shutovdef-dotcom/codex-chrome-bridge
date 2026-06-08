@@ -940,6 +940,7 @@ for (const coverageStep of [
 check(runtimeSmokeBlock.includes('Anonymous fallback target'), 'runtime-smoke fixture must include an anonymous selector fallback target');
 check(runtimeSmokeBlock.includes('nth-of-type'), 'runtime-smoke must assert nth-of-type selector fallback behavior');
 check(runtimeSmokeBlock.includes("await run('activate smoke tab before dialog'") && runtimeSmokeBlock.indexOf("activate smoke tab before dialog") < runtimeSmokeBlock.indexOf("click dialog trigger"), 'runtime-smoke must activate the smoke tab before opening a dialog');
+check(runtimeSmokeBlock.includes('result.id !== tabId || !result.active') && !runtimeSmokeBlock.includes('result.tab?.id !== tabId || !result.tab?.active'), 'runtime-smoke must assert activateTab top-level tabInfo shape');
 check(runtimeSmokeBlock.includes("const dialogTarget = await run('wait for dialog target'") && runtimeSmokeBlock.includes("await run('click dialog trigger', () => command('clickAt'") && runtimeSmokeBlock.includes('trusted: true'), 'runtime-smoke dialog trigger must use trusted coordinate input');
 check(runtimeSmokeBlock.includes('const coverage = runtimeSmokeCoverage(steps)'), 'runtime-smoke must compute machine-readable coverage from completed steps');
 check(runtimeSmokeBlock.includes('const ok = failures.length === 0 && coverage.ok') && runtimeSmokeBlock.includes('ok,'), 'runtime-smoke ok must fail when required coverage is missing');
