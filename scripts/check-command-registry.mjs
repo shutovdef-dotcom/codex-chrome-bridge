@@ -260,6 +260,8 @@ for (const requiredPackageFile of [
   'scripts/check-roadmap-coverage.mjs',
   'scripts/check-package-contents.mjs',
   'scripts/check-privacy-scan.mjs',
+  'scripts/install-launch-agent.mjs',
+  'scripts/uninstall-launch-agent.mjs',
 ]) {
   check(packageContentsCheckerText.includes(`'${requiredPackageFile}'`), `package contents checker must require ${requiredPackageFile}`);
 }
