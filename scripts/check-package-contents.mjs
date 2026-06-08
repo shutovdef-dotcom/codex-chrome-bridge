@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 import { execFile } from 'node:child_process';
+import fs from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const REQUIRED_PACKAGE_FILES = Object.freeze([
   'bin/chrome-bridge.mjs',
@@ -89,6 +94,36 @@ function parsePackOutput(stdout) {
   }
 }
 
+async function copyPackFileList(paths, packageDir) {
+  for (const filePath of paths) {
+    const source = path.join(rootDir, filePath);
+    const destination = path.join(packageDir, filePath);
+    await fs.mkdir(path.dirname(destination), { recursive: true });
+    await fs.copyFile(source, destination);
+  }
+}
+
+async function checkPackagedRegistryScript(paths) {
+  const tempDir = await fs.mkdtemp(path.join(tmpdir(), 'codex-chrome-bridge-pack-'));
+  const packageDir = path.join(tempDir, 'package');
+  try {
+    await copyPackFileList(paths, packageDir);
+    await execFileAsync(npmCommand, ['run', 'check:registry', '--prefix', packageDir], {
+      maxBuffer: 5 * 1024 * 1024,
+    });
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: String(error?.message || error),
+      stdout: error?.stdout?.trim?.() || '',
+      stderr: error?.stderr?.trim?.() || '',
+    };
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const { stdout } = await execFileAsync(npmCommand, ['pack', '--dry-run', '--json'], {
   maxBuffer: 5 * 1024 * 1024,
@@ -114,6 +149,15 @@ if (pack.entryCount !== paths.size) {
   failures.push(`package tarball entryCount ${pack.entryCount} does not match file list size ${paths.size}`);
 }
 
+const packagedRegistryCheck = await checkPackagedRegistryScript(paths);
+if (!packagedRegistryCheck.ok) {
+  failures.push([
+    'package tarball layout cannot run npm run check:registry',
+    packagedRegistryCheck.stderr,
+    packagedRegistryCheck.stdout,
+  ].filter(Boolean).join('\n'));
+}
+
 if (failures.length) {
   fail(failures.map((failure) => `- ${failure}`).join('\n'));
 } else {
@@ -124,6 +168,7 @@ if (failures.length) {
     filename: pack.filename,
     entryCount: pack.entryCount,
     requiredFiles: REQUIRED_PACKAGE_FILES.length,
+    packagedRegistryCheck: packagedRegistryCheck.ok,
     unpackedSize: pack.unpackedSize,
   }, null, 2));
   process.stdout.write('\n');
