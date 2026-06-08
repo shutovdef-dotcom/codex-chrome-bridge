@@ -45,8 +45,11 @@ $CHROME_BRIDGE_ROOT/extension
 
 ```bash
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" self-test
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" runtime-smoke --coverage-plan
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" runtime-smoke
 ```
+
+`runtime-smoke --coverage-plan` is offline and safe while another session is using the bridge. Run the live `runtime-smoke` only when the bridge is free, and treat it as complete only when it reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 
 ## Read-Only Workflow
 

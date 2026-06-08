@@ -7,17 +7,21 @@ Thanks for helping improve Codex Chrome Bridge.
 ```bash
 npm install
 npm run check
+npm run check:runtime-smoke-plan
 npm run check:audit
 npm run check:pack
 ```
 
-For runtime verification:
+For runtime verification, start with the offline plan. Run the live smoke only when no other session is using the bridge:
 
 ```bash
+npm run runtime-smoke:plan
 npm run server
 node ./bin/chrome-bridge.mjs doctor --open-extensions
 node ./bin/chrome-bridge.mjs runtime-smoke
 ```
+
+The live smoke is complete only when it reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 
 ## Pull Request Checklist
 
@@ -25,9 +29,10 @@ node ./bin/chrome-bridge.mjs runtime-smoke
 - Preserve the `Codex Bridge` tab-group scope.
 - Add or update `self-test` checks for new CLI, MCP, or extension actions.
 - Run `npm run check`.
+- Run `npm run check:runtime-smoke-plan`.
 - Run `npm run check:audit`.
 - Run `npm run check:pack`.
-- Run `npm run runtime-smoke` when changing browser behavior.
+- Run `npm run runtime-smoke` when changing browser behavior and no other session is using the bridge; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 - Update docs for user-visible behavior.
 
 ## Safety Rules
