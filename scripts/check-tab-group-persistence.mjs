@@ -18,6 +18,10 @@ function eventTarget() {
     listenerCount() {
       return listeners.size;
     },
+    async emit(...args) {
+      for (const listener of listeners) listener(...args);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    },
   };
 }
 
@@ -28,6 +32,10 @@ function createFakeChrome() {
     [303, { id: 303, title: 'Codex Bridge Session B', color: 'purple', windowId: 1 }],
     [404, { id: 404, title: 'Project Runtime Session', color: 'cyan', windowId: 1, saved: true }],
     [505, { id: 505, title: 'Project Write Session', color: 'cyan', windowId: 1, saved: true }],
+    [707, { id: 707, title: 'Codex Bridge Future Created', color: 'purple', windowId: 1, saved: true }],
+    [808, { id: 808, title: 'Codex Bridge Future Updated', color: 'purple', windowId: 1, saved: true }],
+    [909, { id: 909, title: 'Codex Bridge Future Member', color: 'purple', windowId: 1, saved: true }],
+    [1001, { id: 1001, title: 'Codex Bridge Future Removed', color: 'purple', windowId: 1, saved: true }],
   ]);
   const tabs = new Map([
     [11, { id: 11, windowId: 1, groupId: 101 }],
@@ -37,6 +45,7 @@ function createFakeChrome() {
     [32, { id: 32, windowId: 1, groupId: 303 }],
     [41, { id: 41, windowId: 1, groupId: 404 }],
     [51, { id: 51, windowId: 1, groupId: -1 }],
+    [91, { id: 91, windowId: 1, groupId: 909 }],
   ]);
   const localValues = { codexManagedGroupTitles: ['Codex Bridge Session A'] };
   const sessionValues = { codexManagedGroupIds: [404] };
@@ -172,6 +181,58 @@ check(chrome.tabGroups.onRemoved.listenerCount() === 1, 'must register tabGroups
 check(chrome.tabs.onUpdated.listenerCount() === 1, 'must register tabs.onUpdated listener');
 check(chrome.tabs.onRemoved.listenerCount() === 1, 'must register tabs.onRemoved listener');
 
+let eventCallbackChecks = 0;
+chrome.updates.length = 0;
+await chrome.tabGroups.onCreated.emit({
+  id: 707,
+  title: 'Codex Bridge Future Created',
+  color: 'purple',
+  windowId: 1,
+  saved: true,
+});
+check(
+  chrome.updates.some((entry) => entry.groupId === 707 && entry.patch?.saved === false),
+  'tabGroups.onCreated listener must mark future managed groups unsaved',
+);
+eventCallbackChecks += 1;
+
+chrome.updates.length = 0;
+await chrome.tabGroups.onUpdated.emit({
+  id: 808,
+  title: 'Codex Bridge Future Updated',
+  color: 'purple',
+  windowId: 1,
+  saved: true,
+});
+check(
+  chrome.updates.some((entry) => entry.groupId === 808 && entry.patch?.saved === false),
+  'tabGroups.onUpdated listener must mark updated managed groups unsaved',
+);
+eventCallbackChecks += 1;
+
+chrome.updates.length = 0;
+await chrome.tabs.onUpdated.emit(91, { groupId: 909 }, { id: 91, windowId: 1, groupId: 909 });
+await chrome.tabs.onRemoved.emit(91, { isWindowClosing: false });
+check(
+  chrome.updates.some((entry) => entry.groupId === 909 && entry.patch?.saved === false),
+  'tabs.onUpdated/onRemoved listeners must remember managed tab membership before tab close',
+);
+eventCallbackChecks += 1;
+
+chrome.updates.length = 0;
+await chrome.tabGroups.onRemoved.emit({
+  id: 1001,
+  title: 'Codex Bridge Future Removed',
+  color: 'purple',
+  windowId: 1,
+  saved: true,
+});
+check(
+  chrome.updates.some((entry) => entry.groupId === 1001 && entry.patch?.saved === false),
+  'tabGroups.onRemoved listener must attempt to clear saved state for managed custom groups',
+);
+eventCallbackChecks += 1;
+
 const managedChange = await handleManagedTabGroupChange({
   id: 101,
   title: 'Codex Bridge Session A',
@@ -285,6 +346,7 @@ if (failures.length) {
 process.stdout.write(`${JSON.stringify({
   ok: true,
   listenerChecks: 5,
+  eventCallbackChecks,
   managedChangeRemembered: managedChange.remembered,
   sessionGroupIdWriteChecks,
   removalMetadata: Boolean(removed.savedGroupPersistence),
