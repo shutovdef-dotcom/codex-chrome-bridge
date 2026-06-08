@@ -159,6 +159,14 @@ if (coveragePlanParsed) {
     coveragePlanParsed.nextCommand === 'chrome-bridge reload-extension --confirm',
     'MCP coverage-plan nextCommand must point at the first live verification prep step',
   );
+  check(
+    coveragePlanParsed.verification?.nextCommand === 'chrome-bridge reload-extension --confirm',
+    'MCP coverage-plan verification metadata must include the first live verification command',
+  );
+  check(
+    coveragePlanParsed.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    'MCP coverage-plan verification metadata must include the first live verification action',
+  );
   check(coveragePlanParsed.verification?.status === 'not-run', 'MCP coverage-plan verification status must be not-run');
   check(coveragePlanParsed.verification?.liveVerificationRequired === true, 'MCP coverage-plan must require final live verification');
   check(
@@ -214,6 +222,14 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   check(staleParsed.extensionVersion === staleExtensionVersion, 'MCP stale-extension runtime smoke must report observed extension version');
   check(staleParsed.verification?.status === 'skipped', 'MCP stale-extension verification status must be skipped');
   check(staleParsed.verification?.liveVerificationRequired === true, 'MCP stale-extension runtime smoke must still require final live verification');
+  check(
+    staleParsed.verification?.nextCommand === 'chrome-bridge reload-extension --confirm',
+    'MCP stale-extension verification metadata must point at extension reload as the next command',
+  );
+  check(
+    staleParsed.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    'MCP stale-extension verification metadata must explain the next reload action',
+  );
   check(staleParsed.verification?.observed?.extensionVersion === staleExtensionVersion, 'MCP stale-extension verification metadata must include observed extension version');
   check(
     staleParsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm')
@@ -246,6 +262,14 @@ await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   check(staleBridgeParsed.bridgeVersion === staleBridgeVersion, 'MCP stale-bridge runtime smoke must report observed bridge version');
   check(staleBridgeParsed.verification?.status === 'skipped', 'MCP stale-bridge verification status must be skipped');
   check(staleBridgeParsed.verification?.liveVerificationRequired === true, 'MCP stale-bridge runtime smoke must still require final live verification');
+  check(
+    staleBridgeParsed.verification?.nextCommand === 'chrome-bridge doctor --live-checks',
+    'MCP stale-bridge verification metadata must point at live doctor as the next command after restart',
+  );
+  check(
+    staleBridgeParsed.verification?.nextAction?.includes('Restart the local Chrome Bridge server'),
+    'MCP stale-bridge verification metadata must explain the next bridge restart action',
+  );
   check(staleBridgeParsed.verification?.observed?.bridgeVersion === staleBridgeVersion, 'MCP stale-bridge verification metadata must include observed bridge version');
   check(
     staleBridgeParsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm')
@@ -274,6 +298,9 @@ process.stdout.write(`${JSON.stringify({
   coveragePlanStatus: coveragePlanParsed?.verification?.status,
   coveragePlanLiveBridge: coveragePlanParsed?.liveBridge,
   coveragePlanNextCommand: coveragePlanParsed?.nextCommand,
+  coveragePlanVerificationNextCommand: coveragePlanParsed?.verification?.nextCommand,
+  staleExtensionNextCommand: staleParsed?.verification?.nextCommand,
+  staleBridgeNextCommand: staleBridgeParsed?.verification?.nextCommand,
   coveragePlanFinalCommandCount: coveragePlanParsed?.verification?.finalCommands?.length || 0,
   coveragePlanFinalMcpCallCount: coveragePlanParsed?.verification?.finalMcpCalls?.length || 0,
   successCriteriaBridgeVersion: coveragePlanParsed?.verification?.successCriteria?.bridgeVersion,

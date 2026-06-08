@@ -136,6 +136,14 @@ if (parsed) {
     'coverage plan nextCommand must point at the first live verification prep step',
   );
   check(
+    parsed.verification?.nextCommand === 'chrome-bridge reload-extension --confirm',
+    'coverage plan verification metadata must include the first live verification command',
+  );
+  check(
+    parsed.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    'coverage plan verification metadata must include the first live verification action',
+  );
+  check(
     parsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm'),
     'coverage plan final commands must include confirmed extension reload before live smoke',
   );
@@ -191,6 +199,14 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   check(staleParsed.extensionVersion === staleExtensionVersion, 'stale-extension runtime smoke must report observed extension version');
   check(staleParsed.verification?.status === 'skipped', 'stale-extension runtime smoke verification status must be skipped');
   check(staleParsed.verification?.liveVerificationRequired === true, 'stale-extension runtime smoke must still require final live verification');
+  check(
+    staleParsed.verification?.nextCommand === 'chrome-bridge reload-extension --confirm',
+    'stale-extension verification metadata must point at extension reload as the next command',
+  );
+  check(
+    staleParsed.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    'stale-extension verification metadata must explain the next reload action',
+  );
   check(staleParsed.verification?.observed?.extensionVersion === staleExtensionVersion, 'stale-extension verification metadata must include observed extension version');
   check(
     staleParsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm')
@@ -227,6 +243,14 @@ await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   check(staleBridgeParsed.bridgeVersion === staleBridgeVersion, 'stale-bridge runtime smoke must report observed bridge version');
   check(staleBridgeParsed.verification?.status === 'skipped', 'stale-bridge runtime smoke verification status must be skipped');
   check(staleBridgeParsed.verification?.liveVerificationRequired === true, 'stale-bridge runtime smoke must still require final live verification');
+  check(
+    staleBridgeParsed.verification?.nextCommand === 'chrome-bridge doctor --live-checks',
+    'stale-bridge verification metadata must point at live doctor as the next command after restart',
+  );
+  check(
+    staleBridgeParsed.verification?.nextAction?.includes('Restart the local Chrome Bridge server'),
+    'stale-bridge verification metadata must explain the next bridge restart action',
+  );
   check(staleBridgeParsed.verification?.observed?.bridgeVersion === staleBridgeVersion, 'stale-bridge verification metadata must include observed bridge version');
   check(
     staleBridgeParsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm')
@@ -260,6 +284,9 @@ process.stdout.write(`${JSON.stringify({
   requiredCount: parsed.coverage.requiredCount,
   staleExtensionStatus: staleParsed?.verification?.status,
   staleBridgeStatus: staleBridgeParsed?.verification?.status,
+  coveragePlanVerificationNextCommand: parsed.verification?.nextCommand,
+  staleExtensionNextCommand: staleParsed?.verification?.nextCommand,
+  staleBridgeNextCommand: staleBridgeParsed?.verification?.nextCommand,
   staleExtensionFinalCommandCount: staleParsed?.verification?.finalCommands?.length || 0,
   staleBridgeFinalCommandCount: staleBridgeParsed?.verification?.finalCommands?.length || 0,
   staleExtensionFinalMcpCallCount: staleParsed?.verification?.finalMcpCalls?.length || 0,
