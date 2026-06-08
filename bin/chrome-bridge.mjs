@@ -2023,8 +2023,8 @@ tool_timeout_sec = 60
   if (cmd === 'observe') {
     printJson(await command('observe', {
       ...targetPayload(args),
-      limit: args.limit ? Number(args.limit) : undefined,
-      maxTextChars: args['max-text-chars'] ? Number(args['max-text-chars']) : undefined,
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 300),
+      maxTextChars: parseNumberRangeArg(args['max-text-chars'], '--max-text-chars', 20, 1_000),
     }, 30_000));
     return;
   }
@@ -2039,8 +2039,8 @@ tool_timeout_sec = 60
       href: args.href,
       actionKind: args.action,
       risk: args.risk,
-      limit: args.limit ? Number(args.limit) : undefined,
-      maxTextChars: args['max-text-chars'] ? Number(args['max-text-chars']) : undefined,
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 300),
+      maxTextChars: parseNumberRangeArg(args['max-text-chars'], '--max-text-chars', 20, 1_000),
     }, 30_000));
     return;
   }
@@ -2049,8 +2049,8 @@ tool_timeout_sec = 60
     printJson(await command('extractPage', {
       ...targetPayload(args),
       kind: args.kind,
-      maxItems: args['max-items'] ? Number(args['max-items']) : undefined,
-      maxTextChars: args['max-text-chars'] ? Number(args['max-text-chars']) : undefined,
+      maxItems: parseNumberRangeArg(args['max-items'], '--max-items', 1, 500),
+      maxTextChars: parseNumberRangeArg(args['max-text-chars'], '--max-text-chars', 50, 2_000),
     }, 30_000));
     return;
   }
@@ -2058,7 +2058,7 @@ tool_timeout_sec = 60
   if (cmd === 'snapshot' || cmd === 'text') {
     printJson(await command(cmd, {
       ...targetPayload(args),
-      maxChars: args['max-chars'] ? Number(args['max-chars']) : undefined,
+      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 200_000),
     }, 30_000));
     return;
   }
@@ -2067,7 +2067,7 @@ tool_timeout_sec = 60
     printJson(await command('html', {
       ...targetPayload(args),
       selector: args.selector,
-      maxChars: args['max-chars'] ? Number(args['max-chars']) : undefined,
+      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 500_000),
       outer: !args.inner,
     }, 30_000));
     return;
@@ -2095,7 +2095,7 @@ tool_timeout_sec = 60
       landscape: Boolean(args.landscape),
       printBackground: !args['omit-background'],
       pageRanges: args['page-ranges'],
-      scale: args.scale === undefined ? undefined : Number(args.scale),
+      scale: parseNumberRangeArg(args.scale, '--scale', 0.1, 2),
     }, 60_000);
     const match = /^data:application\/pdf;base64,(.+)$/.exec(result.dataUrl || '');
     if (!match) throw new Error('Extension returned an invalid PDF data URL');
@@ -2269,7 +2269,7 @@ tool_timeout_sec = 60
     }[cmd];
     printJson(await command(action, {
       ...targetPayload(args),
-      limit: args.limit ? Number(args.limit) : undefined,
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 2_000),
     }, 30_000));
     return;
   }

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Made CLI read/discovery/export commands validate numeric bounds locally before contacting the bridge.
 - Made CLI `history`, `bookmarks`, and `cookies` validate `--limit` bounds locally before contacting the bridge.
 - Made CLI `trace-start --max-events` validate the `50..2000` range locally before contacting the bridge.
 - Made CLI `hover` validate selector-or-coordinate targets locally, including numeric `--x`/`--y` for trusted hover, before contacting the bridge.
