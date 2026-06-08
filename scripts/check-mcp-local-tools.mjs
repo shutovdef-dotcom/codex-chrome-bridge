@@ -346,6 +346,7 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
 
 let inventoryIncludeAllChecks = 0;
 let privateSensitiveChecks = 0;
+let unsafeUrlMethodChecks = 0;
 let groupScopePayloadChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const groupTitle = 'Codex Bridge MCP Group Scope';
@@ -375,6 +376,23 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
       args: { url: 'https://example.com', credentials: 'include', confirmed: true },
       confirmedArgs: { url: 'https://example.com', credentials: 'include', confirmed: true, confirmSensitive: true },
       expectedPayload: { url: 'https://example.com', credentials: 'include', confirmSensitive: true },
+    },
+  ];
+  const unsafeCases = [
+    {
+      tool: 'chrome_bridge_open',
+      args: { url: 'javascript:alert(1)' },
+      expected: ['URL must use http:, https:, or about:blank', 'URL'],
+    },
+    {
+      tool: 'chrome_bridge_request',
+      args: { url: 'file:///etc/passwd', confirmed: true },
+      expected: ['URL must use http: or https:', 'URL'],
+    },
+    {
+      tool: 'chrome_bridge_request',
+      args: { url: 'https://example.com', method: 'TRACE', confirmed: true },
+      expected: ['Invalid enum value', 'Expected', 'TRACE'],
     },
   ];
   const cases = [
@@ -458,6 +476,29 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
       privateSensitiveChecks += 1;
     }
 
+    for (const testCase of unsafeCases) {
+      const beforeReject = receivedCommands.length;
+      try {
+        const rejected = await client.callTool({
+          name: testCase.tool,
+          arguments: testCase.args,
+        });
+        const rejectedText = rejected?.content?.find((item) => item?.type === 'text')?.text || '';
+        check(rejected?.isError === true, `MCP ${testCase.tool} unsafe URL/method must return a tool error`);
+        check(
+          testCase.expected.some((needle) => rejectedText.includes(needle)),
+          `MCP ${testCase.tool} unsafe URL/method tool error must explain the rejected input`,
+        );
+      } catch (error) {
+        check(
+          testCase.expected.some((needle) => String(error?.message || error).includes(needle)),
+          `MCP ${testCase.tool} unsafe URL/method rejection must explain the rejected input`,
+        );
+      }
+      check(receivedCommands.length === beforeReject, `MCP ${testCase.tool} unsafe URL/method must not be accepted by fake bridge`);
+      unsafeUrlMethodChecks += 1;
+    }
+
     for (const testCase of cases) {
       check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupTitle'), `${testCase.action} schema must allow groupTitle before MCP behavior checks`);
       check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupColor'), `${testCase.action} schema must allow groupColor before MCP behavior checks`);
@@ -495,5 +536,6 @@ process.stdout.write(`${JSON.stringify({
   sessionSummaryStaleBridgeRecommendation,
   inventoryIncludeAllChecks,
   privateSensitiveChecks,
+  unsafeUrlMethodChecks,
   groupScopePayloadChecks,
 }, null, 2)}\n`);

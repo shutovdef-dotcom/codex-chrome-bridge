@@ -267,6 +267,7 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
 let groupScopePayloadChecks = 0;
 let inventoryIncludeAllChecks = 0;
 let privateSensitiveChecks = 0;
+let unsafeUrlMethodChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -343,6 +344,36 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
     privateSensitiveChecks += 1;
   }
 
+  const unsafeCases = [
+    {
+      command: 'open',
+      args: ['open', 'javascript:alert(1)'],
+      expected: 'URL protocol',
+    },
+    {
+      command: 'request',
+      args: ['request', 'file:///etc/passwd', '--confirm'],
+      expected: 'URL protocol',
+    },
+    {
+      command: 'request',
+      args: ['request', 'https://example.com', '--method', 'TRACE', '--confirm'],
+      expected: '--method must be one of',
+    },
+  ];
+
+  for (const testCase of unsafeCases) {
+    const beforeReject = receivedCommands.length;
+    const rejected = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI ${testCase.command} unsafe URL/method case must fail`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes(testCase.expected),
+      `CLI ${testCase.command} unsafe URL/method rejection must mention ${testCase.expected}`,
+    );
+    check(receivedCommands.length === beforeReject, `CLI ${testCase.command} unsafe URL/method case must not be accepted`);
+    unsafeUrlMethodChecks += 1;
+  }
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -410,6 +441,7 @@ process.stdout.write(`${JSON.stringify({
   sessionSummaryStaleBridgeRecommendation,
   inventoryIncludeAllChecks,
   privateSensitiveChecks,
+  unsafeUrlMethodChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
