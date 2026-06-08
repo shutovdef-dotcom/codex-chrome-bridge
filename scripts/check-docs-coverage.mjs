@@ -8,13 +8,19 @@ import {
   CLI_USAGE_LINES,
   GENERATED_CLI_REFERENCE_BEGIN,
   GENERATED_CLI_REFERENCE_END,
+  GENERATED_CLI_SAFETY_NOTES_BEGIN,
+  GENERATED_CLI_SAFETY_NOTES_END,
   GENERATED_MCP_TOOLS_BEGIN,
   GENERATED_MCP_TOOLS_END,
+  GENERATED_MCP_SAFETY_NOTES_BEGIN,
+  GENERATED_MCP_SAFETY_NOTES_END,
   MCP_TOOLS,
   cliCommandReferenceMarkdown,
+  generatedCliSafetyNotesBlock,
   generatedCliUsageBlock,
   generatedCliUsageBegin,
   generatedCliUsageEnd,
+  generatedMcpSafetyNotesBlock,
   mcpToolReferenceMarkdown,
 } from '../shared/command-registry.mjs';
 
@@ -87,6 +93,21 @@ check(
   'docs/CLI.md generated CLI reference block must expose sensitive confirmation metadata for private browser data commands',
 );
 
+const expectedCliSafetyBlock = generatedCliSafetyNotesBlock()
+  .replace(GENERATED_CLI_SAFETY_NOTES_BEGIN, '')
+  .replace(GENERATED_CLI_SAFETY_NOTES_END, '')
+  .trim();
+const actualCliSafetyBlock = generatedBlock(cliText, GENERATED_CLI_SAFETY_NOTES_BEGIN, GENERATED_CLI_SAFETY_NOTES_END);
+check(actualCliSafetyBlock !== null, 'docs/CLI.md must include generated CLI safety notes markers');
+check(
+  actualCliSafetyBlock === expectedCliSafetyBlock,
+  'docs/CLI.md generated CLI safety notes must exactly match registry confirmation/live-bridge metadata',
+);
+check(
+  actualCliSafetyBlock?.includes('`--confirm-sensitive`') && actualCliSafetyBlock?.includes('`runtime-smoke`') && actualCliSafetyBlock?.includes('`reload-extension --confirm`'),
+  'docs/CLI.md generated CLI safety notes must mention sensitive confirmation and live interruption commands',
+);
+
 for (const tool of MCP_TOOLS) {
   check(mcpText.includes(tool), `docs/MCP.md does not mention MCP tool: ${tool}`);
 }
@@ -109,6 +130,21 @@ check(
 check(
   actualMcpToolBlock?.includes('| `chrome_bridge_cookies_list` | `cookiesList` | private-read | 30000 ms | sensitive | yes |'),
   'docs/MCP.md generated MCP tool block must expose sensitive confirmation metadata for private browser data tools',
+);
+
+const expectedMcpSafetyBlock = generatedMcpSafetyNotesBlock()
+  .replace(GENERATED_MCP_SAFETY_NOTES_BEGIN, '')
+  .replace(GENERATED_MCP_SAFETY_NOTES_END, '')
+  .trim();
+const actualMcpSafetyBlock = generatedBlock(mcpText, GENERATED_MCP_SAFETY_NOTES_BEGIN, GENERATED_MCP_SAFETY_NOTES_END);
+check(actualMcpSafetyBlock !== null, 'docs/MCP.md must include generated MCP safety notes markers');
+check(
+  actualMcpSafetyBlock === expectedMcpSafetyBlock,
+  'docs/MCP.md generated MCP safety notes must exactly match registry confirmation/live-bridge metadata',
+);
+check(
+  actualMcpSafetyBlock?.includes('`confirmSensitive: true`') && actualMcpSafetyBlock?.includes('`chrome_bridge_runtime_smoke`') && actualMcpSafetyBlock?.includes('`chrome_bridge_reload_extension`'),
+  'docs/MCP.md generated MCP safety notes must mention sensitive confirmation and live interruption tools',
 );
 
 check(cliText.includes('COMMAND-CATALOG.md'), 'docs/CLI.md must link to generated command catalog');
