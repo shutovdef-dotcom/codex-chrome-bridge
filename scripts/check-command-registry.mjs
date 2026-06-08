@@ -26,6 +26,16 @@ import {
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const failures = [];
+const isRepositoryCheckout = Boolean(await fs.stat(path.join(rootDir, '.git')).catch(() => null));
+
+function readRepoOnlyFile(relativePath) {
+  return fs.readFile(path.join(rootDir, relativePath), 'utf8')
+    .catch((error) => {
+      if (!isRepositoryCheckout) return '';
+      throw error;
+    });
+}
+
 const [
   manifestText,
   packageText,
@@ -93,14 +103,14 @@ const [
   fs.readFile(path.join(rootDir, 'extension/workspace-tabs.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
-  fs.readFile(path.join(rootDir, '.github/workflows/check.yml'), 'utf8'),
+  readRepoOnlyFile('.github/workflows/check.yml'),
   fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/PUBLISHING.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/COMPETITIVE-ROADMAP.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/MCP.md'), 'utf8'),
-  fs.readFile(path.join(rootDir, '.github/PULL_REQUEST_TEMPLATE.md'), 'utf8'),
+  readRepoOnlyFile('.github/PULL_REQUEST_TEMPLATE.md'),
   fs.readFile(path.join(rootDir, 'CONTRIBUTING.md'), 'utf8'),
-  fs.readFile(path.join(rootDir, 'codex/skills/chrome-bridge/SKILL.md'), 'utf8'),
+  readRepoOnlyFile('codex/skills/chrome-bridge/SKILL.md'),
   fs.readFile(path.join(rootDir, 'llms.txt'), 'utf8'),
 ]);
 const manifest = JSON.parse(manifestText);
@@ -218,14 +228,16 @@ check(packageJson.scripts?.check?.includes('npm run check:privacy'), 'npm run ch
 check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include check:roadmap');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-cleanup.js'), 'npm run check must syntax-check extension/tab-cleanup.js');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-group-persistence.js'), 'npm run check must syntax-check extension/tab-group-persistence.js');
-check(checkWorkflowText.includes('node-version:'), 'GitHub check workflow must use a Node.js version matrix');
-for (const nodeVersion of ['20', '22', '24']) {
-  check(new RegExp(`-\\s*${nodeVersion}\\b`).test(checkWorkflowText), `GitHub check workflow must include Node.js ${nodeVersion}`);
+if (isRepositoryCheckout || checkWorkflowText) {
+  check(checkWorkflowText.includes('node-version:'), 'GitHub check workflow must use a Node.js version matrix');
+  for (const nodeVersion of ['20', '22', '24']) {
+    check(new RegExp(`-\\s*${nodeVersion}\\b`).test(checkWorkflowText), `GitHub check workflow must include Node.js ${nodeVersion}`);
+  }
+  for (const command of ['npm ci', 'npm run check', 'npm run check:audit', 'npm run check:pack']) {
+    check(checkWorkflowText.includes(`run: ${command}`), `GitHub check workflow must run ${command}`);
+  }
+  check(!checkWorkflowText.includes('runtime-smoke'), 'GitHub check workflow must not run live runtime-smoke');
 }
-for (const command of ['npm ci', 'npm run check', 'npm run check:audit', 'npm run check:pack']) {
-  check(checkWorkflowText.includes(`run: ${command}`), `GitHub check workflow must run ${command}`);
-}
-check(!checkWorkflowText.includes('runtime-smoke'), 'GitHub check workflow must not run live runtime-smoke');
 check(packageContentsCheckerText.includes('REQUIRED_PACKAGE_FILES'), 'package contents checker must declare required package files');
 for (const requiredPackageFile of [
   'shared/command-registry.mjs',
@@ -645,19 +657,21 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence
 check((await fs.readFile(path.join(rootDir, 'scripts/check-roadmap-coverage.mjs'), 'utf8').catch(() => '')).includes('check-tab-group-persistence.mjs'), 'roadmap coverage must include the tab-group persistence behavior checker');
 check(readmeText.includes('fake saved closed group chips'), 'README must document fake saved closed group chip prevention coverage');
 check(publishingText.includes('fake saved closed group chips'), 'publishing docs must document fake saved closed group chip prevention coverage');
-check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
-check(pullRequestTemplateText.includes('npm run check:roadmap'), 'pull request template must include roadmap coverage check');
-check(pullRequestTemplateText.includes('npm run check:cli-local-tools'), 'pull request template must include CLI local tools contract check');
-check(pullRequestTemplateText.includes('npm run check:mcp-runtime-smoke'), 'pull request template must include MCP runtime smoke contract check');
-check(pullRequestTemplateText.includes('npm run check:mcp-local-tools'), 'pull request template must include MCP local tools contract check');
-check(pullRequestTemplateText.includes('npm run check:tab-group-persistence'), 'pull request template must include tab-group persistence behavior check');
-check(pullRequestTemplateText.includes('npm run check:privacy'), 'pull request template must include privacy scan check');
-check(pullRequestTemplateText.includes('npm run check:audit'), 'pull request template must include canonical audit check script');
-check(pullRequestTemplateText.includes('npm run runtime-smoke'), 'pull request template must use the canonical runtime-smoke script');
-check(!pullRequestTemplateText.includes('node ./bin/chrome-bridge.mjs runtime-smoke'), 'pull request template must not use raw node runtime-smoke command');
-check(pullRequestTemplateText.includes('verification.status: "passed"'), 'pull request template must document live runtime smoke success criteria');
-check(pullRequestTemplateText.includes('reload-extension --confirm'), 'pull request template must include live extension reload before runtime smoke');
-check(pullRequestTemplateText.includes('doctor --live-checks'), 'pull request template must include live doctor check before runtime smoke');
+if (isRepositoryCheckout || pullRequestTemplateText) {
+  check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
+  check(pullRequestTemplateText.includes('npm run check:roadmap'), 'pull request template must include roadmap coverage check');
+  check(pullRequestTemplateText.includes('npm run check:cli-local-tools'), 'pull request template must include CLI local tools contract check');
+  check(pullRequestTemplateText.includes('npm run check:mcp-runtime-smoke'), 'pull request template must include MCP runtime smoke contract check');
+  check(pullRequestTemplateText.includes('npm run check:mcp-local-tools'), 'pull request template must include MCP local tools contract check');
+  check(pullRequestTemplateText.includes('npm run check:tab-group-persistence'), 'pull request template must include tab-group persistence behavior check');
+  check(pullRequestTemplateText.includes('npm run check:privacy'), 'pull request template must include privacy scan check');
+  check(pullRequestTemplateText.includes('npm run check:audit'), 'pull request template must include canonical audit check script');
+  check(pullRequestTemplateText.includes('npm run runtime-smoke'), 'pull request template must use the canonical runtime-smoke script');
+  check(!pullRequestTemplateText.includes('node ./bin/chrome-bridge.mjs runtime-smoke'), 'pull request template must not use raw node runtime-smoke command');
+  check(pullRequestTemplateText.includes('verification.status: "passed"'), 'pull request template must document live runtime smoke success criteria');
+  check(pullRequestTemplateText.includes('reload-extension --confirm'), 'pull request template must include live extension reload before runtime smoke');
+  check(pullRequestTemplateText.includes('doctor --live-checks'), 'pull request template must include live doctor check before runtime smoke');
+}
 check(contributingText.includes('npm run check:runtime-smoke-plan'), 'contributing guide must include offline runtime smoke plan check');
 check(contributingText.includes('npm run check:roadmap'), 'contributing guide must include roadmap coverage check');
 check(contributingText.includes('npm run check:cli-local-tools'), 'contributing guide must include CLI local tools contract check');
@@ -671,13 +685,15 @@ check(contributingText.includes('reload-extension --confirm'), 'contributing gui
 check(contributingText.includes('doctor --live-checks'), 'contributing guide must include live doctor check before runtime smoke');
 check(publishingText.includes('node ./bin/chrome-bridge.mjs reload-extension --confirm'), 'publishing checklist must include exact live extension reload command');
 check(publishingText.includes('node ./bin/chrome-bridge.mjs doctor --live-checks'), 'publishing checklist must include exact live doctor command');
-check(codexChromeBridgeSkillText.includes('runtime-smoke --coverage-plan'), 'bundled Codex chrome-bridge skill must recommend offline runtime smoke plan before live smoke');
-check(codexChromeBridgeSkillText.includes('npm run check:mcp-runtime-smoke'), 'bundled Codex chrome-bridge skill must mention MCP runtime-smoke contract check');
-check(codexChromeBridgeSkillText.includes('npm run check:tab-group-persistence'), 'bundled Codex chrome-bridge skill must mention tab-group persistence behavior check');
-check(codexChromeBridgeSkillText.includes('npm run check:privacy'), 'bundled Codex chrome-bridge skill must mention privacy scan check');
-check(codexChromeBridgeSkillText.includes('reload-extension --confirm'), 'bundled Codex chrome-bridge skill must include the live upgrade reload step');
-check(codexChromeBridgeSkillText.includes('doctor --live-checks'), 'bundled Codex chrome-bridge skill must include the live doctor upgrade check');
-check(codexChromeBridgeSkillText.includes('verification.status: "passed"'), 'bundled Codex chrome-bridge skill must document live runtime smoke success criteria');
+if (isRepositoryCheckout || codexChromeBridgeSkillText) {
+  check(codexChromeBridgeSkillText.includes('runtime-smoke --coverage-plan'), 'bundled Codex chrome-bridge skill must recommend offline runtime smoke plan before live smoke');
+  check(codexChromeBridgeSkillText.includes('npm run check:mcp-runtime-smoke'), 'bundled Codex chrome-bridge skill must mention MCP runtime-smoke contract check');
+  check(codexChromeBridgeSkillText.includes('npm run check:tab-group-persistence'), 'bundled Codex chrome-bridge skill must mention tab-group persistence behavior check');
+  check(codexChromeBridgeSkillText.includes('npm run check:privacy'), 'bundled Codex chrome-bridge skill must mention privacy scan check');
+  check(codexChromeBridgeSkillText.includes('reload-extension --confirm'), 'bundled Codex chrome-bridge skill must include the live upgrade reload step');
+  check(codexChromeBridgeSkillText.includes('doctor --live-checks'), 'bundled Codex chrome-bridge skill must include the live doctor upgrade check');
+  check(codexChromeBridgeSkillText.includes('verification.status: "passed"'), 'bundled Codex chrome-bridge skill must document live runtime smoke success criteria');
+}
 check(llmsText.includes('runtime-smoke:plan'), 'llms metadata must mention offline runtime smoke plan');
 check(llmsText.includes('check:tab-group-persistence'), 'llms metadata must mention tab-group persistence behavior check');
 check(llmsText.includes('check:privacy'), 'llms metadata must mention privacy scan check');
