@@ -185,14 +185,18 @@ async function withFakeCommandBridge(fn) {
     }
 
     receivedCommands.push(parsed);
+    const resultPayload = {
+      action: parsed.action,
+      payload: parsed.payload,
+      timeoutMs: parsed.timeoutMs,
+    };
+    if (parsed.action === 'printPdf') {
+      resultPayload.dataUrl = 'data:application/pdf;base64,JVBERi0xLjQKJQ==';
+    }
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({
       ok: true,
-      result: {
-        action: parsed.action,
-        payload: parsed.payload,
-        timeoutMs: parsed.timeoutMs,
-      },
+      result: resultPayload,
     }));
   });
 
@@ -278,6 +282,7 @@ let clickAtCoordinateChecks = 0;
 let hoverCoordinateChecks = 0;
 let traceMaxEventsChecks = 0;
 let privateLimitChecks = 0;
+let readLimitChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
@@ -639,6 +644,154 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
     privateLimitChecks += 1;
   }
 
+  const readLimitInvalidCases = [
+    {
+      label: 'observe too small limit',
+      args: ['observe', '--limit', '0'],
+      message: '--limit must be between 1 and 300',
+    },
+    {
+      label: 'observe too small max-text-chars',
+      args: ['observe', '--max-text-chars', '19'],
+      message: '--max-text-chars must be between 20 and 1000',
+    },
+    {
+      label: 'find-elements too large limit',
+      args: ['find-elements', '--limit', '301'],
+      message: '--limit must be between 1 and 300',
+    },
+    {
+      label: 'find-elements invalid max-text-chars',
+      args: ['find-elements', '--max-text-chars', 'nope'],
+      message: '--max-text-chars must be between 20 and 1000',
+    },
+    {
+      label: 'extract too large max-items',
+      args: ['extract', '--max-items', '501'],
+      message: '--max-items must be between 1 and 500',
+    },
+    {
+      label: 'extract too small max-text-chars',
+      args: ['extract', '--max-text-chars', '49'],
+      message: '--max-text-chars must be between 50 and 2000',
+    },
+    {
+      label: 'snapshot too small max-chars',
+      args: ['snapshot', '--max-chars', '999'],
+      message: '--max-chars must be between 1000 and 200000',
+    },
+    {
+      label: 'text invalid max-chars',
+      args: ['text', '--max-chars', 'nope'],
+      message: '--max-chars must be between 1000 and 200000',
+    },
+    {
+      label: 'html too large max-chars',
+      args: ['html', '--max-chars', '500001'],
+      message: '--max-chars must be between 1000 and 500000',
+    },
+    {
+      label: 'pdf too large scale',
+      args: ['pdf', '--out', path.join(os.tmpdir(), 'chrome-bridge-read-limit.pdf'), '--scale', '2.1'],
+      message: '--scale must be between 0.1 and 2',
+    },
+    {
+      label: 'trace-events too small limit',
+      args: ['trace-events', '--limit', '0'],
+      message: '--limit must be between 1 and 2000',
+    },
+    {
+      label: 'trace-stop invalid limit',
+      args: ['trace-stop', '--limit', 'nope'],
+      message: '--limit must be between 1 and 2000',
+    },
+  ];
+  for (const testCase of readLimitInvalidCases) {
+    const beforeInvalidReadLimit = receivedCommands.length;
+    const beforeInvalidReadLimitRejects = invalidPayloadRequests.length;
+    const rejected = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(!rejected.ok, `CLI ${testCase.label} must fail`);
+    check(
+      `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes(testCase.message),
+      `CLI ${testCase.label} rejection must explain numeric bounds`,
+    );
+    check(receivedCommands.length === beforeInvalidReadLimit, `CLI ${testCase.label} must not be accepted by fake command bridge`);
+    check(
+      invalidPayloadRequests.length === beforeInvalidReadLimitRejects,
+      `CLI ${testCase.label} must fail fast before contacting fake command bridge`,
+    );
+    readLimitChecks += 1;
+  }
+
+  const readLimitValidCases = [
+    {
+      label: 'observe min bounds',
+      action: 'observe',
+      args: ['observe', '--limit', '1', '--max-text-chars', '20'],
+      expectedPayload: { limit: 1, maxTextChars: 20 },
+    },
+    {
+      label: 'find-elements min bounds',
+      action: 'findElements',
+      args: ['find-elements', '--limit', '1', '--max-text-chars', '20'],
+      expectedPayload: { limit: 1, maxTextChars: 20 },
+    },
+    {
+      label: 'extract min bounds',
+      action: 'extractPage',
+      args: ['extract', '--max-items', '1', '--max-text-chars', '50'],
+      expectedPayload: { maxItems: 1, maxTextChars: 50 },
+    },
+    {
+      label: 'snapshot min bounds',
+      action: 'snapshot',
+      args: ['snapshot', '--max-chars', '1000'],
+      expectedPayload: { maxChars: 1000 },
+    },
+    {
+      label: 'text min bounds',
+      action: 'text',
+      args: ['text', '--max-chars', '1000'],
+      expectedPayload: { maxChars: 1000 },
+    },
+    {
+      label: 'html min bounds',
+      action: 'html',
+      args: ['html', '--max-chars', '1000'],
+      expectedPayload: { maxChars: 1000 },
+    },
+    {
+      label: 'pdf min scale',
+      action: 'printPdf',
+      args: ['pdf', '--out', path.join(os.tmpdir(), 'chrome-bridge-read-limit.pdf'), '--scale', '0.1'],
+      expectedPayload: { scale: 0.1 },
+    },
+    {
+      label: 'trace-events min limit',
+      action: 'traceEvents',
+      args: ['trace-events', '--limit', '1'],
+      expectedPayload: { limit: 1 },
+    },
+    {
+      label: 'trace-stop min limit',
+      action: 'traceStop',
+      args: ['trace-stop', '--limit', '1'],
+      expectedPayload: { limit: 1 },
+    },
+  ];
+  for (const testCase of readLimitValidCases) {
+    const beforeValidReadLimit = receivedCommands.length;
+    const accepted = await runCli(testCase.args, { CHROME_BRIDGE_URL: bridgeUrl });
+    check(accepted.ok, `CLI ${testCase.label} must succeed against fake command bridge`);
+    const parsed = parseJsonOutput(accepted, `CLI ${testCase.label} fake command bridge`);
+    const commandPayload = receivedCommands[beforeValidReadLimit]?.payload || parsed?.payload;
+    check(receivedCommands[beforeValidReadLimit]?.action === testCase.action, `CLI ${testCase.label} must dispatch ${testCase.action}`);
+    for (const [key, value] of Object.entries(testCase.expectedPayload)) {
+      check(commandPayload?.[key] === value, `CLI ${testCase.label} must forward numeric ${key}`);
+    }
+    readLimitChecks += 1;
+  }
+
   const groupTitle = 'Codex Bridge CLI Group Scope';
   const groupColor = 'cyan';
   const cases = [
@@ -714,6 +867,7 @@ process.stdout.write(`${JSON.stringify({
   hoverCoordinateChecks,
   traceMaxEventsChecks,
   privateLimitChecks,
+  readLimitChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
