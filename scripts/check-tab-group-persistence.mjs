@@ -27,6 +27,7 @@ function eventTarget() {
 
 function createFakeChrome() {
   const groups = new Map([
+    [0, { id: 0, title: 'Codex Bridge Zero', color: 'green', windowId: 0, saved: true }],
     [101, { id: 101, title: 'Codex Bridge Session A', color: 'purple', windowId: 1, saved: true }],
     [202, { id: 202, title: 'Unrelated', color: 'blue', windowId: 1, saved: true }],
     [303, { id: 303, title: 'Codex Bridge Session B', color: 'purple', windowId: 1 }],
@@ -38,6 +39,7 @@ function createFakeChrome() {
     [1001, { id: 1001, title: 'Codex Bridge Future Removed', color: 'purple', windowId: 1, saved: true }],
   ]);
   const tabs = new Map([
+    [0, { id: 0, windowId: 0, groupId: 0 }],
     [11, { id: 11, windowId: 1, groupId: 101 }],
     [12, { id: 12, windowId: 1, groupId: 101 }],
     [21, { id: 21, windowId: 1, groupId: 202 }],
@@ -47,7 +49,13 @@ function createFakeChrome() {
     [51, { id: 51, windowId: 1, groupId: -1 }],
     [91, { id: 91, windowId: 1, groupId: 909 }],
   ]);
-  const localValues = { codexManagedGroupTitles: ['Codex Bridge Session A'] };
+  const localValues = {
+    codexTabId: 0,
+    codexWindowId: 0,
+    codexGroupId: 0,
+    codexGroupWindowId: 0,
+    codexManagedGroupTitles: ['Codex Bridge Session A'],
+  };
   const sessionValues = { codexManagedGroupIds: [404] };
   const updates = [];
   const savedClosedGroupChips = [];
@@ -284,6 +292,22 @@ check(
 );
 sessionGroupIdWriteChecks = 4;
 
+let zeroIdChecks = 0;
+const ensuredZeroGroup = await ensureCodexGroupForTab(
+  { id: 0, windowId: 0, groupId: 0 },
+  { groupTitle: 'Codex Bridge Zero', groupColor: 'green' },
+);
+check(ensuredZeroGroup.id === 0, 'workspace grouping must reuse stored Chrome group id 0');
+check(
+  chrome.groupCalls.some((call) => call.groupId === 0 && call.tabIds.includes(0)),
+  'workspace grouping must forward Chrome group id 0 to chrome.tabs.group',
+);
+check(
+  chrome.sessionSets.some((entry) => entry.codexManagedGroupIds?.includes(0)),
+  'workspace grouping must remember Chrome group id 0 in session storage',
+);
+zeroIdChecks = 3;
+
 const membership = await rememberManagedTabGroupMembership({ id: 11, windowId: 1, groupId: 101 });
 check(membership.remembered === true, 'managed tab membership update must be remembered');
 
@@ -349,6 +373,7 @@ process.stdout.write(`${JSON.stringify({
   eventCallbackChecks,
   managedChangeRemembered: managedChange.remembered,
   sessionGroupIdWriteChecks,
+  zeroIdChecks,
   removalMetadata: Boolean(removed.savedGroupPersistence),
   savedClosedGroupChipPrevention: cleanup.savedClosedGroupChipPrevention,
 }, null, 2)}\n`);
