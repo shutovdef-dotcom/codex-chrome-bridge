@@ -1,6 +1,6 @@
 # Chrome Bridge Command Catalog
 
-Version: 0.4.0
+Version: 0.4.1
 
 | Action | Category | Risk | Default Timeout | CLI | MCP | Confirm | Direct Payload Keys | Summary |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

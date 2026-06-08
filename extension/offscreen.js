@@ -1,7 +1,7 @@
 const BRIDGE_WS = 'ws://127.0.0.1:17376/extension';
 const RECONNECT_MS = 1500;
 const EXTENSION_NAME = 'Codex Chrome Bridge';
-const EXTENSION_VERSION = '0.4.0';
+const EXTENSION_VERSION = '0.4.1';
 
 let socket = null;
 let reconnectTimer = null;

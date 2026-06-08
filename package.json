@@ -1,6 +1,6 @@
 {
   "name": "codex-chrome-bridge",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Local Chrome extension, CLI, and MCP server for read-mostly control of a real Chrome profile from Codex-style agents.",
   "private": false,
   "type": "module",
