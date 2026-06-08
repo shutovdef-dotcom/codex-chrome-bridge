@@ -16,6 +16,7 @@ import {
   LOCAL_COMMAND_METADATA,
   MANIFEST_PERMISSIONS,
   MCP_TOOLS,
+  commandCatalog,
   commandCatalogMarkdown,
   commandDefaultTimeoutMs,
   commandRiskTier,
@@ -445,6 +446,11 @@ expectPayload('click', { selector: 'button', confirmed: true, unknown: true }, f
 
 const catalogPath = path.join(rootDir, 'docs/COMMAND-CATALOG.md');
 const catalogText = await fs.readFile(catalogPath, 'utf8');
+const catalogJson = commandCatalog();
+check(catalogJson.cliCommands?.length === CLI_COMMANDS.length, 'command catalog must expose top-level CLI command names');
+check(catalogJson.mcpTools?.length === MCP_TOOLS.length, 'command catalog must expose top-level MCP tool names');
+check(catalogJson.counts?.cliCommands === CLI_COMMANDS.length, 'command catalog must expose CLI command count');
+check(catalogJson.counts?.mcpTools === MCP_TOOLS.length, 'command catalog must expose MCP tool count');
 check(catalogText === commandCatalogMarkdown(), 'docs/COMMAND-CATALOG.md is not generated from the current registry');
 check(
   commandCatalogMarkdown().includes('| Action | Category | Risk | Default Timeout | CLI | MCP | Confirm | Direct Payload Keys | Summary |'),
@@ -535,6 +541,8 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs')
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('liveChecks === false'), 'MCP local tools checker must assert doctor stays offline by default');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('MCP_TOOLS'), 'MCP local tools checker must compare live MCP listTools output with registry MCP_TOOLS');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('unexpected MCP tool'), 'MCP local tools checker must fail on extra unregistered MCP tools');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('catalogParsed?.mcpTools'), 'MCP local tools checker must verify command catalog MCP tool list');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('catalogParsed?.cliCommands'), 'MCP local tools checker must verify command catalog CLI command list');
 check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
 check(pullRequestTemplateText.includes('npm run check:mcp-runtime-smoke'), 'pull request template must include MCP runtime smoke contract check');
 check(pullRequestTemplateText.includes('npm run check:mcp-local-tools'), 'pull request template must include MCP local tools contract check');
