@@ -705,6 +705,8 @@ check(readmeText.includes('fake saved closed group chips'), 'README must documen
 check(publishingText.includes('fake saved closed group chips'), 'publishing docs must document fake saved closed group chip prevention coverage');
 check(readmeText.includes('listener event callbacks') && readmeText.includes('future managed groups'), 'README must document listener event callback coverage for future managed groups');
 check(publishingText.includes('listener event callbacks') && publishingText.includes('future managed groups'), 'publishing docs must document listener event callback coverage for future managed groups');
+check(readmeText.includes('freshly created bridge session groups'), 'README must document fresh bridge-created session group coverage');
+check(publishingText.includes('fresh bridge-created session groups'), 'publishing docs must document fresh bridge-created session group coverage');
 check(architectureText.includes('session-scoped bridge-created group IDs') && architectureText.includes('Chrome session storage'), 'architecture docs must document session-scoped managed group ids');
 check(extensionDocsText.includes('session-scoped bridge-created group IDs') && extensionDocsText.includes('Chrome session storage'), 'extension setup docs must document session-scoped managed group ids');
 if (isRepositoryCheckout || pullRequestTemplateText) {

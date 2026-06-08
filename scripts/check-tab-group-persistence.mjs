@@ -47,6 +47,7 @@ function createFakeChrome() {
     [32, { id: 32, windowId: 1, groupId: 303 }],
     [41, { id: 41, windowId: 1, groupId: 404 }],
     [51, { id: 51, windowId: 1, groupId: -1 }],
+    [61, { id: 61, windowId: 1, groupId: -1 }],
     [91, { id: 91, windowId: 1, groupId: 909 }],
   ]);
   const localValues = {
@@ -292,6 +293,28 @@ check(
 );
 sessionGroupIdWriteChecks = 4;
 
+let freshSessionGroupChecks = 0;
+chrome.savedClosedGroupChips.length = 0;
+chrome.updates.length = 0;
+const ensuredFreshGroup = await ensureCodexGroupForTab(
+  { id: 61, windowId: 1, groupId: -1 },
+  { groupTitle: 'Codex Bridge Fresh Session', groupColor: 'orange' },
+);
+check(ensuredFreshGroup.id === 606, 'fresh workspace grouping must create a new session group');
+check(
+  chrome.updates.some((entry) => entry.groupId === 606 && entry.patch?.saved === false),
+  'fresh workspace grouping must mark the new session group unsaved when Chrome exposes saved support',
+);
+check(
+  chrome.sessionSets.some((entry) => entry.codexManagedGroupIds?.includes(606)),
+  'fresh workspace grouping must remember the new group id only in Chrome session storage',
+);
+const freshTab = await chrome.tabs.get(61);
+const freshCleanup = await closeTabsWithGroupPersistenceMitigation([freshTab]);
+check(freshCleanup.ungroupedBeforeClose === true, 'fresh session cleanup must ungroup before closing');
+check(chrome.savedClosedGroupChips.length === 0, 'fresh session cleanup must not create fake saved closed group chips');
+freshSessionGroupChecks = 5;
+
 let zeroIdChecks = 0;
 const ensuredZeroGroup = await ensureCodexGroupForTab(
   { id: 0, windowId: 0, groupId: 0 },
@@ -373,6 +396,7 @@ process.stdout.write(`${JSON.stringify({
   eventCallbackChecks,
   managedChangeRemembered: managedChange.remembered,
   sessionGroupIdWriteChecks,
+  freshSessionGroupChecks,
   zeroIdChecks,
   removalMetadata: Boolean(removed.savedGroupPersistence),
   savedClosedGroupChipPrevention: cleanup.savedClosedGroupChipPrevention,
