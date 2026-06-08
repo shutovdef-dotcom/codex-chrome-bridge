@@ -281,6 +281,7 @@ async function selfTest() {
   const paths = {
     manifest: path.join(rootDir, 'extension/manifest.json'),
     background: path.join(rootDir, 'extension/background.js'),
+    browserData: path.join(rootDir, 'extension/browser-data.js'),
     debuggerSession: path.join(rootDir, 'extension/debugger-session.js'),
     extensionErrors: path.join(rootDir, 'extension/extension-errors.js'),
     keyboardEvents: path.join(rootDir, 'extension/keyboard-events.js'),
@@ -312,6 +313,7 @@ async function selfTest() {
   const [
     manifestText,
     background,
+    browserData,
     debuggerSession,
     extensionErrors,
     keyboardEvents,
@@ -337,6 +339,7 @@ async function selfTest() {
   ] = await Promise.all([
     fs.readFile(paths.manifest, 'utf8'),
     fs.readFile(paths.background, 'utf8'),
+    fs.readFile(paths.browserData, 'utf8'),
     fs.readFile(paths.debuggerSession, 'utf8'),
     fs.readFile(paths.extensionErrors, 'utf8'),
     fs.readFile(paths.keyboardEvents, 'utf8'),
@@ -367,6 +370,7 @@ async function selfTest() {
 
   const syntaxChecks = await Promise.all([
     tryExec(process.execPath, ['--check', paths.background]),
+    tryExec(process.execPath, ['--check', paths.browserData]),
     tryExec(process.execPath, ['--check', paths.debuggerSession]),
     tryExec(process.execPath, ['--check', paths.extensionErrors]),
     tryExec(process.execPath, ['--check', paths.keyboardEvents]),
@@ -402,6 +406,8 @@ async function selfTest() {
     { label: 'manifest version', item: EXPECTED_EXTENSION_VERSION, ok: manifest.version === EXPECTED_EXTENSION_VERSION },
     { label: 'offscreen version', item: EXPECTED_EXTENSION_VERSION, ok: offscreen.includes(`EXTENSION_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },
     { label: 'ask page script', item: 'codex-bridge-user-answer', ok: ask.includes('codex-bridge-user-answer') },
+    { label: 'extension module', item: 'browser data imports', ok: background.includes("from './browser-data.js'") },
+    { label: 'extension module', item: 'browser data exports', ok: browserData.includes('export async function historySearch') && browserData.includes('export async function cookiesList') },
     { label: 'extension module', item: 'debugger session imports', ok: background.includes("from './debugger-session.js'") },
     { label: 'extension module', item: 'debugger session exports', ok: debuggerSession.includes('export async function withDebugger') && debuggerSession.includes('export function recordDebuggerEvent') },
     { label: 'extension module', item: 'extension error imports', ok: background.includes("from './extension-errors.js'") },
@@ -539,8 +545,8 @@ async function selfTest() {
   const safetyChecks = [
     { label: 'safety gate', item: 'requireConfirmed', ok: safetyGates.includes('function requireConfirmed') },
     { label: 'safety gate', item: 'requireSensitiveConfirmed', ok: safetyGates.includes('function requireSensitiveConfirmed') },
-    { label: 'safety gate', item: 'whole cookie jar confirmSensitive', ok: background.includes("cookiesList without url/domain/name") },
-    { label: 'safety gate', item: 'credentialed request confirmSensitive', ok: background.includes("credentials === 'include'") },
+    { label: 'safety gate', item: 'whole cookie jar confirmSensitive', ok: browserData.includes("cookiesList without url/domain/name") },
+    { label: 'safety gate', item: 'credentialed request confirmSensitive', ok: browserData.includes("credentials === 'include'") },
     { label: 'bridge guard', item: 'unsupported action rejection', ok: server.includes('Unsupported action:') },
     { label: 'bridge guard', item: 'extension version mismatch rejection', ok: server.includes('Extension version mismatch:') },
     { label: 'bridge guard', item: 'unknown extension version rejection', ok: server.includes('VERSION_UNKNOWN') && server.includes('extensionVersionStatusError') },

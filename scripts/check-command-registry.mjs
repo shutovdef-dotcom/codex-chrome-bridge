@@ -32,6 +32,7 @@ const [
   cliText,
   mcpText,
   backgroundText,
+  browserDataText,
   debuggerSessionText,
   extensionErrorsText,
   keyboardEventsText,
@@ -53,6 +54,7 @@ const [
   fs.readFile(path.join(rootDir, 'bin/chrome-bridge.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/browser-data.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/debugger-session.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/extension-errors.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/keyboard-events.js'), 'utf8').catch(() => ''),
@@ -549,6 +551,17 @@ check(!listSelectOptionsBlock.includes('selected: option.selected'), 'select-opt
 check(functionBlock(backgroundText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
 check(functionBlock(backgroundText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
 check(functionBlock(backgroundText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
+check(backgroundText.includes("from './browser-data.js';"), 'extension background must import private browser-data handlers from extension/browser-data.js');
+for (const helperName of ['historySearch', 'bookmarksSearch', 'flattenBookmarks', 'cookiesList', 'fetchUrl']) {
+  check(!functionBlock(backgroundText, helperName), `extension background must not own browser-data internals: ${helperName}`);
+}
+check(browserDataText.includes('export async function historySearch'), 'extension browser data module must export historySearch');
+check(browserDataText.includes('export async function bookmarksSearch'), 'extension browser data module must export bookmarksSearch');
+check(browserDataText.includes('export async function cookiesList'), 'extension browser data module must export cookiesList');
+check(browserDataText.includes('export async function fetchUrl'), 'extension browser data module must export fetchUrl');
+check(functionBlock(browserDataText, 'historySearch').includes("requireConfirmed(payload, 'historySearch')"), 'extension browser data history must require confirmation');
+check(functionBlock(browserDataText, 'cookiesList').includes("requireSensitiveConfirmed(payload, 'cookiesList without url/domain/name')"), 'extension browser data cookies whole-jar reads must require sensitive confirmation');
+check(functionBlock(browserDataText, 'fetchUrl').includes("requireSensitiveConfirmed(payload, 'fetchUrl credentials=include')"), 'extension browser data credentialed requests must require sensitive confirmation');
 check(backgroundText.includes("import { requireConfirmed, requireSensitiveConfirmed } from './safety-gates.js';"), 'extension background must import safety gates from extension/safety-gates.js');
 check(!backgroundText.includes('function requireConfirmed'), 'extension background must not own confirmation gate internals');
 check(!backgroundText.includes('function requireSensitiveConfirmed'), 'extension background must not own confirmation gate internals');

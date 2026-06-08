@@ -11,6 +11,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'shared/command-registry.mjs',
   'extension/manifest.json',
   'extension/background.js',
+  'extension/browser-data.js',
   'extension/debugger-session.js',
   'extension/extension-errors.js',
   'extension/keyboard-events.js',
