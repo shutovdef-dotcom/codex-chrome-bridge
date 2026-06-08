@@ -8,6 +8,7 @@ The `extension/` directory contains a Manifest V3 extension:
 
 - `manifest.json` declares permissions.
 - `background.js` executes browser commands.
+- `browser-data.js` owns private browser-data actions for history, bookmarks, cookies, and extension-context requests.
 - `debugger-session.js` owns Chrome Debugger attach/detach lifecycle, per-tab serialization, and trace event buffering.
 - `extension-errors.js` classifies extension-side command failures into stable bridge error codes.
 - `keyboard-events.js` owns Chrome Debugger key-event payload mapping for trusted keyboard input.

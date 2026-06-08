@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Split private browser-data actions for history, bookmarks, cookies, and extension-context requests into `extension/browser-data.js`.
 - Split scoped workspace tab/group targeting and extension-local workspace storage helpers into `extension/workspace-tabs.js`.
 - Split Chrome Debugger session lifecycle, per-tab serialization, and trace buffering into `extension/debugger-session.js`.
 - Split Chrome Debugger key-event payload mapping into `extension/keyboard-events.js`.
