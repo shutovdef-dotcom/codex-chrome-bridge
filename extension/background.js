@@ -14,10 +14,10 @@ import {
   selectOptionInPage,
   waitForSelectorInPage,
 } from './page-scripts.js';
+import { startBridge } from './offscreen-lifecycle.js';
 import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';
 import { groupOptions } from './workspace-policy.js';
 
-const OFFSCREEN_URL = 'offscreen.html';
 const DEBUGGER_PROTOCOL_VERSION = '1.3';
 const MAX_TRACE_EVENTS = 500;
 const MAX_USER_PROMPT_CHOICES = 8;
@@ -25,38 +25,6 @@ const MAX_USER_PROMPT_CHOICES = 8;
 const traceSessions = new Map();
 const pendingUserPrompts = new Map();
 const debuggerLocks = new Map();
-
-async function ensureOffscreen() {
-  if (!chrome.offscreen) {
-    throw new Error('chrome.offscreen API is unavailable');
-  }
-
-  const offscreenUrl = chrome.runtime.getURL(OFFSCREEN_URL);
-  const contexts = await chrome.runtime.getContexts({
-    contextTypes: ['OFFSCREEN_DOCUMENT'],
-    documentUrls: [offscreenUrl],
-  });
-
-  if (contexts.length) return;
-
-  const reason = chrome.offscreen.Reason?.BLOBS
-    || chrome.offscreen.Reason?.DOM_SCRAPING
-    || 'DOM_SCRAPING';
-
-  await chrome.offscreen.createDocument({
-    url: OFFSCREEN_URL,
-    reasons: [reason],
-    justification: 'Maintain a local Codex bridge connection for user-authorized browser inspection.',
-  });
-}
-
-async function startBridge() {
-  try {
-    await ensureOffscreen();
-  } catch {
-    // The extension action and alarm will retry; avoid throwing from event startup.
-  }
-}
 
 chrome.runtime.onInstalled.addListener(startBridge);
 chrome.runtime.onStartup.addListener(startBridge);
