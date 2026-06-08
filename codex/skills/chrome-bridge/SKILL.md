@@ -68,7 +68,7 @@ node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" doctor --live-checks
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" runtime-smoke
 ```
 
-Run the live reload, `doctor --live-checks`, and `runtime-smoke` sequence only when the bridge is free. If live smoke is skipped or failed, use top-level `nextCommand` / `nextAction` for the immediate recovery step; nested `verification.nextCommand` / `verification.nextAction` carries the same recovery context. Treat verification as complete only when live `runtime-smoke` reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
+Run the live reload, `doctor --live-checks`, and `runtime-smoke` sequence only when the bridge is free. If live smoke is skipped or failed, use top-level `nextCommand` / `nextAction` for the immediate recovery step; nested `verification.nextCommand` / `verification.nextAction` carries the same recovery context. Treat verification as complete only when live `runtime-smoke` reports `ok: true`, `coverage.ok: true`, `verification.status: "passed"`, and `finalVerificationComplete: true`.
 
 ## Read-Only Workflow
 
