@@ -599,6 +599,8 @@ check(readmeText.includes('npm run check:roadmap'), 'README must document roadma
 check(readmeText.includes('npm run check:cli-local-tools'), 'README must document CLI local tools contract check');
 check(readmeText.includes('npm run check:mcp-runtime-smoke'), 'README must document MCP runtime smoke contract check');
 check(readmeText.includes('npm run check:mcp-local-tools'), 'README must document MCP local tools contract check');
+check(readmeText.includes('CLI group scope payload forwarding'), 'README must document CLI group scope payload forwarding checks');
+check(readmeText.includes('MCP group scope payload forwarding'), 'README must document MCP group scope payload forwarding checks');
 check(readmeText.includes('npm run check:tab-group-persistence'), 'README must document tab-group persistence behavior check');
 check(readmeText.includes('stale-extension/stale-bridge'), 'README must document stale-extension and stale-bridge verifier metadata');
 check(readmeText.includes('structured JSON output'), 'README must document structured JSON verifier output');
@@ -614,6 +616,8 @@ check(publishingText.includes('npm run check:roadmap'), 'publishing checklist mu
 check(publishingText.includes('npm run check:cli-local-tools'), 'publishing checklist must include CLI local tools contract check');
 check(publishingText.includes('npm run check:mcp-runtime-smoke'), 'publishing checklist must include MCP runtime smoke contract check');
 check(publishingText.includes('npm run check:mcp-local-tools'), 'publishing checklist must include MCP local tools contract check');
+check(publishingText.includes('CLI group scope payload forwarding'), 'publishing docs must mention CLI group scope payload forwarding checks');
+check(publishingText.includes('MCP group scope payload forwarding'), 'publishing docs must mention MCP group scope payload forwarding checks');
 check(publishingText.includes('npm run check:tab-group-persistence'), 'publishing checklist must include tab-group persistence behavior check');
 check(roadmapText.includes('npm run runtime-smoke:plan'), 'deferred runtime roadmap must use the canonical offline runtime smoke plan script');
 check(packageContentsCheckerText.includes("'scripts/check-runtime-smoke-plan.mjs'"), 'package contents must include runtime smoke plan checker');
