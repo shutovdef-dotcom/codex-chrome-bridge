@@ -35,7 +35,7 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 
 `runtime-smoke` opens temporary local fixture tabs and covers existing-tab adoption, scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, querySelector/nth-of-type selector fallback, screenshots, PDF export, dialog handling, file input upload, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata. Its JSON output includes a counted `coverage` summary, and top-level `ok` is true only when every required coverage item passed.
 
-`check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
+`check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files. It also runs a packaged registry check in a simulated package layout so repo-only metadata like `.github/` and `codex/` can remain excluded without breaking installed/package verification scripts.
 
 `check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL, verifies stale bridge-server and stale-extension skip metadata, structured JSON output, and nonzero CLI-exit preservation against fake `/health` servers, and fails if `--coverage-plan` starts contacting the live bridge.
 
