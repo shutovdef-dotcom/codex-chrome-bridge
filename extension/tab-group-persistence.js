@@ -1,5 +1,19 @@
+import { DEFAULT_GROUP_TITLE, groupOptions } from './workspace-policy.js';
+
 function errorMessage(error) {
   return String(error?.message || error);
+}
+
+function normalizedString(value) {
+  return String(value || '').trim();
+}
+
+function integerSet(values) {
+  return new Set(values.filter((value) => Number.isInteger(value) && value >= 0));
+}
+
+function titleSet(values) {
+  return new Set(values.map(normalizedString).filter(Boolean));
 }
 
 function savedState(group, propertyName = 'saved') {
@@ -65,4 +79,58 @@ export async function disableSavedTabGroupsForTabs(tabs = []) {
     results.push(await disableSavedTabGroupIfSupported(groupId));
   }
   return results;
+}
+
+async function managedGroupContext() {
+  const stored = await chrome.storage.local.get([
+    'codexGroupId',
+    'codexGroupTitle',
+    'codexWorkspaceGroupTitle',
+  ]).catch(() => ({}));
+  const options = await groupOptions().catch(() => ({ title: DEFAULT_GROUP_TITLE }));
+
+  return {
+    groupIds: integerSet([stored.codexGroupId]),
+    groupTitles: titleSet([
+      DEFAULT_GROUP_TITLE,
+      stored.codexGroupTitle,
+      stored.codexWorkspaceGroupTitle,
+      options.title,
+    ]),
+  };
+}
+
+async function isManagedCodexGroup(group) {
+  if (!group || typeof group !== 'object') return false;
+  const context = await managedGroupContext();
+  const title = normalizedString(group.title);
+  if (context.groupTitles.has(title)) return true;
+  return !title && context.groupIds.has(group.id);
+}
+
+export async function handleManagedTabGroupChange(group) {
+  if (!(await isManagedCodexGroup(group))) {
+    return { managed: false, groupId: group?.id };
+  }
+
+  return disableSavedTabGroupIfSupported(group);
+}
+
+function handleManagedTabGroupChangeEvent(group) {
+  handleManagedTabGroupChange(group).catch(() => {});
+}
+
+export function installTabGroupPersistenceListeners() {
+  if (!chrome.tabGroups?.onCreated?.addListener || !chrome.tabGroups?.onUpdated?.addListener) {
+    return { installed: false, supported: false };
+  }
+
+  if (!chrome.tabGroups.onCreated.hasListener?.(handleManagedTabGroupChangeEvent)) {
+    chrome.tabGroups.onCreated.addListener(handleManagedTabGroupChangeEvent);
+  }
+  if (!chrome.tabGroups.onUpdated.hasListener?.(handleManagedTabGroupChangeEvent)) {
+    chrome.tabGroups.onUpdated.addListener(handleManagedTabGroupChangeEvent);
+  }
+
+  return { installed: true, supported: true };
 }

@@ -38,7 +38,7 @@ Permission changes still require a manual Chrome extension reload.
 
 `ask.html` is a local extension page used by the `ask` CLI command and `chrome_bridge_ask_user` MCP tool. It opens inside the `Codex Bridge` tab group and sends the user's answer back to the extension background script.
 
-Prompt cleanup uses the same saved-group feature detection and ungroup-before-close path as `close-tab` and `close-group`, so short-lived prompt tabs do not leave behind new saved closed `Codex Bridge` groups when Chrome cleanup runs.
+Prompt cleanup uses the same saved-group feature detection and ungroup-before-close path as `close-tab` and `close-group`, so short-lived prompt tabs do not leave behind new saved closed `Codex Bridge` groups when Chrome cleanup runs. The background service worker also registers tab-group create/update listeners that re-apply the best-effort unsaved marker to managed Codex groups when Chrome exposes that surface.
 
 ## Permissions
 

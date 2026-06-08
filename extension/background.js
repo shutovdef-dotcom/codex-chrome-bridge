@@ -46,6 +46,7 @@ import {
   recordDebuggerEvent,
 } from './debugger-session.js';
 import { reloadExtension } from './runtime-actions.js';
+import { installTabGroupPersistenceListeners } from './tab-group-persistence.js';
 import {
   traceEvents,
   traceStart,
@@ -71,6 +72,7 @@ chrome.alarms.create('codex-bridge-ensure-offscreen', { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'codex-bridge-ensure-offscreen') startBridge();
 });
+installTabGroupPersistenceListeners();
 startBridge();
 
 if (chrome.debugger?.onEvent) {

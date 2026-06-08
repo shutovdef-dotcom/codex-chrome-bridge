@@ -1,5 +1,5 @@
 const DEFAULT_WORKSPACE_NAME = 'default';
-const DEFAULT_GROUP_TITLE = 'Codex Bridge';
+export const DEFAULT_GROUP_TITLE = 'Codex Bridge';
 const DEFAULT_GROUP_COLOR = 'purple';
 const DEFAULT_POLICY_MODE = 'scoped';
 const ALLOWED_GROUP_COLORS = new Set(['grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange']);

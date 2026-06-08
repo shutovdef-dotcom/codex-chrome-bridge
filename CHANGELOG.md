@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added background tab-group create/update listeners so managed `Codex Bridge` groups are automatically marked unsaved when Chrome exposes saved-tab-group API support, reducing future saved closed group chips beyond command-driven cleanup.
 - Split confirmed extension runtime actions into `extension/runtime-actions.js`.
 - Split trace command wrappers into `extension/trace-actions.js`.
 - Split page interaction, trusted input, dialog, and file-upload actions into `extension/page-interactions.js`.
