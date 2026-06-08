@@ -120,6 +120,19 @@ await check('rejects unsafe host without explicit override', async () => {
   assert(rejected, 'expected UNSAFE_HOST rejection');
 });
 
+await check('rejects invalid bind ports before listen', async () => {
+  for (const port of ['nope', '-1', '65536', '1.5']) {
+    let rejected = false;
+    try {
+      createBridgeServer({ port });
+    } catch (error) {
+      rejected = error?.code === 'INVALID_PORT'
+        && String(error?.message || '').includes('port must be an integer between 0 and 65535');
+    }
+    assert(rejected, `expected INVALID_PORT rejection for ${port}`);
+  }
+});
+
 await check('keeps long-poll transport disabled by default', async () => {
   await withBridge({}, async ({ baseUrl }) => {
     const { response, json } = await requestJson(baseUrl, '/extension/hello', {

@@ -255,6 +255,34 @@ await withFakeLiveDoctor(async ({ bridgeUrl, pathEnv }) => {
   liveDoctorBridgeCurrent = liveDoctorJson.checks?.bridgeCurrent;
 });
 
+let serverPortChecks = 0;
+const serverPortInvalidCases = [
+  {
+    label: 'invalid --port',
+    args: ['server', '--port', 'nope'],
+    env: {},
+  },
+  {
+    label: 'too large --port',
+    args: ['server', '--port', '65536'],
+    env: {},
+  },
+  {
+    label: 'invalid CHROME_BRIDGE_PORT',
+    args: ['server'],
+    env: { CHROME_BRIDGE_PORT: 'nope' },
+  },
+];
+for (const testCase of serverPortInvalidCases) {
+  const rejected = await runCli(testCase.args, testCase.env);
+  check(!rejected.ok, `CLI server ${testCase.label} must fail`);
+  check(
+    `${rejected.stderr}\n${rejected.stdout}\n${rejected.error}`.includes('port must be an integer between 0 and 65535'),
+    `CLI server ${testCase.label} rejection must explain port bounds`,
+  );
+  serverPortChecks += 1;
+}
+
 let sessionSummaryStaleBridgeRecommendation = false;
 await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
   const summaryResult = await runCli(['session-summary'], {
@@ -956,6 +984,7 @@ process.stdout.write(`${JSON.stringify({
   checkedCommands: ['doctor', 'extension-path', 'codex-config', 'command-catalog'],
   doctorOfflineByDefault: true,
   doctorLiveBridgeCurrent: liveDoctorBridgeCurrent,
+  serverPortChecks,
   sessionSummaryStaleBridgeRecommendation,
   inventoryIncludeAllChecks,
   privateSensitiveChecks,
