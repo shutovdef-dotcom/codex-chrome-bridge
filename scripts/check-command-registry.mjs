@@ -453,6 +453,9 @@ expectPayload('setWorkspace', { groupColor: 'violet', confirmed: true }, false, 
 expectPayload('reloadExtension', {}, false, 'reloadExtension missing confirmation payload');
 expectPayload('reloadExtension', { confirmed: true }, true, 'reloadExtension confirmed payload');
 expectPayload('adoptTab', { tabId: 123, confirmed: true }, true, 'adoptTab tab payload');
+expectPayload('adoptTab', { tabId: 0, confirmed: true }, true, 'adoptTab zero tab id payload');
+expectPayload('adoptTab', { tabId: -1, confirmed: true }, false, 'adoptTab negative tab id payload');
+expectPayload('adoptTab', { tabId: 1.5, confirmed: true }, false, 'adoptTab fractional tab id payload');
 expectPayload('adoptTab', { tabId: 123, confirmed: true, allowExternal: true }, false, 'adoptTab allowExternal rejection');
 expectPayload('open', {}, false, 'open missing url payload');
 expectPayload('waitForSelector', {}, false, 'waitForSelector missing selector payload');
