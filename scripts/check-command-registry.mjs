@@ -40,6 +40,7 @@ const [
   safetyGatesText,
   tabCleanupText,
   tabInfoText,
+  tabLoadingText,
   workspaceTabsText,
   packageContentsCheckerText,
   privacyScannerText,
@@ -59,6 +60,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-info.js'), 'utf8').catch(() => ''),
+  fs.readFile(path.join(rootDir, 'extension/tab-loading.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/workspace-tabs.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
@@ -572,6 +574,11 @@ check(!backgroundText.includes('function groupInfo'), 'extension background must
 check(!backgroundText.includes('function tabInfo'), 'extension background must not own tab/group serializer internals');
 check(functionBlock(tabInfoText, 'groupInfo').includes('collapsed'), 'extension tab info module must serialize tab group metadata');
 check(functionBlock(tabInfoText, 'tabInfo').includes('groupInfo(group)') && functionBlock(tabInfoText, 'tabInfo').includes('status'), 'extension tab info module must serialize tab metadata with group info');
+check(backgroundText.includes("import { waitForTabComplete } from './tab-loading.js';"), 'extension background must import tab loading helper from extension/tab-loading.js');
+check(!backgroundText.includes('function waitForTabComplete'), 'extension background must not own tab loading internals');
+check(!backgroundText.includes('function delay'), 'extension background must not own tab loading delay internals');
+check(functionBlock(tabLoadingText, 'waitForTabComplete').includes("tab.status === 'complete'"), 'extension tab loading module must wait for complete tab status');
+check(functionBlock(tabLoadingText, 'waitForTabComplete').includes('chrome.tabs.get'), 'extension tab loading module must poll Chrome tab state');
 check(backgroundText.includes("from './workspace-tabs.js';"), 'extension background must import workspace tab helpers from extension/workspace-tabs.js');
 for (const helperName of ['storageGet', 'storageSet', 'storageRemove', 'getTargetTab', 'getStoredCodexGroup', 'getCodexGroupTabs', 'ensureCodexGroupForTab', 'assertCodexScopedTab']) {
   check(!functionBlock(backgroundText, helperName), `extension background must not own workspace tab helper internals: ${helperName}`);
