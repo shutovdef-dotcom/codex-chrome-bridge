@@ -283,7 +283,7 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - add explicit local workspace policy commands while preserving scoped, explicit-only outside-tab access
   - add `strict` workspace policy mode to block outside tabs even when external-tab override is passed
   - split the extension service worker into focused modules for debugger sessions, trace action wrappers, error classification, human prompt lifecycle, keyboard event mapping, navigation/workspace actions, offscreen lifecycle, page artifact capture, injected page execution, page interaction actions, page inspection/read actions, injected page scripts, private browser-data actions, runtime actions, safety gates, tab cleanup, tab/group response serialization, tab-load polling, workspace policy normalization, and workspace tab targeting
-  - add feature-detected saved-tab-group disablement so bridge-created groups are marked unsaved when Chrome exposes that API, while retaining ungroup-before-close mitigation on current Chrome
+  - add feature-detected saved-tab-group disablement so bridge-created groups are marked unsaved when Chrome exposes that API, while retaining ungroup-before-close mitigation on current Chrome and returning `savedClosedGroupChipPrevention` metadata for bridge-driven cleanup
 
 ## Next Recommended Slice
 
@@ -299,7 +299,8 @@ That sequence proves the now-modular browser surface in Chrome before expanding 
 The current implementation can be statically verified while another session is using the live bridge. Final completion still requires a real-browser pass after the bridge is free:
 
 1. Run `npm run runtime-smoke:plan` if you need the offline checklist while another session is using the bridge; this reports `verification.status: "not-run"` until the live smoke pass runs and includes `verification.finalCommands` plus `verification.finalMcpCalls` for the live sequence.
-2. Reload or restart the unpacked extension and local bridge server.
-3. Run `npm run runtime-smoke`.
-4. Confirm the smoke output reports `ok: true`, `coverage.ok: true`, current bridge/extension versions, and `verification.status: "passed"` for existing-tab adoption, scoped tabs, `setWorkspace` strict policy, `session-summary`, default `debug-bundle`, `observe`, `find-elements` including nearby text, `extract`, screenshots, `pdf`, dialog handling, file input upload, interactions, tracing, successful browser-data reads, browser-data safety gates, strict outside-tab blocking, and cleanup metadata.
-5. If a release needs human UX assurance, manually spot-check one scoped tab workflow after the automated smoke pass.
+2. Run `chrome-bridge reload-extension --confirm` after confirming no other session is using the bridge.
+3. Run `chrome-bridge doctor --live-checks`.
+4. Run `chrome-bridge runtime-smoke`.
+5. Confirm the smoke output reports `ok: true`, `coverage.ok: true`, current bridge/extension versions, and `verification.status: "passed"` for existing-tab adoption, scoped tabs, `setWorkspace` strict policy, `session-summary`, default `debug-bundle`, `observe`, `find-elements` including nearby text, `extract`, screenshots, `pdf`, dialog handling, file input upload, interactions, tracing, successful browser-data reads, browser-data safety gates, strict outside-tab blocking, and cleanup metadata including `savedClosedGroupChipPrevention`.
+6. If a release needs human UX assurance, manually spot-check one scoped tab workflow after the automated smoke pass.
