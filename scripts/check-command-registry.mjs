@@ -691,6 +691,7 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence
 check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('savedClosedGroupChips'), 'tab-group persistence checker must simulate saved closed group chips');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('sessionGroupIdWriteChecks'), 'tab-group persistence checker must behaviorally assert session group id writes');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('eventCallbackChecks'), 'tab-group persistence checker must verify listener event callbacks for future managed groups');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-tab-group-persistence.mjs'), 'utf8').catch(() => '')).includes('zeroIdChecks'), 'tab-group persistence checker must verify zero-valued Chrome tab/group IDs');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-roadmap-coverage.mjs'), 'utf8').catch(() => '')).includes('check-tab-group-persistence.mjs'), 'roadmap coverage must include the tab-group persistence behavior checker');
 check(readmeText.includes('fake saved closed group chips'), 'README must document fake saved closed group chip prevention coverage');
 check(publishingText.includes('fake saved closed group chips'), 'publishing docs must document fake saved closed group chip prevention coverage');
