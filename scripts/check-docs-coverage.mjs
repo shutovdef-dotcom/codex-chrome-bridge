@@ -108,6 +108,10 @@ check(
   actualCliSafetyBlock?.includes('`--confirm-sensitive`') && actualCliSafetyBlock?.includes('`runtime-smoke`') && actualCliSafetyBlock?.includes('`reload-extension --confirm`'),
   'docs/CLI.md generated CLI safety notes must mention sensitive confirmation and live interruption commands',
 );
+check(
+  actualCliSafetyBlock?.includes('run `reload-extension --confirm`, `doctor --live-checks`, and `runtime-smoke`'),
+  'docs/CLI.md generated CLI safety notes must document live upgrade checks in execution order',
+);
 
 for (const tool of MCP_TOOLS) {
   check(mcpText.includes(tool), `docs/MCP.md does not mention MCP tool: ${tool}`);
