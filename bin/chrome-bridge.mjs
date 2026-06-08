@@ -1587,9 +1587,15 @@ async function runtimeSmoke(args = {}) {
         if (!result.dryRun || result.applied) throw new Error('fill form dry run unexpectedly applied changes');
       },
     });
-    await run('click dialog trigger', () => command('click', {
+    const dialogTarget = await run('wait for dialog target', () => command('waitForSelector', {
       tabId,
       selector: '#dialog-button',
+    }, 30_000));
+    await run('click dialog trigger', () => command('clickAt', {
+      tabId,
+      x: Math.round(dialogTarget.rect.x + dialogTarget.rect.width / 2),
+      y: Math.round(dialogTarget.rect.y + dialogTarget.rect.height / 2),
+      trusted: true,
       confirmed: true,
     }, 30_000));
     await delay(500);
