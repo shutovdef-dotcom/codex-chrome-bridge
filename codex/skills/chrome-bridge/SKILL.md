@@ -43,13 +43,30 @@ $CHROME_BRIDGE_ROOT/extension
 
 ## Verification
 
+Offline checks:
+
 ```bash
-node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" self-test
-node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" runtime-smoke --coverage-plan
+cd "$CHROME_BRIDGE_ROOT"
+npm run check
+npm run check:runtime-smoke-plan
+npm run check:roadmap
+npm run check:cli-local-tools
+npm run check:mcp-runtime-smoke
+npm run check:mcp-local-tools
+npm run check:tab-group-persistence
+npm run check:privacy
+npm run runtime-smoke:plan
+```
+
+`runtime-smoke --coverage-plan` and `npm run runtime-smoke:plan` are offline and safe while another session is using the bridge.
+
+Live check, only when the bridge is free:
+
+```bash
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" runtime-smoke
 ```
 
-`runtime-smoke --coverage-plan` is offline and safe while another session is using the bridge. Run the live `runtime-smoke` only when the bridge is free, and treat it as complete only when it reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
+Run the live `runtime-smoke` only when the bridge is free, and treat it as complete only when it reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 
 ## Read-Only Workflow
 
