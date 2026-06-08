@@ -388,6 +388,7 @@ async function selfTest() {
     { label: 'extension module', item: 'safety gates exports', ok: safetyGates.includes('export function requireConfirmed') },
     { label: 'extension module', item: 'tab cleanup imports', ok: background.includes("from './tab-cleanup.js'") },
     { label: 'extension module', item: 'tab cleanup exports', ok: tabCleanup.includes('export async function closeTabsWithGroupPersistenceMitigation') },
+    { label: 'extension module', item: 'tab cleanup fail closed', ok: tabCleanup.includes('throw new Error') && tabCleanup.includes('before close') },
     { label: 'extension module', item: 'workspace policy imports', ok: background.includes("from './workspace-policy.js'") },
     { label: 'extension module', item: 'workspace policy exports', ok: workspacePolicy.includes('export async function groupOptions') },
     { label: 'registry version', item: EXPECTED_EXTENSION_VERSION, ok: registry.includes(`BRIDGE_VERSION = '${EXPECTED_EXTENSION_VERSION}'`) },

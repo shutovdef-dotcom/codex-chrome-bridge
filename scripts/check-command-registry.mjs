@@ -553,6 +553,14 @@ check(!backgroundText.includes('async function closeTabsWithGroupPersistenceMiti
 const tabCloseMitigationBlock = functionBlock(tabCleanupText, 'closeTabsWithGroupPersistenceMitigation');
 check(tabCloseMitigationBlock.includes('chrome.tabs.ungroup'), 'extension tab cleanup must ungroup grouped bridge tabs before removing them');
 check(tabCloseMitigationBlock.includes('chrome.tabs.remove'), 'extension tab cleanup mitigation must own tab removal');
+check(
+  tabCloseMitigationBlock.indexOf('chrome.tabs.ungroup') < tabCloseMitigationBlock.indexOf('chrome.tabs.remove'),
+  'extension tab cleanup must attempt ungroup before remove',
+);
+check(
+  tabCloseMitigationBlock.includes('throw new Error') && tabCloseMitigationBlock.includes('before close'),
+  'extension tab cleanup must fail closed if grouped tabs cannot be ungrouped before close',
+);
 check((backgroundText.match(/chrome\.tabs\.remove/g) || []).length === 0, 'extension background must not remove tabs directly');
 check((tabCleanupText.match(/chrome\.tabs\.remove/g) || []).length === 1, 'extension tab cleanup module must remove tabs only through closeTabsWithGroupPersistenceMitigation');
 check(functionBlock(backgroundText, 'closeTab').includes('closeTabsWithGroupPersistenceMitigation([tab])'), 'closeTab must use ungroup-before-close mitigation');
