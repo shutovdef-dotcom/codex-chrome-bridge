@@ -127,6 +127,20 @@ function parseFiniteNumberArgWithMessage(value, name, message) {
   }
 }
 
+function parseNumberRangeArg(value, name, min, max) {
+  let parsed;
+  try {
+    parsed = parseFiniteNumberArg(value, name);
+  } catch {
+    throw new Error(`${name} must be between ${min} and ${max}`);
+  }
+  if (parsed === undefined) return undefined;
+  if (parsed < min || parsed > max) {
+    throw new Error(`${name} must be between ${min} and ${max}`);
+  }
+  return parsed;
+}
+
 function parseChromeIdArg(value, name) {
   return parseNonNegativeIntegerArg(value, name);
 }
@@ -2239,7 +2253,7 @@ tool_timeout_sec = 60
     printJson(await command('traceStart', {
       ...targetPayload(args),
       ...confirmationPayload(args),
-      maxEvents: args['max-events'] ? Number(args['max-events']) : undefined,
+      maxEvents: parseNumberRangeArg(args['max-events'], '--max-events', 50, 2_000),
       network: !args['no-network'],
       console: !args['no-console'],
       includeExtensionEvents: Boolean(args['include-extension-events']),
