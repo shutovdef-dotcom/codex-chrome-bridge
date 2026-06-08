@@ -253,6 +253,7 @@ if (coveragePlan) {
     'session summary covers strict policy',
     'debug bundle default redaction',
     'observe actionable elements',
+    'observe nth-of-type selector fallback',
     'find-elements near text filtered',
     'extract forms',
     'pdf export',

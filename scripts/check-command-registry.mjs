@@ -734,6 +734,7 @@ check(runtimeSmokeBlock.includes("runtimeSmokeLiveVerification({ status: 'skippe
 for (const coverageStep of [
   'adopt existing smoke tab',
   'tabs scoped includes smoke tab',
+  'observe nth-of-type selector fallback',
   'viewport screenshot',
   'selector screenshot',
   'wait for type side-effect',
@@ -754,6 +755,8 @@ for (const coverageStep of [
 ]) {
   check(runtimeSmokeRequiredCoverageBlock.includes(`'${coverageStep}'`), `runtime-smoke required coverage must include ${coverageStep}`);
 }
+check(runtimeSmokeBlock.includes('Anonymous fallback target'), 'runtime-smoke fixture must include an anonymous selector fallback target');
+check(runtimeSmokeBlock.includes('nth-of-type'), 'runtime-smoke must assert nth-of-type selector fallback behavior');
 check(runtimeSmokeBlock.includes('const coverage = runtimeSmokeCoverage(steps)'), 'runtime-smoke must compute machine-readable coverage from completed steps');
 check(runtimeSmokeBlock.includes('const ok = failures.length === 0 && coverage.ok') && runtimeSmokeBlock.includes('ok,'), 'runtime-smoke ok must fail when required coverage is missing');
 check(runtimeSmokeCoverageBlock.includes('requiredCount') && runtimeSmokeCoverageBlock.includes('coveredCount') && runtimeSmokeCoverageBlock.includes('missingCount'), 'runtime-smoke coverage must include machine-readable coverage counts');
