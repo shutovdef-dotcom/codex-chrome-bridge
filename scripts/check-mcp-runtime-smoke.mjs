@@ -223,6 +223,14 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   check(staleParsed.verification?.status === 'skipped', 'MCP stale-extension verification status must be skipped');
   check(staleParsed.verification?.liveVerificationRequired === true, 'MCP stale-extension runtime smoke must still require final live verification');
   check(
+    staleParsed.nextCommand === 'chrome-bridge reload-extension --confirm',
+    'MCP stale-extension top-level nextCommand must point at extension reload',
+  );
+  check(
+    staleParsed.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    'MCP stale-extension top-level nextAction must explain the reload action',
+  );
+  check(
     staleParsed.verification?.nextCommand === 'chrome-bridge reload-extension --confirm',
     'MCP stale-extension verification metadata must point at extension reload as the next command',
   );
@@ -263,6 +271,14 @@ await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   check(staleBridgeParsed.verification?.status === 'skipped', 'MCP stale-bridge verification status must be skipped');
   check(staleBridgeParsed.verification?.liveVerificationRequired === true, 'MCP stale-bridge runtime smoke must still require final live verification');
   check(
+    staleBridgeParsed.nextCommand === 'chrome-bridge doctor --live-checks',
+    'MCP stale-bridge top-level nextCommand must point at live doctor after restart',
+  );
+  check(
+    staleBridgeParsed.nextAction?.includes('Restart the local Chrome Bridge server'),
+    'MCP stale-bridge top-level nextAction must explain the bridge restart action',
+  );
+  check(
     staleBridgeParsed.verification?.nextCommand === 'chrome-bridge doctor --live-checks',
     'MCP stale-bridge verification metadata must point at live doctor as the next command after restart',
   );
@@ -299,6 +315,8 @@ process.stdout.write(`${JSON.stringify({
   coveragePlanLiveBridge: coveragePlanParsed?.liveBridge,
   coveragePlanNextCommand: coveragePlanParsed?.nextCommand,
   coveragePlanVerificationNextCommand: coveragePlanParsed?.verification?.nextCommand,
+  staleExtensionTopLevelNextCommand: staleParsed?.nextCommand,
+  staleBridgeTopLevelNextCommand: staleBridgeParsed?.nextCommand,
   staleExtensionNextCommand: staleParsed?.verification?.nextCommand,
   staleBridgeNextCommand: staleBridgeParsed?.verification?.nextCommand,
   coveragePlanFinalCommandCount: coveragePlanParsed?.verification?.finalCommands?.length || 0,
