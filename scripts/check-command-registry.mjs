@@ -499,6 +499,7 @@ check(COMMAND_METADATA.traceSummary?.summary?.includes('metadata'), 'registry mu
 const cliDebugBundleBlock = functionBlock(cliText, 'debugBundle');
 const mcpDebugBundleBlock = functionBlock(mcpText, 'debugBundle');
 const runtimeSmokeBlock = functionBlock(cliText, 'runtimeSmoke');
+const runtimeSmokeRequiredCoverageBlock = /const RUNTIME_SMOKE_REQUIRED_COVERAGE = Object\.freeze\(\[[\s\S]*?\]\);/.exec(cliText)?.[0] || '';
 const listSelectOptionsBlock = functionBlock(pageScriptsText, 'listSelectOptionsInPage');
 check(
   cliDebugBundleBlock.includes("command('traceSummary'")
@@ -531,6 +532,17 @@ check(runtimeSmokeBlock.includes("debugBundle({") && runtimeSmokeBlock.includes(
 check(runtimeSmokeBlock.includes('assertTabCleanupMitigation'), 'runtime-smoke must assert tab cleanup mitigation metadata');
 check(runtimeSmokeBlock.includes('savedGroupPersistence'), 'runtime-smoke must assert saved tab-group persistence metadata');
 check(runtimeSmokeBlock.includes('RUNTIME_SMOKE_REQUIRED_COVERAGE'), 'runtime-smoke must declare required coverage names');
+for (const coverageStep of [
+  'tabs scoped includes smoke tab',
+  'viewport screenshot',
+  'selector screenshot',
+  'trace events',
+  'safety: cookies whole jar requires confirmSensitive',
+  'safety: storage values require confirmSensitive',
+  'safety: credentialed request requires confirmSensitive',
+]) {
+  check(runtimeSmokeRequiredCoverageBlock.includes(`'${coverageStep}'`), `runtime-smoke required coverage must include ${coverageStep}`);
+}
 check(runtimeSmokeBlock.includes('const coverage = runtimeSmokeCoverage(steps)'), 'runtime-smoke must compute machine-readable coverage from completed steps');
 check(runtimeSmokeBlock.includes('ok: failures.length === 0 && coverage.ok'), 'runtime-smoke ok must fail when required coverage is missing');
 check(runtimeSmokeBlock.includes('coverage,'), 'runtime-smoke result must include machine-readable coverage');
