@@ -62,6 +62,7 @@ const [
   pullRequestTemplateText,
   contributingText,
   codexChromeBridgeSkillText,
+  llmsText,
 ] = await Promise.all([
   fs.readFile(path.join(rootDir, 'extension/manifest.json'), 'utf8'),
   fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
@@ -99,6 +100,7 @@ const [
   fs.readFile(path.join(rootDir, '.github/PULL_REQUEST_TEMPLATE.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'CONTRIBUTING.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'codex/skills/chrome-bridge/SKILL.md'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'llms.txt'), 'utf8'),
 ]);
 const manifest = JSON.parse(manifestText);
 const packageJson = JSON.parse(packageText);
@@ -519,6 +521,8 @@ check(contributingText.includes('npm run check:runtime-smoke-plan'), 'contributi
 check(contributingText.includes('verification.status: "passed"'), 'contributing guide must document live runtime smoke success criteria');
 check(codexChromeBridgeSkillText.includes('runtime-smoke --coverage-plan'), 'bundled Codex chrome-bridge skill must recommend offline runtime smoke plan before live smoke');
 check(codexChromeBridgeSkillText.includes('verification.status: "passed"'), 'bundled Codex chrome-bridge skill must document live runtime smoke success criteria');
+check(llmsText.includes('runtime-smoke:plan'), 'llms metadata must mention offline runtime smoke plan');
+check(llmsText.includes('verification.status: "passed"'), 'llms metadata must mention live runtime smoke success criteria');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
