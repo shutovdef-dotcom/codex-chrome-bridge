@@ -2115,6 +2115,9 @@ tool_timeout_sec = 60
   if (cmd === 'select') {
     if (!args.confirm) throw new Error('select requires --confirm');
     if (!args.selector) throw new Error('select requires --selector <css>');
+    if (args.value === undefined && args.label === undefined && args.index === undefined) {
+      throw new Error('select requires value, label, or index');
+    }
     printJson(await command('select', {
       ...targetPayload(args),
       ...confirmationPayload(args),
