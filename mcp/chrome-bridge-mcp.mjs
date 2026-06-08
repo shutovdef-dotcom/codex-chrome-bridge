@@ -14,6 +14,7 @@ import {
   commandCatalog,
   commandDefaultTimeoutMs,
 } from '../shared/command-registry.mjs';
+import { formatReadOutput } from '../shared/output-envelope.mjs';
 
 const BRIDGE_URL = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -43,6 +44,13 @@ const chromeIdSchema = z.number().int().nonnegative();
 const payloadTimeoutSchema = z.number().min(0).max(300000);
 const timestampSchema = z.number().min(0).max(Number.MAX_SAFE_INTEGER);
 const selectIndexSchema = z.number().int().nonnegative();
+const readOutputSchema = {
+  out: z.string().optional(),
+  summaryOnly: z.boolean().optional(),
+  noContent: z.boolean().optional(),
+  includeContent: z.boolean().optional(),
+  maxInlineChars: z.number().int().min(0).max(500000).optional(),
+};
 
 async function bridgeFetch(pathname, options = {}) {
   const response = await fetch(`${BRIDGE_URL}${pathname}`, options);
@@ -80,6 +88,16 @@ function textResult(value) {
         text: typeof value === 'string' ? value : JSON.stringify(value, null, 2),
       },
     ],
+  };
+}
+
+function readOutputOptions(args = {}) {
+  return {
+    out: args.out,
+    summaryOnly: Boolean(args.summaryOnly),
+    noContent: Boolean(args.noContent),
+    includeContent: Boolean(args.includeContent),
+    maxInlineChars: args.maxInlineChars,
   };
 }
 
@@ -659,8 +677,20 @@ server.tool(
     tabId: chromeIdSchema.optional(),
     maxChars: z.number().min(1000).max(200000).optional(),
     allowExternal: z.boolean().optional(),
+    ...readOutputSchema,
   },
-  async (args) => textResult(await bridgeCommand('snapshot', args, 30_000)),
+  async (args) => {
+    const result = await bridgeCommand('snapshot', {
+      tabId: args.tabId,
+      maxChars: args.maxChars ?? 200_000,
+      allowExternal: args.allowExternal,
+    }, 30_000);
+    return textResult(await formatReadOutput({
+      action: 'snapshot',
+      result,
+      options: readOutputOptions(args),
+    }));
+  },
 );
 
 server.tool(
@@ -670,8 +700,20 @@ server.tool(
     tabId: chromeIdSchema.optional(),
     maxChars: z.number().min(1000).max(200000).optional(),
     allowExternal: z.boolean().optional(),
+    ...readOutputSchema,
   },
-  async (args) => textResult(await bridgeCommand('text', args, 30_000)),
+  async (args) => {
+    const result = await bridgeCommand('text', {
+      tabId: args.tabId,
+      maxChars: args.maxChars ?? 200_000,
+      allowExternal: args.allowExternal,
+    }, 30_000);
+    return textResult(await formatReadOutput({
+      action: 'text',
+      result,
+      options: readOutputOptions(args),
+    }));
+  },
 );
 
 server.tool(
@@ -683,8 +725,22 @@ server.tool(
     maxChars: z.number().min(1000).max(500000).optional(),
     outer: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
+    ...readOutputSchema,
   },
-  async (args) => textResult(await bridgeCommand('html', args, 30_000)),
+  async (args) => {
+    const result = await bridgeCommand('html', {
+      tabId: args.tabId,
+      selector: args.selector,
+      maxChars: args.maxChars ?? 500_000,
+      outer: args.outer,
+      allowExternal: args.allowExternal,
+    }, 30_000);
+    return textResult(await formatReadOutput({
+      action: 'html',
+      result,
+      options: readOutputOptions(args),
+    }));
+  },
 );
 
 server.tool(
@@ -696,6 +752,7 @@ server.tool(
     fullPage: z.boolean().optional(),
     selector: z.string().optional(),
     allowExternal: z.boolean().optional(),
+    ...readOutputSchema,
   },
   async (args) => {
     const result = await bridgeCommand('screenshot', {
@@ -704,12 +761,11 @@ server.tool(
       selector: args.selector,
       allowExternal: args.allowExternal,
     }, args.fullPage || args.selector ? 60_000 : 30_000);
-    const match = /^data:image\/png;base64,(.+)$/.exec(result.dataUrl || '');
-    if (!match) throw new Error('Extension returned an invalid PNG data URL');
-    const outputPath = path.resolve(args.out);
-    await fs.mkdir(path.dirname(outputPath), { recursive: true });
-    await fs.writeFile(outputPath, Buffer.from(match[1], 'base64'));
-    return textResult({ ...result, dataUrl: undefined, out: outputPath });
+    return textResult(await formatReadOutput({
+      action: 'screenshot',
+      result,
+      options: readOutputOptions(args),
+    }));
   },
 );
 

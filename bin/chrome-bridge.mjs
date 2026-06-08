@@ -7,6 +7,7 @@ import { execFile, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { parseBridgePort, startBridgeServer } from '../server/bridge-server.mjs';
+import { formatReadOutput } from '../shared/output-envelope.mjs';
 import {
   BRIDGE_VERSION,
   CLI_COMMANDS,
@@ -165,6 +166,16 @@ function confirmationPayload(args) {
   };
   if (args['confirm-sensitive']) payload.confirmSensitive = true;
   return payload;
+}
+
+function readOutputOptions(args) {
+  return {
+    out: typeof args.out === 'string' ? args.out : undefined,
+    summaryOnly: Boolean(args['summary-only']),
+    noContent: Boolean(args['no-content']),
+    includeContent: Boolean(args['include-content']),
+    maxInlineChars: parseNumberRangeArg(args['max-inline-chars'], '--max-inline-chars', 0, 500_000),
+  };
 }
 
 function hoverCoordinatePayload(args) {
@@ -2126,20 +2137,30 @@ tool_timeout_sec = 60
   }
 
   if (cmd === 'snapshot' || cmd === 'text') {
-    printJson(await command(cmd, {
+    const result = await command(cmd, {
       ...targetPayload(args),
-      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 200_000),
-    }, 30_000));
+      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 200_000) ?? 200_000,
+    }, 30_000);
+    printJson(await formatReadOutput({
+      action: cmd,
+      result,
+      options: readOutputOptions(args),
+    }));
     return;
   }
 
   if (cmd === 'html') {
-    printJson(await command('html', {
+    const result = await command('html', {
       ...targetPayload(args),
       selector: args.selector,
-      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 500_000),
+      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 500_000) ?? 500_000,
       outer: !args.inner,
-    }, 30_000));
+    }, 30_000);
+    printJson(await formatReadOutput({
+      action: 'html',
+      result,
+      options: readOutputOptions(args),
+    }));
     return;
   }
 
@@ -2150,11 +2171,11 @@ tool_timeout_sec = 60
       fullPage: Boolean(args['full-page']),
       selector: args.selector,
     }, args['full-page'] || args.selector ? 60_000 : 30_000);
-    const match = /^data:image\/png;base64,(.+)$/.exec(result.dataUrl || '');
-    if (!match) throw new Error('Extension returned an invalid PNG data URL');
-    await fs.mkdir(path.dirname(path.resolve(args.out)), { recursive: true });
-    await fs.writeFile(args.out, Buffer.from(match[1], 'base64'));
-    printJson({ ...result, dataUrl: undefined, out: path.resolve(args.out) });
+    printJson(await formatReadOutput({
+      action: 'screenshot',
+      result,
+      options: readOutputOptions(args),
+    }));
     return;
   }
 
