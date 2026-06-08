@@ -554,6 +554,7 @@ for (const coverageStep of [
 }
 check(runtimeSmokeBlock.includes('const coverage = runtimeSmokeCoverage(steps)'), 'runtime-smoke must compute machine-readable coverage from completed steps');
 check(runtimeSmokeBlock.includes('ok: failures.length === 0 && coverage.ok'), 'runtime-smoke ok must fail when required coverage is missing');
+check(runtimeSmokeBlock.includes('requiredCount') && runtimeSmokeBlock.includes('coveredCount') && runtimeSmokeBlock.includes('missingCount'), 'runtime-smoke coverage must include machine-readable coverage counts');
 check(runtimeSmokeBlock.includes('coverage,'), 'runtime-smoke result must include machine-readable coverage');
 check(debuggerSessionText.includes('const debuggerLocks = new Map()'), 'extension must maintain per-tab debugger locks');
 check(functionBlock(debuggerSessionText, 'withTabLock').includes('debuggerLocks.set(tabId, next)'), 'withTabLock must serialize debugger work per tab');
