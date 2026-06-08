@@ -345,6 +345,47 @@ await check('fails closed on stale extension versions', async () => {
   });
 });
 
+await check('allows confirmed extension reload on stale extension versions', async () => {
+  await withBridge({ enableLongPoll: true }, async ({ baseUrl }) => {
+    await requestJson(baseUrl, '/extension/hello', extensionRequestOptions({
+      method: 'POST',
+      body: JSON.stringify({ info: { version: '0.0.0-stale', test: true } }),
+    }));
+
+    const commandPromise = requestJson(baseUrl, '/command', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'reloadExtension',
+        payload: { confirmed: true },
+        timeoutMs: 5_000,
+      }),
+    });
+    const { json: pollJson } = await requestJson(
+      baseUrl,
+      '/extension/poll?client=contract-test',
+      extensionRequestOptions(),
+    );
+    const [command] = pollJson.commands || [];
+    assert(command?.id, 'expected queued reloadExtension command from poll');
+    assert(command.action === 'reloadExtension', `expected reloadExtension action, got ${command.action}`);
+
+    await requestJson(baseUrl, '/extension/result', extensionRequestOptions({
+      method: 'POST',
+      body: JSON.stringify({
+        id: command.id,
+        ok: true,
+        result: { reloading: true },
+        info: { version: '0.0.0-stale' },
+      }),
+    }));
+
+    const { response, json } = await commandPromise;
+    assert(response.status === 200, `expected 200, got ${response.status}`);
+    assert(json.ok === true, `expected ok=true, got ${JSON.stringify(json)}`);
+    assert(json.result?.reloading === true, `expected reload result, got ${JSON.stringify(json.result)}`);
+  });
+});
+
 await check('rejects long-poll extension requests without extension origin', async () => {
   await withBridge({ enableLongPoll: true }, async ({ baseUrl }) => {
     const missingOrigin = await requestJson(baseUrl, '/extension/hello', {
