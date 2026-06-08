@@ -639,6 +639,8 @@ check(functionBlock(mcpText, 'localDoctor').includes("if (args.liveChecks) cliAr
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
 check(mcpText.includes("if (args.coveragePlan) cliArgs.push('--coverage-plan')"), 'MCP runtime smoke helper must forward coveragePlan to CLI');
+check(mcpText.includes('extension v${BRIDGE_VERSION}'), 'MCP runtime smoke tool description must derive the required extension version from BRIDGE_VERSION');
+check(!mcpText.includes('extension v0.4.0'), 'MCP runtime smoke tool description must not hardcode stale extension versions');
 check(mcpText.includes('function parseLocalCliJson'), 'MCP local CLI helpers must centralize JSON stdout parsing');
 const mcpRuntimeSmokeBlock = functionBlock(mcpText, 'localRuntimeSmoke');
 check(mcpRuntimeSmokeBlock.includes('parseLocalCliJson(result.stdout)'), 'MCP runtime smoke helper must parse successful CLI JSON through the shared parser');
