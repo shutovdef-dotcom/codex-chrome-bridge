@@ -53,7 +53,7 @@ export const COMMAND_PAYLOAD_SCHEMAS = freezeSchemaMap({
   snapshot: [...maxChars, 'fullPage', 'waitForText', 'waitForPattern', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs'],
   text: [...maxChars, 'fullPage', 'waitForText', 'waitForPattern', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs'],
   html: [...maxChars, 'selector', 'outer'],
-  screenshot: [...base, 'fullPage', 'selector'],
+  screenshot: [...base, 'fullPage', 'selector', 'maxPixels', 'fallback'],
   printPdf: [...base, 'landscape', 'printBackground', 'preferCssPageSize', 'pageRanges', 'scale'],
   listSelectOptions: stringSelector,
   scroll: [...base, 'x', 'y'],
@@ -652,7 +652,7 @@ export const CLI_USAGE_LINES = Object.freeze([
   'chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
   'chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
   'chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]',
-  'chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--allow-external]',
+  'chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]',
   'chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]',
   'chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]',
   'chrome-bridge click --tab <id> --selector <css> --confirm [--allow-external]',
@@ -1364,7 +1364,7 @@ export function validateCommandPayload(action, payload = {}) {
   const normalizedPayload = payload === undefined ? {} : payload;
   rejectUnknownKeys(normalizedPayload, allowed, action);
 
-  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs']) {
+  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'maxPixels', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs']) {
     ensureNumber(normalizedPayload, key, action);
   }
   ensureNonNegativeInteger(normalizedPayload, 'tabId', action);
@@ -1372,7 +1372,7 @@ export function validateCommandPayload(action, payload = {}) {
   for (const key of ['includeAll', 'includeTabs', 'active', 'newTab', 'allowExternal', 'focusWindow', 'confirmed', 'confirmSensitive', 'bypassCache', 'visible', 'outer', 'fullPage', 'landscape', 'printBackground', 'preferCssPageSize', 'trusted', 'ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'network', 'console', 'includeExtensionEvents', 'includeValues', 'allowText', 'closeOnAnswer', 'dryRun', 'accept']) {
     ensureBoolean(normalizedPayload, key, action);
   }
-  for (const key of ['url', 'selector', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk', 'kind', 'pageRanges', 'button', 'key', 'code', 'value', 'label', 'file', 'query', 'domain', 'name', 'method', 'credentials', 'question', 'groupTitle', 'groupColor', 'promptText', 'policyMode', 'waitForText', 'waitForPattern']) {
+  for (const key of ['url', 'selector', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk', 'kind', 'fallback', 'pageRanges', 'button', 'key', 'code', 'value', 'label', 'file', 'query', 'domain', 'name', 'method', 'credentials', 'question', 'groupTitle', 'groupColor', 'promptText', 'policyMode', 'waitForText', 'waitForPattern']) {
     ensureString(normalizedPayload, key, action);
   }
   ensureStringArray(normalizedPayload, 'files', action);
@@ -1382,6 +1382,7 @@ export function validateCommandPayload(action, payload = {}) {
   ensureEnum(normalizedPayload, 'groupColor', action, TAB_GROUP_COLORS);
   ensureEnum(normalizedPayload, 'policyMode', action, ['scoped', 'strict']);
   ensureEnum(normalizedPayload, 'kind', action, ['all', 'tables', 'forms', 'lists', 'keyValues']);
+  ensureEnum(normalizedPayload, 'fallback', action, ['viewport', 'error']);
   ensureEnum(normalizedPayload, 'credentials', action, ['omit', 'include']);
   if (action === 'fetchUrl') {
     ensureHttpMethod(normalizedPayload, action);
@@ -1412,6 +1413,9 @@ export function validateCommandPayload(action, payload = {}) {
   }
   if (action === 'html') {
     ensureNumberRange(normalizedPayload, 'maxChars', action, 1_000, 500_000);
+  }
+  if (action === 'screenshot') {
+    ensureNumberRange(normalizedPayload, 'maxPixels', action, 1, 1_000_000_000);
   }
   if (action === 'printPdf') {
     ensureNumberRange(normalizedPayload, 'scale', action, 0.1, 2);

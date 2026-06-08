@@ -130,6 +130,7 @@ function commonEnvelope({ action, result, options, now, contentType, artifactPat
     artifactBytes: buffer.byteLength,
   };
   if (result.fullPageDiagnostics) diagnostics.fullPage = result.fullPageDiagnostics;
+  if (result.sizeGuard) diagnostics.sizeGuard = result.sizeGuard;
   if (result.coverage) diagnostics.coverage = result.coverage;
   return {
     ok: true,

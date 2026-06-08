@@ -812,12 +812,15 @@ server.tool(
 
 server.tool(
   'chrome_bridge_screenshot',
-  'Capture a PNG screenshot of the dedicated or selected Chrome tab and save it to a local path. Supports viewport, fullPage, or selector screenshots.',
+  'Capture a PNG screenshot of the dedicated or selected Chrome tab and save it to a local path. Supports viewport, fullPage, selector screenshots, and size-aware viewport fallback.',
   {
     out: z.string(),
     tabId: chromeIdSchema.optional(),
     fullPage: z.boolean().optional(),
     selector: z.string().optional(),
+    maxPixels: z.number().int().min(1).max(1000000000).optional(),
+    fallback: z.enum(['viewport', 'error']).optional(),
+    timeoutMs: payloadTimeoutSchema.optional(),
     allowExternal: z.boolean().optional(),
     ...readOutputSchema,
   },
@@ -826,8 +829,10 @@ server.tool(
       tabId: args.tabId,
       fullPage: args.fullPage,
       selector: args.selector,
+      maxPixels: args.maxPixels,
+      fallback: args.fallback,
       allowExternal: args.allowExternal,
-    }, args.fullPage || args.selector ? 60_000 : 30_000);
+    }, args.timeoutMs ?? (args.fullPage || args.selector ? 60_000 : 30_000));
     return textResult(await formatReadOutput({
       action: 'screenshot',
       result,

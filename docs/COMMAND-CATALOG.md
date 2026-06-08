@@ -26,7 +26,7 @@ Version: 0.4.1
 | snapshot | read | read | 30000 ms | snapshot | chrome_bridge_snapshot | no | tabId, allowExternal, maxChars, fullPage, waitForText, waitForPattern, scrollStepPx, maxScrollSteps, scrollDelayMs | Read a bounded structured page snapshot with optional full-page rendered text coverage. |
 | text | read | read | 30000 ms | text | chrome_bridge_text | no | tabId, allowExternal, maxChars, fullPage, waitForText, waitForPattern, scrollStepPx, maxScrollSteps, scrollDelayMs | Read bounded visible page text with optional full-page scroll-walk coverage. |
 | html | read | read | 30000 ms | html | chrome_bridge_html | no | tabId, allowExternal, maxChars, selector, outer | Read bounded page HTML for a selector or the whole document. |
-| screenshot | artifact | read | 30000 ms | screenshot | chrome_bridge_screenshot | no | tabId, allowExternal, fullPage, selector | Capture a PNG screenshot of the selected tab, full page, or selector. |
+| screenshot | artifact | read | 30000 ms | screenshot | chrome_bridge_screenshot | no | tabId, allowExternal, fullPage, selector, maxPixels, fallback | Capture a PNG screenshot of the selected tab, full page, or selector. |
 | printPdf | artifact | read | 60000 ms | pdf | chrome_bridge_pdf | no | tabId, allowExternal, landscape, printBackground, preferCssPageSize, pageRanges, scale | Print the selected tab to a local PDF artifact. |
 | listSelectOptions | read | read | 30000 ms | select-options | chrome_bridge_select_options | no | tabId, allowExternal, selector | Read available select options without returning current selection state. |
 | scroll | interaction | interaction | 10000 ms | scroll | chrome_bridge_scroll | no | tabId, allowExternal, x, y | Scroll the selected tab. |
@@ -95,7 +95,7 @@ chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-of
 chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
-chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--allow-external]
+chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
 chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
 chrome-bridge click --tab <id> --selector <css> --confirm [--allow-external]

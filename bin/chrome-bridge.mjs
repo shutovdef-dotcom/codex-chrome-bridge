@@ -197,6 +197,29 @@ function fullPageReadPayload(args) {
   };
 }
 
+function screenshotFallbackArg(value) {
+  if (value === undefined) return undefined;
+  if (!['viewport', 'error'].includes(value)) {
+    throw new Error('--fallback must be one of: viewport, error');
+  }
+  return value;
+}
+
+function screenshotPayload(args) {
+  return {
+    ...targetPayload(args),
+    fullPage: Boolean(args['full-page']),
+    selector: args.selector,
+    maxPixels: parseNumberRangeArg(args['max-pixels'], '--max-pixels', 1, 1_000_000_000),
+    fallback: screenshotFallbackArg(args.fallback),
+  };
+}
+
+function screenshotTimeoutMs(args) {
+  return parseNumberRangeArg(args['timeout-ms'], '--timeout-ms', 0, 300_000)
+    ?? (args['full-page'] || args.selector ? 60_000 : 30_000);
+}
+
 function errorJson(error) {
   return {
     message: String(error?.message || error),
@@ -301,11 +324,7 @@ async function runNestedTempTabCommand(argv, tabId) {
 
   if (cmd === 'screenshot') {
     if (!scopedArgs.out) throw new Error('nested screenshot requires --out <file>');
-    const result = await command('screenshot', {
-      ...targetPayload(scopedArgs),
-      fullPage: Boolean(scopedArgs['full-page']),
-      selector: scopedArgs.selector,
-    }, scopedArgs['full-page'] || scopedArgs.selector ? 60_000 : 30_000);
+    const result = await command('screenshot', screenshotPayload(scopedArgs), screenshotTimeoutMs(scopedArgs));
     return formatReadOutput({
       action: 'screenshot',
       result,
@@ -2455,11 +2474,7 @@ tool_timeout_sec = 60
 
   if (cmd === 'screenshot') {
     if (!args.out) throw new Error('screenshot requires --out <file>');
-    const result = await command('screenshot', {
-      ...targetPayload(args),
-      fullPage: Boolean(args['full-page']),
-      selector: args.selector,
-    }, args['full-page'] || args.selector ? 60_000 : 30_000);
+    const result = await command('screenshot', screenshotPayload(args), screenshotTimeoutMs(args));
     printJson(await formatReadOutput({
       action: 'screenshot',
       result,
