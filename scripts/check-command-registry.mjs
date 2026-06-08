@@ -507,6 +507,20 @@ check(!listSelectOptionsBlock.includes('selected: option.selected'), 'select-opt
 check(functionBlock(backgroundText, 'listTabs').includes("requireConfirmed(payload, 'tabs includeAll')"), 'extension tabs includeAll must require confirmation');
 check(functionBlock(backgroundText, 'listWindows').includes("requireConfirmed(payload, 'windows includeAll')"), 'extension windows includeAll must require confirmation');
 check(functionBlock(backgroundText, 'reloadExtension').includes("requireConfirmed(payload, 'reloadExtension')"), 'extension reloadExtension must require confirmation');
+const tabCloseMitigationBlock = functionBlock(backgroundText, 'closeTabsWithGroupPersistenceMitigation');
+check(tabCloseMitigationBlock.includes('chrome.tabs.ungroup'), 'extension tab cleanup must ungroup grouped bridge tabs before removing them');
+check(tabCloseMitigationBlock.includes('chrome.tabs.remove'), 'extension tab cleanup mitigation must own tab removal');
+check((backgroundText.match(/chrome\.tabs\.remove/g) || []).length === 1, 'extension must remove tabs only through closeTabsWithGroupPersistenceMitigation');
+check(functionBlock(backgroundText, 'closeTab').includes('closeTabsWithGroupPersistenceMitigation([tab])'), 'closeTab must use ungroup-before-close mitigation');
+check(functionBlock(backgroundText, 'closeGroup').includes('closeTabsWithGroupPersistenceMitigation(tabs)'), 'closeGroup must use ungroup-before-close mitigation');
+check(
+  functionBlock(backgroundText, 'askUser').includes('closeTabsWithGroupPersistenceMitigation([tab], { ignoreMissing: true })'),
+  'askUser prompt race cleanup must use ungroup-before-close mitigation',
+);
+check(
+  functionBlock(backgroundText, 'completeUserPrompt').includes('closeTabsWithGroupPersistenceMitigation([prompt.tabId], { ignoreMissing: true })'),
+  'askUser close-on-answer cleanup must use ungroup-before-close mitigation',
+);
 
 if (failures.length) {
   process.stderr.write(`${failures.map((failure) => `- ${failure}`).join('\n')}\n`);
