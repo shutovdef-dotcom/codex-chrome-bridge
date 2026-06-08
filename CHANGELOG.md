@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Expanded `runtime-smoke` required coverage to exercise confirmed JavaScript dialog handling and Chrome Debugger file input upload against the local fixture page.
 - Expanded `runtime-smoke` required coverage to exercise existing-tab adoption by moving a temporary already-open smoke tab into the scoped `Codex Bridge` group.
 - Added `check:roadmap` to verify merged Phase 0-4 roadmap coverage against registry, source, docs, and offline runtime-smoke coverage metadata without touching Chrome.
 - Added a background startup sweep plus tab-group create/update listeners so managed `Codex Bridge` groups are automatically marked unsaved when Chrome exposes saved-tab-group API support, reducing future saved closed group chips beyond command-driven cleanup.

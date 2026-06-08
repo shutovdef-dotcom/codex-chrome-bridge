@@ -669,6 +669,8 @@ for (const coverageStep of [
   'wait for type side-effect',
   'wait for press side-effect',
   'wait for select side-effect',
+  'handle dialog prompt',
+  'upload file input',
   'wait for click side-effect',
   'wait for coordinate click side-effect',
   'trace events',

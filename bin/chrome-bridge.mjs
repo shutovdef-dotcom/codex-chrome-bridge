@@ -753,6 +753,10 @@ function smokeHtml() {
       <p id="clicked"></p>
       <button id="coord" type="button">Coordinate Target</button>
       <p id="coord-clicked"></p>
+      <button id="dialog-button" type="button">Dialog Target</button>
+      <p id="dialog-result"></p>
+      <input id="smoke-file" type="file">
+      <p id="uploaded"></p>
       <button id="hover-target" type="button">Hover Target</button>
       <p id="hovered"></p>
       <div id="spacer">Full page capture area</div>
@@ -765,6 +769,8 @@ function smokeHtml() {
       const selected = document.querySelector('#selected');
       const clicked = document.querySelector('#clicked');
       const coordClicked = document.querySelector('#coord-clicked');
+      const dialogResult = document.querySelector('#dialog-result');
+      const uploaded = document.querySelector('#uploaded');
       const hovered = document.querySelector('#hovered');
       document.querySelector('#smoke-input').addEventListener('input', (event) => {
         typed.textContent = event.target.value;
@@ -790,6 +796,19 @@ function smokeHtml() {
       document.querySelector('#coord').addEventListener('click', () => {
         coordClicked.textContent = 'coord';
         coordClicked.dataset.value = 'coord';
+      });
+      document.querySelector('#dialog-button').addEventListener('click', () => {
+        setTimeout(() => {
+          const value = window.prompt('Codex Bridge smoke prompt', '');
+          dialogResult.textContent = value || 'empty';
+          dialogResult.dataset.value = value || 'empty';
+        }, 50);
+      });
+      document.querySelector('#smoke-file').addEventListener('change', (event) => {
+        const files = Array.from(event.target.files || []);
+        uploaded.textContent = String(files.length);
+        uploaded.dataset.count = String(files.length);
+        uploaded.dataset.name = files[0]?.name || '';
       });
       document.querySelector('#hover-target').addEventListener('mouseover', () => {
         hovered.textContent = 'hovered';
@@ -840,6 +859,10 @@ function startSmokeServer() {
 async function closeServer(server) {
   if (!server) return;
   await new Promise((resolve) => server.close(resolve));
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function summarizeStepResult(value) {
@@ -953,6 +976,8 @@ const RUNTIME_SMOKE_REQUIRED_COVERAGE = Object.freeze([
   'viewport screenshot',
   'selector screenshot',
   'pdf export',
+  'handle dialog prompt',
+  'upload file input',
   'wait for type side-effect',
   'wait for press side-effect',
   'wait for select side-effect',
@@ -1169,6 +1194,7 @@ async function runtimeSmoke(args = {}) {
   let outsideTabId = null;
   let strictWorkspaceSet = false;
   let debugBundleDir = null;
+  let smokeUploadFile = null;
   const smokeId = String(Date.now());
   const adoptSourceGroupTitle = `Codex Bridge Smoke Adopt Source ${smokeId}`;
   const strictGroupTitle = `Codex Bridge Smoke Strict ${smokeId}`;
@@ -1377,6 +1403,41 @@ async function runtimeSmoke(args = {}) {
         if (!result.dryRun || result.applied) throw new Error('fill form dry run unexpectedly applied changes');
       },
     });
+    await run('click dialog trigger', () => command('click', {
+      tabId,
+      selector: '#dialog-button',
+      confirmed: true,
+    }, 30_000));
+    await delay(500);
+    await run('handle dialog prompt', () => command('handleDialog', {
+      tabId,
+      confirmed: true,
+      promptText: 'dialog-ok',
+    }, 30_000), {
+      assert: (result) => {
+        if (!result.handled || !result.accepted) throw new Error('handleDialog did not accept the smoke prompt');
+      },
+    });
+    await run('wait for dialog side-effect', () => command('waitForSelector', {
+      tabId,
+      selector: '#dialog-result[data-value="dialog-ok"]',
+    }, 30_000));
+    smokeUploadFile = path.join(tmpdir(), `chrome-bridge-smoke-upload-${smokeId}.txt`);
+    await fs.writeFile(smokeUploadFile, `codex bridge smoke upload ${smokeId}\n`);
+    await run('upload file input', () => command('uploadFile', {
+      tabId,
+      selector: '#smoke-file',
+      file: smokeUploadFile,
+      confirmed: true,
+    }, 60_000), {
+      assert: (result) => {
+        if (!result.uploaded || result.fileCount !== 1) throw new Error('uploadFile did not report one uploaded file');
+      },
+    });
+    await run('wait for upload side-effect', () => command('waitForSelector', {
+      tabId,
+      selector: '#uploaded[data-count="1"]',
+    }, 30_000));
     await run('viewport screenshot', () => command('screenshot', { tabId }, 30_000), {
       assert: (result) => {
         if (!String(result.dataUrl || '').startsWith('data:image/png;base64,')) throw new Error('viewport screenshot was not a PNG data URL');
@@ -1580,6 +1641,9 @@ async function runtimeSmoke(args = {}) {
     }
     if (debugBundleDir) {
       await fs.rm(debugBundleDir, { recursive: true, force: true }).catch(() => {});
+    }
+    if (smokeUploadFile) {
+      await fs.rm(smokeUploadFile, { force: true }).catch(() => {});
     }
     await closeServer(fixture.server);
   }
