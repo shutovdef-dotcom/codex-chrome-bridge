@@ -55,6 +55,7 @@ const [
   packageContentsCheckerText,
   privacyScannerText,
   checkWorkflowText,
+  readmeText,
 ] = await Promise.all([
   fs.readFile(path.join(rootDir, 'extension/manifest.json'), 'utf8'),
   fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
@@ -85,6 +86,7 @@ const [
   fs.readFile(path.join(rootDir, 'scripts/check-package-contents.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'scripts/check-privacy-scan.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, '.github/workflows/check.yml'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
 ]);
 const manifest = JSON.parse(manifestText);
 const packageJson = JSON.parse(packageText);
@@ -489,6 +491,8 @@ check(cliText.includes('command = ${tomlString(process.execPath)}'), 'CLI codex-
 check(!cliText.includes('/opt/homebrew/bin/node'), 'CLI codex-config must not hardcode a Homebrew Node path');
 check(cliText.includes("if (!args.confirm) throw new Error('reload-extension requires --confirm')"), 'CLI reload-extension must require --confirm');
 check(CLI_USAGE_LINES.includes('chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]'), 'runtime-smoke CLI usage must expose offline coverage-plan mode');
+check(packageJson.scripts?.['runtime-smoke:plan'] === 'node ./bin/chrome-bridge.mjs runtime-smoke --coverage-plan', 'package scripts must expose offline runtime smoke coverage plan');
+check(readmeText.includes('npm run runtime-smoke:plan') && readmeText.includes('runtime-smoke --coverage-plan'), 'README must document offline runtime smoke coverage plan');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
