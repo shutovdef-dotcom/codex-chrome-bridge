@@ -232,6 +232,10 @@ check(mcpRuntimeSmokeCheckerText.includes('chrome_bridge_runtime_smoke') && mcpR
 check(mcpLocalToolsCheckerText.includes('chrome_bridge_command_catalog') && mcpLocalToolsCheckerText.includes('unexpected MCP tool'), 'Deferred verification must cover MCP local tools and listTools parity');
 check(tabGroupPersistenceCheckerText.includes('createFakeChrome') && tabGroupPersistenceCheckerText.includes('savedGroupPersistence'), 'Deferred verification must cover tab-group persistence lifecycle with fake Chrome APIs');
 check(roadmapText.includes('Deferred Runtime Verification') && publishingText.includes('verification.status: "passed"'), 'Deferred live runtime verification criteria must be documented');
+check(roadmapText.includes('chrome-bridge reload-extension --confirm'), 'Deferred runtime roadmap must document the exact extension reload command');
+check(roadmapText.includes('chrome-bridge doctor --live-checks'), 'Deferred runtime roadmap must document the exact live doctor command');
+check(roadmapText.includes('chrome-bridge runtime-smoke'), 'Deferred runtime roadmap must document the exact live runtime smoke command');
+check(roadmapText.includes('savedClosedGroupChipPrevention'), 'Roadmap execution/deferred verification must mention saved closed group chip prevention metadata');
 
 const coveragePlan = await runCoveragePlan();
 const requiredCoverage = coveragePlan?.coverage?.required || [];
