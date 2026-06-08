@@ -92,7 +92,7 @@ node ./bin/chrome-bridge.mjs health
 node ./bin/chrome-bridge.mjs runtime-smoke
 ```
 
-`npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan` and prints the required smoke checklist without contacting Chrome or the live bridge. Use it while another Codex session is actively using the bridge; its `nextCommand` and `verification.finalCommands` fields show the live sequence to run after the bridge is free: reload the unpacked extension, run `doctor --live-checks`, then run the normal live smoke.
+`npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan` and prints the required smoke checklist without contacting Chrome or the live bridge. Use it while another Codex session is actively using the bridge; its `nextCommand`, `verification.finalCommands`, and `verification.finalMcpCalls` fields show the live sequence to run after the bridge is free: reload the unpacked extension, run `doctor --live-checks`, then run the normal live smoke.
 
 The smoke test opens temporary `127.0.0.1` fixture tabs, checks scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction, screenshots, PDF export, interactions, tracing, browser-data safety gates, and cleanup.
 

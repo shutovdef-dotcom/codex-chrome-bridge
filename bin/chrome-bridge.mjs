@@ -1041,6 +1041,20 @@ function runtimeSmokeCoveragePlan(startedAt) {
         'chrome-bridge doctor --live-checks',
         'chrome-bridge runtime-smoke',
       ],
+      finalMcpCalls: [
+        {
+          tool: 'chrome_bridge_reload_extension',
+          arguments: { confirmed: true },
+        },
+        {
+          tool: 'chrome_bridge_doctor',
+          arguments: { liveChecks: true },
+        },
+        {
+          tool: 'chrome_bridge_runtime_smoke',
+          arguments: {},
+        },
+      ],
       successCriteria: {
         ok: true,
         coverageOk: true,

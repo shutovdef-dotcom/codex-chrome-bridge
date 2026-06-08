@@ -180,6 +180,7 @@ process.stdout.write(`${JSON.stringify({
   coveragePlanLiveBridge: coveragePlanParsed?.liveBridge,
   coveragePlanNextCommand: coveragePlanParsed?.nextCommand,
   coveragePlanFinalCommandCount: coveragePlanParsed?.verification?.finalCommands?.length || 0,
+  coveragePlanFinalMcpCallCount: coveragePlanParsed?.verification?.finalMcpCalls?.length || 0,
   staleExtensionStatus: staleParsed?.verification?.status,
   staleExtensionCliExitPreserved: Boolean(staleParsed?.cliExitError),
 }, null, 2)}\n`);
