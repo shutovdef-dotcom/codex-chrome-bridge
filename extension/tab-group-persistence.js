@@ -113,7 +113,47 @@ export async function handleManagedTabGroupChange(group) {
     return { managed: false, groupId: group?.id };
   }
 
-  return disableSavedTabGroupIfSupported(group);
+  const result = await disableSavedTabGroupIfSupported(group);
+  return { ...result, managed: true };
+}
+
+export async function enforceManagedTabGroupPersistence() {
+  if (!chrome.tabGroups?.query) {
+    return { supported: false, inspected: 0, managed: 0, results: [] };
+  }
+
+  let groups;
+  try {
+    groups = await chrome.tabGroups.query({});
+  } catch (error) {
+    return {
+      supported: false,
+      inspected: 0,
+      managed: 0,
+      results: [],
+      error: errorMessage(error),
+    };
+  }
+
+  let results = [];
+  for (const group of groups) {
+    try {
+      results = [...results, await handleManagedTabGroupChange(group)];
+    } catch (error) {
+      results = [...results, {
+        groupId: group?.id,
+        managed: null,
+        error: errorMessage(error),
+      }];
+    }
+  }
+
+  return {
+    supported: true,
+    inspected: groups.length,
+    managed: results.filter((result) => result?.managed !== false).length,
+    results,
+  };
 }
 
 function handleManagedTabGroupChangeEvent(group) {

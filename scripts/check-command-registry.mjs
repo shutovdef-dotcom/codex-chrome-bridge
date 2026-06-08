@@ -883,7 +883,10 @@ check(tabGroupPersistenceListenersBlock.includes('chrome.tabGroups.onUpdated'), 
 check(tabGroupPersistenceListenersBlock.includes('handleManagedTabGroupChange'), 'extension tab-group persistence listeners must route events through a managed-group guard');
 check(functionBlock(tabGroupPersistenceText, 'handleManagedTabGroupChange').includes('disableSavedTabGroupIfSupported(group)'), 'extension tab-group persistence event handler must mark managed groups unsaved');
 check(backgroundText.includes('enforceManagedTabGroupPersistence,'), 'extension background must import startup managed-group persistence enforcement');
-check(backgroundText.includes("installTabGroupPersistenceListeners } from './tab-group-persistence.js';"), 'extension background must import tab-group persistence listener installer');
+check(
+  backgroundText.includes('installTabGroupPersistenceListeners,') && backgroundText.includes("from './tab-group-persistence.js';"),
+  'extension background must import tab-group persistence listener installer',
+);
 check(backgroundText.includes('installTabGroupPersistenceListeners();'), 'extension background must install tab-group persistence listeners during service worker startup');
 check(backgroundText.includes('enforceManagedTabGroupPersistence().catch(() => {});'), 'extension background must sweep existing managed groups during service worker startup');
 check(functionBlock(workspaceTabsText, 'ensureCodexGroupForTab').includes('disableSavedTabGroupIfSupported(group)'), 'extension workspace grouping must mark Codex groups ephemeral when Chrome supports it');

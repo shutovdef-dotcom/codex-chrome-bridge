@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Added background tab-group create/update listeners so managed `Codex Bridge` groups are automatically marked unsaved when Chrome exposes saved-tab-group API support, reducing future saved closed group chips beyond command-driven cleanup.
+- Added a background startup sweep plus tab-group create/update listeners so managed `Codex Bridge` groups are automatically marked unsaved when Chrome exposes saved-tab-group API support, reducing future saved closed group chips beyond command-driven cleanup.
 - Preserved structured CLI JSON in the MCP `runtime-smoke` wrapper when the smoke command exits nonzero, so failed or skipped verification metadata remains machine-readable for MCP clients.
 - Added `check:mcp-runtime-smoke` to exercise the MCP runtime-smoke tool over stdio against fake bridge URLs, proving coverage-plan and stale-extension outputs stay structured without touching Chrome.
 - Added `chrome_bridge_doctor` and `check:mcp-local-tools` so MCP clients can inspect offline setup diagnostics while proving live checks stay opt-in.

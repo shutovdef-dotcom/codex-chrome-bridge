@@ -8,7 +8,7 @@ The bridge scopes browser work to a Chrome tab group named `Codex Bridge` by def
 
 Users can configure local workspace defaults for the group title/color with `set-workspace` or `chrome_bridge_set_workspace`. This does not grant broader browser access.
 
-When the bridge creates, reuses, or observes updates to its scoped tab group, it also checks whether the running Chrome exposes a future `saved` tab-group property. Current public Chrome APIs do not expose saved closed tab-group chip management, so this is a no-op today; if Chrome later supports that property, the bridge will mark managed Codex groups `saved: false` on a best-effort basis.
+When the extension service worker starts, and whenever the bridge creates, reuses, or observes updates to its scoped tab group, it checks whether the running Chrome exposes a future `saved` tab-group property. Current public Chrome APIs do not expose saved closed tab-group chip management, so this is a no-op today; if Chrome later supports that property, the bridge will mark managed Codex groups `saved: false` on a best-effort basis.
 
 When the bridge closes its own tabs through `close-tab`, `close-group`, prompt cleanup, or `runtime-smoke` cleanup, the extension first tries the same best-effort saved-group disablement, then removes those tabs from their Chrome tab group, and only then closes them. If Chrome cannot ungroup a grouped bridge tab, cleanup fails closed instead of closing the tab and risking a new saved closed group chip. This prevents future bridge cleanup from creating more saved closed groups but cannot delete groups Chrome has already saved.
 
