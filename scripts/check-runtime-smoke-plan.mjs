@@ -192,6 +192,18 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   check(staleParsed.verification?.status === 'skipped', 'stale-extension runtime smoke verification status must be skipped');
   check(staleParsed.verification?.liveVerificationRequired === true, 'stale-extension runtime smoke must still require final live verification');
   check(staleParsed.verification?.observed?.extensionVersion === staleExtensionVersion, 'stale-extension verification metadata must include observed extension version');
+  check(
+    staleParsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm')
+      && staleParsed.verification?.finalCommands?.includes('chrome-bridge doctor --live-checks')
+      && staleParsed.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'),
+    'stale-extension verification metadata must keep the final live command sequence',
+  );
+  check(
+    staleParsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_reload_extension' && call?.arguments?.confirmed === true)
+      && staleParsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_doctor' && call?.arguments?.liveChecks === true)
+      && staleParsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_runtime_smoke' && call?.arguments && Object.keys(call.arguments).length === 0),
+    'stale-extension verification metadata must keep the final live MCP sequence',
+  );
   staleExtensionStructuredOutput = !Object.prototype.hasOwnProperty.call(staleParsed, 'stdout');
   check(staleExtensionStructuredOutput, 'stale-extension runtime smoke must not fall back to raw stdout wrapping');
 });
@@ -216,6 +228,18 @@ await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   check(staleBridgeParsed.verification?.status === 'skipped', 'stale-bridge runtime smoke verification status must be skipped');
   check(staleBridgeParsed.verification?.liveVerificationRequired === true, 'stale-bridge runtime smoke must still require final live verification');
   check(staleBridgeParsed.verification?.observed?.bridgeVersion === staleBridgeVersion, 'stale-bridge verification metadata must include observed bridge version');
+  check(
+    staleBridgeParsed.verification?.finalCommands?.includes('chrome-bridge reload-extension --confirm')
+      && staleBridgeParsed.verification?.finalCommands?.includes('chrome-bridge doctor --live-checks')
+      && staleBridgeParsed.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'),
+    'stale-bridge verification metadata must keep the final live command sequence',
+  );
+  check(
+    staleBridgeParsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_reload_extension' && call?.arguments?.confirmed === true)
+      && staleBridgeParsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_doctor' && call?.arguments?.liveChecks === true)
+      && staleBridgeParsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_runtime_smoke' && call?.arguments && Object.keys(call.arguments).length === 0),
+    'stale-bridge verification metadata must keep the final live MCP sequence',
+  );
   staleBridgeStructuredOutput = !Object.prototype.hasOwnProperty.call(staleBridgeParsed, 'stdout');
   check(staleBridgeStructuredOutput, 'stale-bridge runtime smoke must not fall back to raw stdout wrapping');
 });
@@ -236,6 +260,10 @@ process.stdout.write(`${JSON.stringify({
   requiredCount: parsed.coverage.requiredCount,
   staleExtensionStatus: staleParsed?.verification?.status,
   staleBridgeStatus: staleBridgeParsed?.verification?.status,
+  staleExtensionFinalCommandCount: staleParsed?.verification?.finalCommands?.length || 0,
+  staleBridgeFinalCommandCount: staleBridgeParsed?.verification?.finalCommands?.length || 0,
+  staleExtensionFinalMcpCallCount: staleParsed?.verification?.finalMcpCalls?.length || 0,
+  staleBridgeFinalMcpCallCount: staleBridgeParsed?.verification?.finalMcpCalls?.length || 0,
   staleExtensionCliExitPreserved,
   staleBridgeCliExitPreserved,
   staleExtensionStructuredOutput,
