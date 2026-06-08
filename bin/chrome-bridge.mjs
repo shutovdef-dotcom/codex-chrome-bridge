@@ -9,6 +9,12 @@ import { promisify } from 'node:util';
 import { parseBridgePort, startBridgeServer } from '../server/bridge-server.mjs';
 import { formatReadOutput } from '../shared/output-envelope.mjs';
 import {
+  createRunId,
+  readRunState,
+  recordOwnedTab,
+  removeOwnedTabs,
+} from '../shared/run-tabs.mjs';
+import {
   BRIDGE_VERSION,
   CLI_COMMANDS,
   CLI_USAGE_GROUPS,
@@ -176,6 +182,218 @@ function readOutputOptions(args) {
     includeContent: Boolean(args['include-content']),
     maxInlineChars: parseNumberRangeArg(args['max-inline-chars'], '--max-inline-chars', 0, 500_000),
   };
+}
+
+function errorJson(error) {
+  return {
+    message: String(error?.message || error),
+    code: error?.code || null,
+    details: error?.details || null,
+  };
+}
+
+function closedTabIdsFromCloseResult(result, fallbackTabId) {
+  const candidates = [
+    result?.closedTabIds,
+    result?.tabGroupPersistenceMitigation?.closedTabIds,
+  ].find(Array.isArray);
+  if (candidates) return candidates;
+  return Number.isInteger(fallbackTabId) ? [fallbackTabId] : [];
+}
+
+function missingTabIdsFromCloseResult(result) {
+  const candidates = [
+    result?.missingTabIds,
+    result?.tabGroupPersistenceMitigation?.missingTabIds,
+  ].find(Array.isArray);
+  return candidates || [];
+}
+
+async function cleanupRunTabsById(runId) {
+  const before = await readRunState({ runId });
+  const cleanupResults = [];
+  const closedTabIds = [];
+  const missingTabIds = [];
+
+  for (const tabId of before.ownedTabIds) {
+    try {
+      const result = await command('closeTab', {
+        tabId,
+        confirmed: true,
+        allowExternal: true,
+      }, 30_000);
+      const closed = closedTabIdsFromCloseResult(result, tabId);
+      const missing = missingTabIdsFromCloseResult(result);
+      cleanupResults.push({ tabId, ok: true, closedTabIds: closed, missingTabIds: missing, result });
+      closedTabIds.push(...closed);
+      missingTabIds.push(...missing);
+    } catch (error) {
+      cleanupResults.push({ tabId, ok: false, error: errorJson(error) });
+    }
+  }
+
+  const removableTabIds = [...new Set([...closedTabIds, ...missingTabIds])];
+  const afterState = removableTabIds.length
+    ? await removeOwnedTabs({ runId: before.runId, tabIds: removableTabIds })
+    : before;
+  const after = removableTabIds.length
+    ? afterState
+    : await readRunState({ runId: before.runId });
+
+  return {
+    ok: cleanupResults.every((result) => result.ok),
+    runId: before.runId,
+    ownedTabsBefore: before.ownedTabIds,
+    closedTabIds: [...new Set(closedTabIds)].sort((a, b) => a - b),
+    missingTabIds: [...new Set(missingTabIds)].sort((a, b) => a - b),
+    ownedTabsAfter: after.ownedTabIds,
+    cleanupResults,
+  };
+}
+
+async function runNestedTempTabCommand(argv, tabId) {
+  const args = parseArgs(argv);
+  const [cmd] = args._;
+  const scopedArgs = {
+    ...args,
+    tab: String(tabId),
+  };
+
+  if (cmd === 'snapshot' || cmd === 'text') {
+    const result = await command(cmd, {
+      ...targetPayload(scopedArgs),
+      maxChars: parseNumberRangeArg(scopedArgs['max-chars'], '--max-chars', 1_000, 200_000) ?? 200_000,
+    }, 30_000);
+    return formatReadOutput({
+      action: cmd,
+      result,
+      options: readOutputOptions(scopedArgs),
+    });
+  }
+
+  if (cmd === 'html') {
+    const result = await command('html', {
+      ...targetPayload(scopedArgs),
+      selector: scopedArgs.selector,
+      maxChars: parseNumberRangeArg(scopedArgs['max-chars'], '--max-chars', 1_000, 500_000) ?? 500_000,
+      outer: !scopedArgs.inner,
+    }, 30_000);
+    return formatReadOutput({
+      action: 'html',
+      result,
+      options: readOutputOptions(scopedArgs),
+    });
+  }
+
+  if (cmd === 'screenshot') {
+    if (!scopedArgs.out) throw new Error('nested screenshot requires --out <file>');
+    const result = await command('screenshot', {
+      ...targetPayload(scopedArgs),
+      fullPage: Boolean(scopedArgs['full-page']),
+      selector: scopedArgs.selector,
+    }, scopedArgs['full-page'] || scopedArgs.selector ? 60_000 : 30_000);
+    return formatReadOutput({
+      action: 'screenshot',
+      result,
+      options: readOutputOptions(scopedArgs),
+    });
+  }
+
+  throw new Error('with-temp-tab currently supports nested text, snapshot, html, or screenshot commands');
+}
+
+function parseWithTempTabArgs(argv) {
+  const separatorIndex = argv.indexOf('--');
+  if (separatorIndex < 0) {
+    throw new Error('with-temp-tab requires -- before the nested command');
+  }
+  const setupArgs = parseArgs(argv.slice(0, separatorIndex));
+  const nestedArgv = argv.slice(separatorIndex + 1);
+  const [url, ...extraPositionals] = setupArgs._;
+  if (!url) throw new Error('with-temp-tab requires a URL');
+  if (extraPositionals.length) throw new Error(`Unexpected with-temp-tab argument: ${extraPositionals[0]}`);
+  if (!nestedArgv.length) throw new Error('with-temp-tab requires a nested command after --');
+  return { setupArgs, nestedArgv, url };
+}
+
+async function withTempTab(rawArgv) {
+  const { setupArgs, nestedArgv, url } = parseWithTempTabArgs(rawArgv);
+  const runId = setupArgs['run-id'] || createRunId('run');
+  const before = await readRunState({ runId });
+  let opened = null;
+
+  try {
+    opened = await command('open', {
+      url,
+      active: Boolean(setupArgs.active),
+      newTab: true,
+      ...groupScopePayload(setupArgs),
+    }, 30_000);
+    const tabId = opened?.id ?? opened?.tab?.id;
+    if (!Number.isInteger(tabId)) throw new Error('open did not return a tab id for with-temp-tab');
+
+    await recordOwnedTab({
+      runId,
+      tabId,
+      meta: {
+        url: opened.url || url,
+        title: opened.title || null,
+        groupId: opened.groupId ?? opened.group?.id ?? null,
+      },
+    });
+
+    const result = await runNestedTempTabCommand(nestedArgv, tabId);
+    const cleanup = setupArgs['keep-tab']
+      ? {
+        ok: true,
+        runId,
+        ownedTabsBefore: (await readRunState({ runId })).ownedTabIds,
+        closedTabIds: [],
+        missingTabIds: [],
+        ownedTabsAfter: (await readRunState({ runId })).ownedTabIds,
+        cleanupResults: [],
+      }
+      : await cleanupRunTabsById(runId);
+
+    return {
+      ok: cleanup.ok,
+      runId,
+      tempTab: { id: tabId, url: opened.url || url, title: opened.title || null },
+      keepTab: Boolean(setupArgs['keep-tab']),
+      ownedTabsBefore: before.ownedTabIds,
+      ownedTabsAfter: cleanup.ownedTabsAfter,
+      closedTabIds: cleanup.closedTabIds,
+      missingTabIds: cleanup.missingTabIds,
+      cleanupResults: cleanup.cleanupResults,
+      result,
+    };
+  } catch (error) {
+    const cleanup = opened && !setupArgs['keep-tab']
+      ? await cleanupRunTabsById(runId).catch((cleanupError) => ({
+        ok: false,
+        runId,
+        ownedTabsBefore: [],
+        closedTabIds: [],
+        missingTabIds: [],
+        ownedTabsAfter: [],
+        cleanupResults: [{ ok: false, error: errorJson(cleanupError) }],
+      }))
+      : { ok: true, closedTabIds: [], missingTabIds: [], ownedTabsAfter: before.ownedTabIds, cleanupResults: [] };
+
+    return {
+      ok: false,
+      runId,
+      tempTab: opened ? { id: opened.id ?? opened?.tab?.id ?? null, url: opened.url || url, title: opened.title || null } : null,
+      keepTab: Boolean(setupArgs['keep-tab']),
+      ownedTabsBefore: before.ownedTabIds,
+      ownedTabsAfter: cleanup.ownedTabsAfter,
+      closedTabIds: cleanup.closedTabIds,
+      missingTabIds: cleanup.missingTabIds,
+      cleanupResults: cleanup.cleanupResults,
+      result: null,
+      error: errorJson(error),
+    };
+  }
 }
 
 function hoverCoordinatePayload(args) {
@@ -405,6 +623,8 @@ async function selfTest() {
     cli: path.join(rootDir, 'bin/chrome-bridge.mjs'),
     mcp: path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'),
     registry: path.join(rootDir, 'shared/command-registry.mjs'),
+    outputEnvelope: path.join(rootDir, 'shared/output-envelope.mjs'),
+    runTabs: path.join(rootDir, 'shared/run-tabs.mjs'),
     commandCatalogDoc: path.join(rootDir, 'docs/COMMAND-CATALOG.md'),
     commandCatalogGenerator: path.join(rootDir, 'scripts/generate-command-catalog.mjs'),
     bridgeContractChecker: path.join(rootDir, 'scripts/check-bridge-contract.mjs'),
@@ -518,6 +738,8 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.cli]),
     tryExec(process.execPath, ['--check', paths.mcp]),
     tryExec(process.execPath, ['--check', paths.registry]),
+    tryExec(process.execPath, ['--check', paths.outputEnvelope]),
+    tryExec(process.execPath, ['--check', paths.runTabs]),
     tryExec(process.execPath, ['--check', paths.commandCatalogGenerator]),
     tryExec(process.execPath, ['--check', paths.bridgeContractChecker]),
     tryExec(process.execPath, ['--check', paths.docsCoverageChecker]),
@@ -775,18 +997,35 @@ async function selfTest() {
       label: 'syntax',
       item: [
         paths.background,
+        paths.browserData,
+        paths.debuggerSession,
         paths.extensionErrors,
+        paths.keyboardEvents,
+        paths.navigationActions,
         paths.offscreenLifecycle,
+        paths.pageExecution,
+        paths.pageArtifacts,
+        paths.pageReadActions,
+        paths.pageInteractions,
         paths.pageScripts,
+        paths.runtimeActions,
         paths.safetyGates,
         paths.tabCleanup,
+        paths.tabGroupPersistence,
+        paths.tabInfo,
+        paths.tabLoading,
+        paths.traceActions,
+        paths.userPrompts,
         paths.workspacePolicy,
+        paths.workspaceTabs,
         paths.offscreen,
         paths.ask,
         paths.server,
         paths.cli,
         paths.mcp,
         paths.registry,
+        paths.outputEnvelope,
+        paths.runTabs,
         paths.commandCatalogGenerator,
         paths.bridgeContractChecker,
         paths.docsCoverageChecker,
@@ -1900,8 +2139,16 @@ async function runtimeSmoke(args = {}) {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const rawArgs = process.argv.slice(2);
+  const args = parseArgs(rawArgs);
   const [cmd, first] = args._;
+
+  if (cmd === 'with-temp-tab') {
+    const result = await withTempTab(rawArgs.slice(1));
+    printJson(result);
+    if (!result.ok) process.exitCode = 1;
+    return;
+  }
 
   if (!cmd || cmd === '-h' || cmd === '--help' || cmd === 'help') {
     process.stdout.write(`${usage()}\n`);
@@ -1952,6 +2199,14 @@ tool_timeout_sec = 60
     const result = await runtimeSmoke(args);
     printJson(result);
     if (!result.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (cmd === 'cleanup-run-tabs') {
+    if (!args['run-id']) throw new Error('cleanup-run-tabs requires --run-id <id>');
+    const result = await cleanupRunTabsById(args['run-id']);
+    printJson(result);
+    if (!result.ok || result.ownedTabsAfter.length) process.exitCode = 1;
     return;
   }
 

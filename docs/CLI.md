@@ -68,6 +68,8 @@ The command metadata table below is generated from the shared registry by `npm r
 | `ask` | `askUser` | system | 305000 ms | no | yes | Open a local prompt tab and wait for a user answer. |
 | `session-summary` | `session-summary` | read | 30000 ms | no | yes | Summarize bridge health, workspace policy, scoped group state, and recommendations. |
 | `debug-bundle` | `debug-bundle` | read | 60000 ms | no | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
+| `with-temp-tab` | `with-temp-tab` | interaction | 120000 ms | no | yes | Open a run-owned temporary scoped tab, run a bounded read command, and clean up the tab automatically. |
+| `cleanup-run-tabs` | `cleanup-run-tabs` | interaction | 30000 ms | no | yes | Close tabs recorded as owned by a run id and remove them from local run state. |
 | `command-catalog` | `command-catalog` | read | 5000 ms | no | no | Print this shared command registry as JSON or Markdown. |
 | `reload-extension` | `reloadExtension` | system | 5000 ms | yes | yes | Ask the unpacked extension to reload itself after local file edits; requires confirmation. |
 | `self-test` | `self-test` | read | 10000 ms | no | no | Run static project parity checks without touching Chrome. |
@@ -119,6 +121,8 @@ chrome-bridge clear-workspace --confirm
 chrome-bridge ensure-tab [url] [--active] [--group-title <title>] [--group-color <color>]
 chrome-bridge adopt-tab [--tab <id>] [--group-title <title>] [--group-color <color>] --confirm
 chrome-bridge open <url> [--tab <id>] [--active] [--new] [--allow-external] [--group-title <title>] [--group-color <color>]
+chrome-bridge with-temp-tab <url> [--run-id <id>] [--active] [--keep-tab] [--group-title <title>] [--group-color <color>] -- <text|snapshot|html|screenshot> [read flags]
+chrome-bridge cleanup-run-tabs --run-id <id>
 chrome-bridge activate [--tab <id>] [--focus-window] [--allow-external]
 chrome-bridge close-tab [--tab <id>] --confirm [--allow-external]
 chrome-bridge close-group [--group-title <title>] [--group-color <color>] --confirm

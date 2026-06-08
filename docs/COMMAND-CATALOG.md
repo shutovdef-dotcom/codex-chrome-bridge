@@ -59,6 +59,8 @@ Version: 0.4.1
 | health | diagnostic | read | 10000 ms | health | chrome_bridge_health | yes | Read local bridge health and extension connection status. |
 | session-summary | diagnostic | read | 30000 ms | session-summary | chrome_bridge_session_summary | yes | Summarize bridge health, workspace policy, scoped group state, and recommendations. |
 | debug-bundle | debug | read | 60000 ms | debug-bundle | chrome_bridge_debug_bundle | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
+| with-temp-tab | navigation | interaction | 120000 ms | with-temp-tab | - | yes | Open a run-owned temporary scoped tab, run a bounded read command, and clean up the tab automatically. |
+| cleanup-run-tabs | navigation | interaction | 30000 ms | cleanup-run-tabs | - | yes | Close tabs recorded as owned by a run id and remove them from local run state. |
 | command-catalog | diagnostic | read | 5000 ms | command-catalog | chrome_bridge_command_catalog | no | Print this shared command registry as JSON or Markdown. |
 | self-test | verification | read | 10000 ms | self-test | chrome_bridge_self_test | no | Run static project parity checks without touching Chrome. |
 | runtime-smoke | verification | interaction | 180000 ms | runtime-smoke | chrome_bridge_runtime_smoke | yes | Run the real-browser fixture smoke test against the live bridge. |
@@ -118,6 +120,8 @@ chrome-bridge request <url> --confirm [--method GET|POST|PUT|PATCH|DELETE|HEAD|O
 chrome-bridge ask --question <text> [--choices-json <json>] [--no-text] [--timeout-ms 300000] [--keep-tab]
 chrome-bridge session-summary
 chrome-bridge debug-bundle --out <dir> [--tab <id>] [--allow-external] [--include-snapshot] [--include-observe] [--include-screenshot] [--include-trace-events]
+chrome-bridge with-temp-tab <url> [--run-id <id>] [--active] [--keep-tab] [--group-title <title>] [--group-color <color>] -- <text|snapshot|html|screenshot> [read flags]
+chrome-bridge cleanup-run-tabs --run-id <id>
 chrome-bridge command-catalog [--markdown]
 chrome-bridge reload-extension --confirm
 chrome-bridge self-test
