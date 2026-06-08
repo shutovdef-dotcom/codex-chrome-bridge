@@ -527,6 +527,11 @@ check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bri
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
 check(mcpText.includes("if (args.coveragePlan) cliArgs.push('--coverage-plan')"), 'MCP runtime smoke helper must forward coveragePlan to CLI');
+check(mcpText.includes('function parseLocalCliJson'), 'MCP local CLI helpers must centralize JSON stdout parsing');
+const mcpRuntimeSmokeBlock = functionBlock(mcpText, 'localRuntimeSmoke');
+check(mcpRuntimeSmokeBlock.includes('parseLocalCliJson(result.stdout)'), 'MCP runtime smoke helper must parse successful CLI JSON through the shared parser');
+check(mcpRuntimeSmokeBlock.includes('parseLocalCliJson(error?.stdout)'), 'MCP runtime smoke helper must parse failed CLI JSON stdout before wrapping errors');
+check(mcpRuntimeSmokeBlock.includes('cliExitError'), 'MCP runtime smoke helper must preserve CLI exit errors without dropping parsed smoke metadata');
 check(mcpText.includes('verification.status="not-run"') && mcpText.includes('verification.status="passed"'), 'MCP runtime smoke tool description must document verification status semantics');
 check(mcpDocsText.includes('verification.status: "not-run"') && mcpDocsText.includes('verification.status: "passed"'), 'MCP docs must document runtime smoke verification status semantics');
 check(mcpText.includes('z.enum(HTTP_METHODS)'), 'MCP request method schema must use the shared HTTP method allowlist');
