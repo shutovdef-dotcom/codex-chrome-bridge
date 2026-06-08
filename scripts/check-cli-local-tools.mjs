@@ -149,6 +149,7 @@ async function withFakeStaleSummaryBridge(fn) {
 
 async function withFakeCommandBridge(fn) {
   const receivedCommands = [];
+  const invalidPayloadRequests = [];
   const server = http.createServer(async (req, res) => {
     if (req.url !== '/command' || req.method !== 'POST') {
       res.writeHead(404, { 'content-type': 'application/json' });
@@ -173,6 +174,7 @@ async function withFakeCommandBridge(fn) {
     try {
       validateCommandPayload(parsed.action, parsed.payload || {});
     } catch (error) {
+      invalidPayloadRequests.push(parsed);
       res.writeHead(400, { 'content-type': 'application/json' });
       res.end(JSON.stringify({
         ok: false,
@@ -204,6 +206,7 @@ async function withFakeCommandBridge(fn) {
     return await fn({
       bridgeUrl: `http://127.0.0.1:${port}`,
       receivedCommands,
+      invalidPayloadRequests,
     });
   } finally {
     await new Promise((resolve) => server.close(resolve));
@@ -269,7 +272,7 @@ let inventoryIncludeAllChecks = 0;
 let privateSensitiveChecks = 0;
 let unsafeUrlMethodChecks = 0;
 let selectTargetChecks = 0;
-await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
+await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
     { action: 'windows', args: ['windows', '--all'], confirmedArgs: ['windows', '--all', '--confirm'] },
@@ -377,6 +380,7 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
 
   check(COMMAND_PAYLOAD_SCHEMAS.select?.includes('index'), 'select schema must allow index before CLI behavior checks');
   const beforeMissingSelectTarget = receivedCommands.length;
+  const beforeMissingSelectTargetRejects = invalidPayloadRequests.length;
   const missingSelectTarget = await runCli(['select', '--selector', '#country', '--confirm'], { CHROME_BRIDGE_URL: bridgeUrl });
   check(!missingSelectTarget.ok, 'CLI select without value, label, or index must fail');
   check(
@@ -386,6 +390,10 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   check(
     receivedCommands.length === beforeMissingSelectTarget,
     'CLI select missing target must not be accepted by fake command bridge',
+  );
+  check(
+    invalidPayloadRequests.length === beforeMissingSelectTargetRejects,
+    'CLI select missing target must fail fast before contacting fake command bridge',
   );
   selectTargetChecks += 1;
 
