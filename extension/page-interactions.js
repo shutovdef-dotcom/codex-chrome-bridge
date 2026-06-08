@@ -190,7 +190,6 @@ export async function handleDialog(payload) {
   requireConfirmed(payload, 'handleDialog');
   const tab = await getTargetTab(payload);
   return withDebugger(tab.id, async () => {
-    await sendDebuggerCommand(tab.id, 'Page.enable');
     await sendDebuggerCommand(tab.id, 'Page.handleJavaScriptDialog', {
       accept: payload.accept !== false,
       promptText: typeof payload.promptText === 'string' ? payload.promptText : undefined,

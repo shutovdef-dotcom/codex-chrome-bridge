@@ -166,6 +166,7 @@ export async function startTraceForTab(tab, payload = {}) {
     traceSessions.set(tab.id, session);
 
     try {
+      await sendDebuggerCommand(tab.id, 'Page.enable');
       if (payload.network !== false) await sendDebuggerCommand(tab.id, 'Network.enable');
       if (payload.console !== false) {
         await sendDebuggerCommand(tab.id, 'Runtime.enable');
