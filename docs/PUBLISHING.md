@@ -41,7 +41,7 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 
 `check:cli-local-tools` exercises CLI setup diagnostics and command-catalog output against a dead bridge URL, proving those local commands stay offline by default. It also runs `doctor --live-checks` against a fake `/health` server and fake `osascript` binary to prove live doctor reports current bridge-server version metadata without touching Chrome, and verifies `session-summary` stale-bridge recommendations against a fake bridge.
 
-`check:mcp-runtime-smoke` starts the MCP server over stdio against fake bridge URLs, calls `chrome_bridge_runtime_smoke`, and verifies coverage-plan plus stale-extension metadata stays structured for MCP clients without touching Chrome.
+`check:mcp-runtime-smoke` starts the MCP server over stdio against fake bridge URLs, calls `chrome_bridge_runtime_smoke`, and verifies coverage-plan plus stale-extension/stale-bridge metadata stays structured for MCP clients without touching Chrome.
 
 `check:mcp-local-tools` starts the MCP server over stdio, calls local diagnostic tools such as `chrome_bridge_doctor`, and verifies they remain offline by default. It also mirrors the fake live doctor bridge-version and fake stale-bridge session-summary checks through MCP so CLI and MCP upgrade diagnostics stay in parity without touching Chrome.
 

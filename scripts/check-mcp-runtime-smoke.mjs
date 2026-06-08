@@ -253,4 +253,5 @@ process.stdout.write(`${JSON.stringify({
   staleExtensionStatus: staleParsed?.verification?.status,
   staleBridgeStatus: staleBridgeParsed?.verification?.status,
   staleExtensionCliExitPreserved: Boolean(staleParsed?.cliExitError),
+  staleBridgeCliExitPreserved: Boolean(staleBridgeParsed?.cliExitError),
 }, null, 2)}\n`);
