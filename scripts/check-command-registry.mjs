@@ -34,6 +34,7 @@ const [
   backgroundText,
   debuggerSessionText,
   extensionErrorsText,
+  keyboardEventsText,
   offscreenLifecycleText,
   pageScriptsText,
   safetyGatesText,
@@ -52,6 +53,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/debugger-session.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/extension-errors.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/keyboard-events.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
@@ -558,6 +560,13 @@ check(functionBlock(debuggerSessionText, 'withDebugger').includes('chrome.debugg
 check(functionBlock(debuggerSessionText, 'sendDebuggerCommand').includes('chrome.debugger.sendCommand'), 'extension debugger session module must own debugger commands');
 check(functionBlock(debuggerSessionText, 'recordDebuggerEvent').includes('Network.responseReceived'), 'extension debugger session module must record trace debugger events');
 check(debuggerSessionText.includes('traceSessions') && debuggerSessionText.includes('MAX_TRACE_EVENTS'), 'extension debugger session module must own trace session buffering');
+check(backgroundText.includes("import { keyEventPayload } from './keyboard-events.js';"), 'extension background must import trusted key event mapping from extension/keyboard-events.js');
+check(!backgroundText.includes('function keyEventPayload'), 'extension background must not own trusted key event mapping internals');
+check(!backgroundText.includes('function keyCodeFor'), 'extension background must not own trusted key code mapping internals');
+check(!backgroundText.includes('function virtualKeyCodeFor'), 'extension background must not own trusted virtual-key mapping internals');
+check(functionBlock(keyboardEventsText, 'keyEventPayload').includes('windowsVirtualKeyCode'), 'extension keyboard event module must serialize debugger key events');
+check(functionBlock(keyboardEventsText, 'keyCodeFor').includes('ArrowUp'), 'extension keyboard event module must map named key codes');
+check(functionBlock(keyboardEventsText, 'virtualKeyCodeFor').includes('ArrowUp'), 'extension keyboard event module must map virtual key codes');
 check(backgroundText.includes("import { groupInfo, tabInfo } from './tab-info.js';"), 'extension background must import tab/group serializers from extension/tab-info.js');
 check(!backgroundText.includes('function groupInfo'), 'extension background must not own tab/group serializer internals');
 check(!backgroundText.includes('function tabInfo'), 'extension background must not own tab/group serializer internals');
