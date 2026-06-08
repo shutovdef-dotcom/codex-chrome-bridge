@@ -29,13 +29,13 @@ Run the live `health`, `doctor --live-checks`, and `runtime-smoke` checks only w
 
 `npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan`. It is offline and can be run while another session is using the bridge. It prints the required coverage checklist without calling `/health`, opening Chrome tabs, or reloading the extension, and its `verification.finalCommands` plus `verification.finalMcpCalls` fields record the live CLI/MCP sequence: `reload-extension --confirm`, `doctor --live-checks`, then `runtime-smoke`.
 
-The plan output reports `verification.status: "not-run"` and `verification.liveVerificationRequired: true`; final verification is complete only after the normal live `runtime-smoke` reports top-level `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
+The plan output reports `verification.status: "not-run"` and `verification.liveVerificationRequired: true`; final verification is complete only after the normal live `runtime-smoke` reports top-level `ok: true`, `coverage.ok: true`, current bridge/extension versions, and `verification.status: "passed"`.
 
 `runtime-smoke` opens temporary local fixture tabs and covers existing-tab adoption, scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, screenshots, PDF export, dialog handling, file input upload, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata. Its JSON output includes a counted `coverage` summary, and top-level `ok` is true only when every required coverage item passed.
 
 `check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
 
-`check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL, verifies stale-extension skip metadata against a fake `/health` server, and fails if `--coverage-plan` starts contacting the live bridge.
+`check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL, verifies stale bridge-server and stale-extension skip metadata against fake `/health` servers, and fails if `--coverage-plan` starts contacting the live bridge.
 
 `check:roadmap` verifies the merged Phase 0-4 roadmap against registry metadata, source boundaries, docs, and the offline runtime-smoke coverage plan without touching Chrome.
 

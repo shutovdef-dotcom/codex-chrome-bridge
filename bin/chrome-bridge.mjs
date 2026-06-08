@@ -1066,6 +1066,7 @@ function runtimeSmokeCoveragePlan(startedAt) {
       successCriteria: {
         ok: true,
         coverageOk: true,
+        bridgeVersion: EXPECTED_EXTENSION_VERSION,
         extensionVersion: EXPECTED_EXTENSION_VERSION,
         requiredCoverageCount: RUNTIME_SMOKE_REQUIRED_COVERAGE.length,
       },
@@ -1074,7 +1075,7 @@ function runtimeSmokeCoveragePlan(startedAt) {
   };
 }
 
-function runtimeSmokeLiveVerification({ status, extensionVersion = null, failures = [], coverage = null } = {}) {
+function runtimeSmokeLiveVerification({ status, bridgeVersion = null, extensionVersion = null, failures = [], coverage = null } = {}) {
   const effectiveStatus = status || (failures.length === 0 && coverage?.ok ? 'passed' : 'failed');
   return {
     status: effectiveStatus,
@@ -1082,10 +1083,12 @@ function runtimeSmokeLiveVerification({ status, extensionVersion = null, failure
     successCriteria: {
       ok: true,
       coverageOk: true,
+      bridgeVersion: EXPECTED_EXTENSION_VERSION,
       extensionVersion: EXPECTED_EXTENSION_VERSION,
       requiredCoverageCount: RUNTIME_SMOKE_REQUIRED_COVERAGE.length,
     },
     observed: {
+      bridgeVersion,
       extensionVersion,
       failures: failures.length,
       coverageOk: coverage?.ok ?? false,
@@ -1198,6 +1201,18 @@ async function runtimeSmoke(args = {}) {
     return runtimeSmokeCoveragePlan(startedAt);
   }
   const health = await bridgeFetch('/health');
+  const bridgeVersion = health?.bridge?.version || null;
+  if (bridgeVersion !== EXPECTED_EXTENSION_VERSION) {
+    return {
+      ok: false,
+      startedAt,
+      expectedVersion: EXPECTED_EXTENSION_VERSION,
+      bridgeVersion,
+      skipped: true,
+      reason: `Restart the local Chrome Bridge server first; live bridge version is ${bridgeVersion || 'unknown'}`,
+      verification: runtimeSmokeLiveVerification({ status: 'skipped', bridgeVersion }),
+    };
+  }
   const extensionVersion = health?.extension?.info?.version || null;
   if (extensionVersion !== EXPECTED_EXTENSION_VERSION) {
     return {
@@ -1207,7 +1222,7 @@ async function runtimeSmoke(args = {}) {
       extensionVersion,
       skipped: true,
       reason: `Reload the unpacked extension first; live extension version is ${extensionVersion || 'unknown'}`,
-      verification: runtimeSmokeLiveVerification({ status: 'skipped', extensionVersion }),
+      verification: runtimeSmokeLiveVerification({ status: 'skipped', bridgeVersion, extensionVersion }),
     };
   }
 
@@ -1679,6 +1694,7 @@ async function runtimeSmoke(args = {}) {
     startedAt,
     finishedAt: new Date().toISOString(),
     expectedVersion: EXPECTED_EXTENSION_VERSION,
+    bridgeVersion,
     extensionVersion,
     fixtureUrl: fixture.url,
     tabId,
@@ -1690,6 +1706,7 @@ async function runtimeSmoke(args = {}) {
     coverage,
     verification: runtimeSmokeLiveVerification({
       status: ok ? 'passed' : 'failed',
+      bridgeVersion,
       extensionVersion,
       failures,
       coverage,

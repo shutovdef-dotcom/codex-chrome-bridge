@@ -54,6 +54,9 @@ async function withStaleHealthServer(fn) {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({
       ok: true,
+      bridge: {
+        version: BRIDGE_VERSION,
+      },
       extension: {
         connected: true,
         info: {
