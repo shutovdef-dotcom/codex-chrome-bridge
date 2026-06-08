@@ -8,6 +8,7 @@ The `extension/` directory contains a Manifest V3 extension:
 
 - `manifest.json` declares permissions.
 - `background.js` executes browser commands.
+- `extension-errors.js` classifies extension-side command failures into stable bridge error codes.
 - `offscreen-lifecycle.js` owns creation and retry-safe startup of the MV3 offscreen bridge document.
 - `page-scripts.js` contains self-contained functions injected into web pages through `chrome.scripting.executeScript`.
 - `tab-cleanup.js` owns tab close cleanup, including ungroup-before-close mitigation for saved closed tab groups.

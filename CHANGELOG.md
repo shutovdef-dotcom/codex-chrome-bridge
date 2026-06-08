@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Split extension error-code classification into `extension/extension-errors.js`.
 - Split MV3 offscreen document startup into `extension/offscreen-lifecycle.js`.
 - Split tab close cleanup into `extension/tab-cleanup.js` so ungroup-before-close mitigation lives in a focused extension module.
 - Expanded `runtime-smoke` to cover strict workspace policy, outside-tab blocking, session-summary recommendations, and debug-bundle default redaction/omission checks.
