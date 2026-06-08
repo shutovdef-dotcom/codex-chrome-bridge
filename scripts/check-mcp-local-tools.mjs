@@ -6,7 +6,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { BRIDGE_VERSION, CLI_COMMANDS, MCP_TOOLS } from '../shared/command-registry.mjs';
+import {
+  BRIDGE_VERSION,
+  CLI_COMMANDS,
+  COMMAND_PAYLOAD_SCHEMAS,
+  MCP_TOOLS,
+} from '../shared/command-registry.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mcpPath = path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs');
@@ -165,6 +170,57 @@ async function withFakeStaleSummaryBridge(fn) {
   }
 }
 
+async function withFakeCommandBridge(fn) {
+  const receivedCommands = [];
+  const server = http.createServer(async (req, res) => {
+    if (req.url !== '/command' || req.method !== 'POST') {
+      res.writeHead(404, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unexpected path' }));
+      return;
+    }
+
+    let body = '';
+    for await (const chunk of req) {
+      body += chunk;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'invalid json' }));
+      return;
+    }
+
+    receivedCommands.push(parsed);
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      result: {
+        action: parsed.action,
+        payload: parsed.payload,
+        timeoutMs: parsed.timeoutMs,
+      },
+    }));
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  try {
+    const { port } = server.address();
+    return await fn({
+      bridgeUrl: `http://127.0.0.1:${port}`,
+      receivedCommands,
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 let doctorLiveBridgeCurrent = null;
 await withMcpClient(async (client) => {
   const tools = await client.listTools();
@@ -275,6 +331,40 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
   });
 });
 
+let groupScopePayloadChecks = 0;
+await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
+  const groupTitle = 'Codex Bridge MCP Group Scope';
+  const groupColor = 'cyan';
+  const cases = [
+    { action: 'windows', tool: 'chrome_bridge_windows', args: { groupTitle, groupColor } },
+    { action: 'tabs', tool: 'chrome_bridge_tabs', args: { groupTitle, groupColor } },
+    { action: 'group', tool: 'chrome_bridge_group', args: { includeTabs: true, groupTitle, groupColor } },
+    { action: 'ensureTab', tool: 'chrome_bridge_ensure_tab', args: { url: 'https://example.com', groupTitle, groupColor } },
+    { action: 'adoptTab', tool: 'chrome_bridge_adopt_tab', args: { tabId: 123, groupTitle, groupColor, confirmed: true } },
+    { action: 'open', tool: 'chrome_bridge_open', args: { url: 'https://example.com', newTab: true, groupTitle, groupColor } },
+    { action: 'closeGroup', tool: 'chrome_bridge_close_group', args: { groupTitle, groupColor, confirmed: true } },
+  ];
+
+  await withMcpClient(async (client) => {
+    for (const testCase of cases) {
+      check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupTitle'), `${testCase.action} schema must allow groupTitle before MCP behavior checks`);
+      check(COMMAND_PAYLOAD_SCHEMAS[testCase.action]?.includes('groupColor'), `${testCase.action} schema must allow groupColor before MCP behavior checks`);
+      const before = receivedCommands.length;
+      const parsed = parseToolJson(await client.callTool({
+        name: testCase.tool,
+        arguments: testCase.args,
+      }), `MCP ${testCase.tool} fake command bridge`);
+      const commandPayload = receivedCommands[before]?.payload || parsed?.payload;
+      check(receivedCommands[before]?.action === testCase.action, `MCP ${testCase.tool} must dispatch ${testCase.action}`);
+      check(commandPayload?.groupTitle === groupTitle, `MCP ${testCase.tool} must forward groupTitle`);
+      check(commandPayload?.groupColor === groupColor, `MCP ${testCase.tool} must forward groupColor`);
+      groupScopePayloadChecks += 1;
+    }
+  }, {
+    CHROME_BRIDGE_URL: bridgeUrl,
+  });
+});
+
 if (failures.length) {
   for (const failure of failures) process.stderr.write(`- ${failure}\n`);
   process.exit(1);
@@ -291,4 +381,5 @@ process.stdout.write(`${JSON.stringify({
   doctorOfflineByDefault: true,
   doctorLiveBridgeCurrent,
   sessionSummaryStaleBridgeRecommendation,
+  groupScopePayloadChecks,
 }, null, 2)}\n`);
