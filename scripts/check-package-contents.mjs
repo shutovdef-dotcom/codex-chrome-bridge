@@ -26,6 +26,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'extension/runtime-actions.js',
   'extension/safety-gates.js',
   'extension/tab-cleanup.js',
+  'extension/tab-group-persistence.js',
   'extension/tab-info.js',
   'extension/tab-loading.js',
   'extension/trace-actions.js',

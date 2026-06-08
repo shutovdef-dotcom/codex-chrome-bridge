@@ -19,6 +19,7 @@
 - Split extension error-code classification into `extension/extension-errors.js`.
 - Split MV3 offscreen document startup into `extension/offscreen-lifecycle.js`.
 - Split tab close cleanup into `extension/tab-cleanup.js` so ungroup-before-close mitigation lives in a focused extension module.
+- Added `extension/tab-group-persistence.js` so bridge-created groups can be marked unsaved when Chrome exposes saved-tab-group API support, while remaining a safe no-op on current Chrome.
 - Split tab and group response serialization into `extension/tab-info.js`.
 - Made grouped tab cleanup fail closed when Chrome cannot ungroup tabs before close, preventing bridge-driven cleanup from creating new saved closed group chips on ungroup errors.
 - Expanded `runtime-smoke` to cover strict workspace policy, outside-tab blocking, session-summary recommendations, and debug-bundle default redaction/omission checks.

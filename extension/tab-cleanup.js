@@ -1,3 +1,5 @@
+import { disableSavedTabGroupsForTabs } from './tab-group-persistence.js';
+
 function tabIdForClose(input) {
   const tabId = Number(input && typeof input === 'object' ? input.id : input);
   return Number.isInteger(tabId) && tabId >= 0 ? tabId : null;
@@ -31,6 +33,7 @@ export async function closeTabsWithGroupPersistenceMitigation(tabInputs, options
   const groupedTabIds = tabs
     .filter((tab) => Number.isInteger(tab.groupId) && tab.groupId >= 0)
     .map((tab) => tab.id);
+  const savedGroupPersistence = await disableSavedTabGroupsForTabs(tabs);
   let ungroupedBeforeClose = false;
 
   if (groupedTabIds.length) {
@@ -53,6 +56,7 @@ export async function closeTabsWithGroupPersistenceMitigation(tabInputs, options
   return {
     closedTabIds: tabIds,
     missingTabIds,
+    savedGroupPersistence,
     ungroupedBeforeClose,
     ungroupedTabIds: ungroupedBeforeClose ? groupedTabIds : [],
     ungroupUnavailable: false,

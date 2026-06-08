@@ -1,4 +1,5 @@
 import { groupInfo } from './tab-info.js';
+import { disableSavedTabGroupIfSupported } from './tab-group-persistence.js';
 import { groupOptions } from './workspace-policy.js';
 
 export async function listTabGroups(query = {}) {
@@ -152,6 +153,7 @@ export async function ensureCodexGroupForTab(tab, payload = {}) {
     color: options.color,
     collapsed: false,
   });
+  await disableSavedTabGroupIfSupported(group);
 
   await storageSet({
     codexGroupId: group.id,

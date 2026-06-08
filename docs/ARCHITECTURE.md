@@ -22,6 +22,7 @@ The `extension/` directory contains a Manifest V3 extension:
 - `runtime-actions.js` owns extension runtime actions such as confirmed extension reload.
 - `safety-gates.js` owns confirmation and sensitive-confirmation runtime guards.
 - `tab-cleanup.js` owns tab close cleanup, including ungroup-before-close mitigation for saved closed tab groups.
+- `tab-group-persistence.js` owns feature-detected saved-tab-group disablement for current no-op/future Chrome API support.
 - `tab-info.js` owns tab and tab-group response serialization.
 - `tab-loading.js` owns tab-load completion polling helpers.
 - `trace-actions.js` owns trace command wrappers around the debugger session helpers.

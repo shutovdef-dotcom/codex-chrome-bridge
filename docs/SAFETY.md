@@ -8,7 +8,9 @@ The bridge scopes browser work to a Chrome tab group named `Codex Bridge` by def
 
 Users can configure local workspace defaults for the group title/color with `set-workspace` or `chrome_bridge_set_workspace`. This does not grant broader browser access.
 
-When the bridge closes its own tabs through `close-tab`, `close-group`, prompt cleanup, or `runtime-smoke` cleanup, the extension first removes those tabs from their Chrome tab group and then closes them. If Chrome cannot ungroup a grouped bridge tab, cleanup fails closed instead of closing the tab and risking a new saved closed group chip. Chrome's public extension API does not expose saved closed tab-group chip management, so this prevents future bridge cleanup from creating more saved closed groups but cannot delete groups Chrome has already saved.
+When the bridge creates or reuses its scoped tab group, it also checks whether the running Chrome exposes a future `saved` tab-group property. Current public Chrome APIs do not expose saved closed tab-group chip management, so this is a no-op today; if Chrome later supports that property, the bridge will mark its group `saved: false` on a best-effort basis.
+
+When the bridge closes its own tabs through `close-tab`, `close-group`, prompt cleanup, or `runtime-smoke` cleanup, the extension first tries the same best-effort saved-group disablement, then removes those tabs from their Chrome tab group, and only then closes them. If Chrome cannot ungroup a grouped bridge tab, cleanup fails closed instead of closing the tab and risking a new saved closed group chip. This prevents future bridge cleanup from creating more saved closed groups but cannot delete groups Chrome has already saved.
 
 Whole-browser inventory reads require explicit approval: `tabs --all`, `windows --all`, `chrome_bridge_tabs({ includeAll: true })`, and `chrome_bridge_windows({ includeAll: true })` must include confirmation because they can expose unrelated tab URLs and titles.
 

@@ -282,6 +282,7 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - add explicit local workspace policy commands while preserving scoped, explicit-only outside-tab access
   - add `strict` workspace policy mode to block outside tabs even when external-tab override is passed
   - split the extension service worker into focused modules for debugger sessions, trace action wrappers, error classification, human prompt lifecycle, keyboard event mapping, navigation/workspace actions, offscreen lifecycle, page artifact capture, injected page execution, page interaction actions, page inspection/read actions, injected page scripts, private browser-data actions, runtime actions, safety gates, tab cleanup, tab/group response serialization, tab-load polling, workspace policy normalization, and workspace tab targeting
+  - add feature-detected saved-tab-group disablement so bridge-created groups are marked unsaved when Chrome exposes that API, while retaining ungroup-before-close mitigation on current Chrome
 
 ## Next Recommended Slice
 
