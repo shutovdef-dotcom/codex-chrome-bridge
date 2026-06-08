@@ -564,6 +564,7 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-runtime-smoke.mjs
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('chrome_bridge_doctor'), 'MCP local tools checker must call the MCP doctor tool');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('chrome_bridge_extension_path'), 'MCP local tools checker must call the MCP extension-path tool');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('chrome_bridge_codex_config'), 'MCP local tools checker must call the MCP codex-config tool');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('doctorLiveBridgeCurrent'), 'MCP local tools checker must assert live doctor bridge-version metadata');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('liveChecks === false'), 'MCP local tools checker must assert doctor stays offline by default');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('MCP_TOOLS'), 'MCP local tools checker must compare live MCP listTools output with registry MCP_TOOLS');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('unexpected MCP tool'), 'MCP local tools checker must fail on extra unregistered MCP tools');
