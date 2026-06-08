@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added explicit bridge server port validation so CLI and direct server startup fail fast before binding invalid ports.
 - Made CLI `wait`, `scroll`, `storage`, `request`, and `ask` validate numeric arguments locally before contacting the bridge.
 - Made CLI read/discovery/export commands validate numeric bounds locally before contacting the bridge.
 - Made CLI `history`, `bookmarks`, and `cookies` validate `--limit` bounds locally before contacting the bridge.

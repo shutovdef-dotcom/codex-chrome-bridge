@@ -10,6 +10,8 @@ import {
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 17376;
+const MIN_PORT = 0;
+const MAX_PORT = 65_535;
 const EXTENSION_VERSION = BRIDGE_VERSION;
 const EXTENSION_TTL_MS = 45_000;
 const LONG_POLL_MS = 25_000;
@@ -216,9 +218,24 @@ function validateCommandEnvelope(body) {
   }
 }
 
+export function parseBridgePort(value, name = 'port') {
+  const rawValue = value === undefined || value === null || value === ''
+    ? DEFAULT_PORT
+    : value;
+  const port = Number(rawValue);
+  if (!Number.isInteger(port) || port < MIN_PORT || port > MAX_PORT) {
+    throw bridgeError(
+      'INVALID_PORT',
+      `${name} must be an integer between ${MIN_PORT} and ${MAX_PORT}`,
+      { min: MIN_PORT, max: MAX_PORT },
+    );
+  }
+  return port;
+}
+
 export function createBridgeServer(options = {}) {
   const host = options.host || DEFAULT_HOST;
-  const port = Number(options.port || process.env.CHROME_BRIDGE_PORT || DEFAULT_PORT);
+  const port = parseBridgePort(options.port ?? process.env.CHROME_BRIDGE_PORT, 'port');
   if (!LOOPBACK_HOSTS.has(host) && process.env.CHROME_BRIDGE_UNSAFE_HOST !== '1') {
     throw bridgeError(
       'UNSAFE_HOST',

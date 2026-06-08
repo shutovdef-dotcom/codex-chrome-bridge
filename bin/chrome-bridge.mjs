@@ -6,7 +6,7 @@ import path from 'node:path';
 import { execFile, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { startBridgeServer } from '../server/bridge-server.mjs';
+import { parseBridgePort, startBridgeServer } from '../server/bridge-server.mjs';
 import {
   BRIDGE_VERSION,
   CLI_COMMANDS,
@@ -1828,7 +1828,7 @@ async function main() {
   }
 
   if (cmd === 'server') {
-    const port = Number(args.port || process.env.CHROME_BRIDGE_PORT || 17376);
+    const port = parseBridgePort(args.port ?? process.env.CHROME_BRIDGE_PORT, 'port');
     const bridge = await startBridgeServer({ port });
     process.stdout.write(`Chrome bridge listening on http://${bridge.host}:${bridge.port}\n`);
     process.stdout.write(`Load this unpacked extension in Chrome: ${path.join(rootDir, 'extension')}\n`);
