@@ -225,6 +225,7 @@ for (const modulePath of [
 }
 check(workspacePolicyText.includes("'strict'") && workspaceTabsText.includes('allowExternal is blocked by strict workspace policy'), 'Phase 4 must implement explicit scoped/strict workspace policy');
 check(tabCleanupText.includes('chrome.tabs.ungroup') && tabGroupPersistenceText.includes('enforceManagedTabGroupPersistence'), 'Phase 4 must mitigate saved closed tab groups through cleanup and startup sweep');
+check(roadmapText.includes('session-scoped bridge-created group IDs') && roadmapText.includes('Chrome session storage'), 'Phase 4 roadmap must document session-scoped managed group IDs');
 
 // Offline/live verification boundary.
 localCommand('runtime-smoke', { cli: 'runtime-smoke', mcp: 'chrome_bridge_runtime_smoke', liveBridge: 'yes' });
