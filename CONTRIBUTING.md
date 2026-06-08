@@ -28,7 +28,7 @@ node ./bin/chrome-bridge.mjs doctor --live-checks
 npm run runtime-smoke
 ```
 
-The live reload, doctor, and smoke sequence is complete only when `runtime-smoke` reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
+If live smoke is skipped or failed, use `verification.nextCommand` / `verification.nextAction` for the immediate recovery step. The live reload, doctor, and smoke sequence is complete only when `runtime-smoke` reports `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 
 ## Pull Request Checklist
 
@@ -45,7 +45,7 @@ The live reload, doctor, and smoke sequence is complete only when `runtime-smoke
 - Run `npm run check:privacy`.
 - Run `npm run check:audit`.
 - Run `npm run check:pack`.
-- Run the live upgrade/smoke sequence when changing browser behavior and no other session is using the bridge: `reload-extension --confirm`, `doctor --live-checks`, then `npm run runtime-smoke`; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
+- Run the live upgrade/smoke sequence when changing browser behavior and no other session is using the bridge: `reload-extension --confirm`, `doctor --live-checks`, then `npm run runtime-smoke`; use `verification.nextCommand` / `verification.nextAction` for skipped or failed smoke recovery; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
 - Update docs for user-visible behavior.
 
 ## Safety Rules
