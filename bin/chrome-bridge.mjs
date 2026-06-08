@@ -1037,7 +1037,8 @@ function runtimeSmokeCoveragePlan(startedAt) {
       status: 'not-run',
       liveVerificationRequired: true,
       finalCommands: [
-        'chrome-bridge health',
+        'chrome-bridge reload-extension --confirm',
+        'chrome-bridge doctor --live-checks',
         'chrome-bridge runtime-smoke',
       ],
       successCriteria: {
