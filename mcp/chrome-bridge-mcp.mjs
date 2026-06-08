@@ -417,6 +417,8 @@ server.tool(
   'List Chrome windows with grouped tabs. By default this is scoped to windows containing the Codex Bridge tab group; includeAll requires confirmed=true for explicitly approved diagnostics.',
   {
     includeAll: z.boolean().optional(),
+    groupTitle: z.string().optional(),
+    groupColor: z.enum(TAB_GROUP_COLORS).optional(),
     confirmed: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('windows', args)),
@@ -427,6 +429,8 @@ server.tool(
   'List Chrome tabs. By default this is scoped to the Codex Bridge tab group; includeAll requires confirmed=true for explicitly approved diagnostics.',
   {
     includeAll: z.boolean().optional(),
+    groupTitle: z.string().optional(),
+    groupColor: z.enum(TAB_GROUP_COLORS).optional(),
     confirmed: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('tabs', args)),
@@ -435,8 +439,12 @@ server.tool(
 server.tool(
   'chrome_bridge_group',
   'Show the Codex Bridge Chrome tab group and tabs currently scoped to it.',
-  {},
-  async () => textResult(await bridgeCommand('group')),
+  {
+    includeTabs: z.boolean().optional(),
+    groupTitle: z.string().optional(),
+    groupColor: z.enum(TAB_GROUP_COLORS).optional(),
+  },
+  async (args) => textResult(await bridgeCommand('group', args)),
 );
 
 server.tool(
@@ -476,6 +484,8 @@ server.tool(
   {
     url: navigationUrlSchema.optional(),
     active: z.boolean().optional(),
+    groupTitle: z.string().optional(),
+    groupColor: z.enum(TAB_GROUP_COLORS).optional(),
   },
   async (args) => textResult(await bridgeCommand('ensureTab', args, 30_000)),
 );
@@ -485,6 +495,8 @@ server.tool(
   'Adopt the current active tab, or a specified tabId, into the Codex Bridge group. Requires confirmed=true because it changes tab grouping in the user browser.',
   {
     tabId: z.number().optional(),
+    groupTitle: z.string().optional(),
+    groupColor: z.enum(TAB_GROUP_COLORS).optional(),
     confirmed: z.boolean(),
   },
   async (args) => textResult(await bridgeCommand('adoptTab', args, 30_000)),
@@ -498,6 +510,8 @@ server.tool(
     tabId: z.number().optional(),
     active: z.boolean().optional(),
     newTab: z.boolean().optional(),
+    groupTitle: z.string().optional(),
+    groupColor: z.enum(TAB_GROUP_COLORS).optional(),
     allowExternal: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('open', args, 30_000)),
@@ -529,6 +543,8 @@ server.tool(
   'chrome_bridge_close_group',
   'Close every tab in the Codex Bridge group. Requires confirmed=true.',
   {
+    groupTitle: z.string().optional(),
+    groupColor: z.enum(TAB_GROUP_COLORS).optional(),
     confirmed: z.boolean(),
   },
   async (args) => textResult(await bridgeCommand('closeGroup', args, 10_000)),
