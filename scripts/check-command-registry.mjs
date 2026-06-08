@@ -58,6 +58,7 @@ const [
   readmeText,
   publishingText,
   roadmapText,
+  pullRequestTemplateText,
 ] = await Promise.all([
   fs.readFile(path.join(rootDir, 'extension/manifest.json'), 'utf8'),
   fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
@@ -91,6 +92,7 @@ const [
   fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/PUBLISHING.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/COMPETITIVE-ROADMAP.md'), 'utf8'),
+  fs.readFile(path.join(rootDir, '.github/PULL_REQUEST_TEMPLATE.md'), 'utf8'),
 ]);
 const manifest = JSON.parse(manifestText);
 const packageJson = JSON.parse(packageText);
@@ -503,6 +505,8 @@ check(readmeText.includes('npm run runtime-smoke:plan') && readmeText.includes('
 check(publishingText.includes('npm run runtime-smoke:plan'), 'publishing checklist must use the canonical offline runtime smoke plan script');
 check(roadmapText.includes('npm run runtime-smoke:plan'), 'deferred runtime roadmap must use the canonical offline runtime smoke plan script');
 check(packageContentsCheckerText.includes("'scripts/check-runtime-smoke-plan.mjs'"), 'package contents must include runtime smoke plan checker');
+check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
+check(pullRequestTemplateText.includes('verification.status: "passed"'), 'pull request template must document live runtime smoke success criteria');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(mcpText.includes('chrome_bridge_reload_extension') && mcpText.includes('confirmed: z.boolean()'), 'MCP reload extension tool must require confirmed=true');
 check(mcpText.includes('coveragePlan: z.boolean().optional()'), 'MCP runtime smoke tool must expose coveragePlan option');
