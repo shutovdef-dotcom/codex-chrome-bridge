@@ -173,8 +173,10 @@ if (parsed) {
 }
 
 let staleParsed;
+let staleExtensionCliExitPreserved = false;
 await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   const result = await runCli(['runtime-smoke'], { CHROME_BRIDGE_URL: bridgeUrl });
+  staleExtensionCliExitPreserved = result.ok === false;
   try {
     staleParsed = JSON.parse(result.stdout);
   } catch (error) {
@@ -192,8 +194,10 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
 });
 
 let staleBridgeParsed;
+let staleBridgeCliExitPreserved = false;
 await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   const result = await runCli(['runtime-smoke'], { CHROME_BRIDGE_URL: bridgeUrl });
+  staleBridgeCliExitPreserved = result.ok === false;
   try {
     staleBridgeParsed = JSON.parse(result.stdout);
   } catch (error) {
@@ -226,4 +230,6 @@ process.stdout.write(`${JSON.stringify({
   requiredCount: parsed.coverage.requiredCount,
   staleExtensionStatus: staleParsed?.verification?.status,
   staleBridgeStatus: staleBridgeParsed?.verification?.status,
+  staleExtensionCliExitPreserved,
+  staleBridgeCliExitPreserved,
 }, null, 2)}\n`);
