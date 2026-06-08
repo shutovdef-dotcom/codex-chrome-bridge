@@ -1088,6 +1088,16 @@ async function runtimeSmoke(args = {}) {
     }
   };
 
+  const assertTabCleanupMitigation = (result) => {
+    const cleanup = result?.tabGroupPersistenceMitigation;
+    if (!cleanup) throw new Error('cleanup result did not include tabGroupPersistenceMitigation metadata');
+    if (!Array.isArray(cleanup.savedGroupPersistence)) throw new Error('cleanup metadata did not include savedGroupPersistence results');
+    if (!cleanup.ungroupedBeforeClose) throw new Error('cleanup did not ungroup grouped tabs before close');
+    if (!Array.isArray(cleanup.ungroupedTabIds) || !cleanup.ungroupedTabIds.length) {
+      throw new Error('cleanup did not report ungrouped grouped tab ids');
+    }
+  };
+
   try {
     const opened = await run('open grouped smoke tab', () => command('open', {
       url: fixture.url,
@@ -1424,7 +1434,10 @@ async function runtimeSmoke(args = {}) {
       await run('cleanup close outside smoke group', () => command('closeGroup', {
         groupTitle: outsideGroupTitle,
         confirmed: true,
-      }, 30_000), { required: false });
+      }, 30_000), {
+        assert: assertTabCleanupMitigation,
+        required: false,
+      });
     }
     if (strictWorkspaceSet) {
       await run('clear strict smoke workspace', () => command('clearWorkspace', {
@@ -1436,7 +1449,10 @@ async function runtimeSmoke(args = {}) {
         tabId,
         confirmed: true,
         allowExternal: true,
-      }, 30_000), { required: false });
+      }, 30_000), {
+        assert: assertTabCleanupMitigation,
+        required: false,
+      });
     }
     if (debugBundleDir) {
       await fs.rm(debugBundleDir, { recursive: true, force: true }).catch(() => {});
