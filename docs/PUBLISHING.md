@@ -12,6 +12,7 @@ npm run check:registry
 npm run check:docs
 npm run check:bridge-contract
 npm run check:runtime-smoke-plan
+npm run check:roadmap
 npm run check:cli-local-tools
 npm run check:mcp-runtime-smoke
 npm run check:mcp-local-tools
@@ -35,6 +36,8 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 `check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
 
 `check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL, verifies stale-extension skip metadata against a fake `/health` server, and fails if `--coverage-plan` starts contacting the live bridge.
+
+`check:roadmap` verifies the merged Phase 0-4 roadmap against registry metadata, source boundaries, docs, and the offline runtime-smoke coverage plan without touching Chrome.
 
 `check:cli-local-tools` exercises CLI setup diagnostics and command-catalog output against a dead bridge URL, proving those local commands stay offline by default.
 
