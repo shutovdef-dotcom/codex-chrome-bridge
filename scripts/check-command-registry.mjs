@@ -533,6 +533,8 @@ check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs')
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('chrome_bridge_extension_path'), 'MCP local tools checker must call the MCP extension-path tool');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('chrome_bridge_codex_config'), 'MCP local tools checker must call the MCP codex-config tool');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('liveChecks === false'), 'MCP local tools checker must assert doctor stays offline by default');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('MCP_TOOLS'), 'MCP local tools checker must compare live MCP listTools output with registry MCP_TOOLS');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-mcp-local-tools.mjs'), 'utf8').catch(() => '')).includes('unexpected MCP tool'), 'MCP local tools checker must fail on extra unregistered MCP tools');
 check(pullRequestTemplateText.includes('npm run check:runtime-smoke-plan'), 'pull request template must include offline runtime smoke plan check');
 check(pullRequestTemplateText.includes('npm run check:mcp-runtime-smoke'), 'pull request template must include MCP runtime smoke contract check');
 check(pullRequestTemplateText.includes('npm run check:mcp-local-tools'), 'pull request template must include MCP local tools contract check');
