@@ -1587,6 +1587,14 @@ async function runtimeSmoke(args = {}) {
         if (!result.dryRun || result.applied) throw new Error('fill form dry run unexpectedly applied changes');
       },
     });
+    await run('activate smoke tab before dialog', () => command('activateTab', {
+      tabId,
+      focusWindow: true,
+    }, 10_000), {
+      assert: (result) => {
+        if (result.tab?.id !== tabId || !result.tab?.active) throw new Error('dialog smoke tab was not activated');
+      },
+    });
     const dialogTarget = await run('wait for dialog target', () => command('waitForSelector', {
       tabId,
       selector: '#dialog-button',
