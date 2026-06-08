@@ -17,6 +17,7 @@
 - Made live `runtime-smoke` fail closed before fixture work when the bridge server version is stale, with CLI/MCP fake-health coverage and bridge-version verification metadata.
 - Strengthened CLI/MCP runtime-smoke plan checks to assert bridge and extension version success criteria explicitly in offline verifier output.
 - Made `check:runtime-smoke-plan` expose stale extension and stale bridge-server CLI-exit preservation in its machine-readable verifier summary.
+- Made `check:runtime-smoke-plan` assert stale runtime-smoke outputs stay structured JSON instead of falling back to raw stdout wrapping.
 - Added stale bridge-server restart recommendations to CLI/MCP `session-summary` and debug-bundle summaries.
 - Added fake-bridge CLI/MCP local-tools coverage proving `session-summary` emits stale bridge-server restart recommendations without touching Chrome.
 - Strengthened the MCP runtime-smoke contract check to assert the same deferred live verification `nextCommand` and `finalCommands` metadata exposed by the CLI coverage plan.

@@ -36,7 +36,7 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 
 `check:pack` parses `npm pack --dry-run --json` and fails if the publish tarball omits required runtime, extension, shared registry, generated docs, or verification files.
 
-`check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL, verifies stale bridge-server and stale-extension skip metadata plus nonzero CLI-exit preservation against fake `/health` servers, and fails if `--coverage-plan` starts contacting the live bridge.
+`check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL, verifies stale bridge-server and stale-extension skip metadata, structured JSON output, and nonzero CLI-exit preservation against fake `/health` servers, and fails if `--coverage-plan` starts contacting the live bridge.
 
 `check:roadmap` verifies the merged Phase 0-4 roadmap against registry metadata, source boundaries, docs, and the offline runtime-smoke coverage plan without touching Chrome.
 

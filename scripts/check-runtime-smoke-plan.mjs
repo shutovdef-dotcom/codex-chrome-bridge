@@ -174,6 +174,7 @@ if (parsed) {
 
 let staleParsed;
 let staleExtensionCliExitPreserved = false;
+let staleExtensionStructuredOutput = false;
 await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   const result = await runCli(['runtime-smoke'], { CHROME_BRIDGE_URL: bridgeUrl });
   staleExtensionCliExitPreserved = result.ok === false;
@@ -191,10 +192,13 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
   check(staleParsed.verification?.status === 'skipped', 'stale-extension runtime smoke verification status must be skipped');
   check(staleParsed.verification?.liveVerificationRequired === true, 'stale-extension runtime smoke must still require final live verification');
   check(staleParsed.verification?.observed?.extensionVersion === staleExtensionVersion, 'stale-extension verification metadata must include observed extension version');
+  staleExtensionStructuredOutput = !Object.prototype.hasOwnProperty.call(staleParsed, 'stdout');
+  check(staleExtensionStructuredOutput, 'stale-extension runtime smoke must not fall back to raw stdout wrapping');
 });
 
 let staleBridgeParsed;
 let staleBridgeCliExitPreserved = false;
+let staleBridgeStructuredOutput = false;
 await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   const result = await runCli(['runtime-smoke'], { CHROME_BRIDGE_URL: bridgeUrl });
   staleBridgeCliExitPreserved = result.ok === false;
@@ -212,6 +216,8 @@ await withStaleBridgeHealthServer(async (bridgeUrl, staleBridgeVersion) => {
   check(staleBridgeParsed.verification?.status === 'skipped', 'stale-bridge runtime smoke verification status must be skipped');
   check(staleBridgeParsed.verification?.liveVerificationRequired === true, 'stale-bridge runtime smoke must still require final live verification');
   check(staleBridgeParsed.verification?.observed?.bridgeVersion === staleBridgeVersion, 'stale-bridge verification metadata must include observed bridge version');
+  staleBridgeStructuredOutput = !Object.prototype.hasOwnProperty.call(staleBridgeParsed, 'stdout');
+  check(staleBridgeStructuredOutput, 'stale-bridge runtime smoke must not fall back to raw stdout wrapping');
 });
 
 if (failures.length) {
@@ -232,4 +238,6 @@ process.stdout.write(`${JSON.stringify({
   staleBridgeStatus: staleBridgeParsed?.verification?.status,
   staleExtensionCliExitPreserved,
   staleBridgeCliExitPreserved,
+  staleExtensionStructuredOutput,
+  staleBridgeStructuredOutput,
 }, null, 2)}\n`);
