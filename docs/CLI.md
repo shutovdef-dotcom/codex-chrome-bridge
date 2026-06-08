@@ -96,7 +96,7 @@ The command blocks below are generated from the shared registry by `npm run docs
 ```bash
 chrome-bridge server [--port 17376]
 chrome-bridge health
-chrome-bridge windows [--all --confirm]
+chrome-bridge windows [--all --confirm] [--group-title <title>] [--group-color <color>]
 chrome-bridge doctor [--live-checks] [--copy-path] [--open-extensions]
 chrome-bridge extension-path
 chrome-bridge codex-config
@@ -111,17 +111,17 @@ chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]
 
 <!-- BEGIN GENERATED CLI USAGE: tabs-navigation -->
 ```bash
-chrome-bridge group [--tabs]
-chrome-bridge tabs [--all --confirm]
+chrome-bridge group [--tabs] [--group-title <title>] [--group-color <color>]
+chrome-bridge tabs [--all --confirm] [--group-title <title>] [--group-color <color>]
 chrome-bridge workspace [--tabs]
 chrome-bridge set-workspace [--name <name>] [--group-title <title>] [--group-color <color>] [--policy-mode scoped|strict] --confirm
 chrome-bridge clear-workspace --confirm
-chrome-bridge ensure-tab [url] [--active]
-chrome-bridge adopt-tab [--tab <id>] --confirm
-chrome-bridge open <url> [--tab <id>] [--active] [--new] [--allow-external]
+chrome-bridge ensure-tab [url] [--active] [--group-title <title>] [--group-color <color>]
+chrome-bridge adopt-tab [--tab <id>] [--group-title <title>] [--group-color <color>] --confirm
+chrome-bridge open <url> [--tab <id>] [--active] [--new] [--allow-external] [--group-title <title>] [--group-color <color>]
 chrome-bridge activate [--tab <id>] [--focus-window] [--allow-external]
 chrome-bridge close-tab [--tab <id>] --confirm [--allow-external]
-chrome-bridge close-group --confirm
+chrome-bridge close-group [--group-title <title>] [--group-color <color>] --confirm
 chrome-bridge back [--tab <id>] [--allow-external]
 chrome-bridge forward [--tab <id>] [--allow-external]
 chrome-bridge reload [--tab <id>] [--bypass-cache] [--allow-external]

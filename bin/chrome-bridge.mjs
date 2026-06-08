@@ -97,6 +97,13 @@ function targetPayload(args) {
   };
 }
 
+function groupScopePayload(args) {
+  return {
+    groupTitle: args['group-title'],
+    groupColor: args['group-color'],
+  };
+}
+
 function confirmationPayload(args) {
   const payload = {
     confirmed: Boolean(args.confirm),
@@ -1812,6 +1819,7 @@ tool_timeout_sec = 60
     if (args.all && !args.confirm) throw new Error('tabs --all requires --confirm');
     printJson(await command('tabs', {
       includeAll: Boolean(args.all),
+      ...groupScopePayload(args),
       ...confirmationPayload(args),
     }));
     return;
@@ -1821,6 +1829,7 @@ tool_timeout_sec = 60
     if (args.all && !args.confirm) throw new Error('windows --all requires --confirm');
     printJson(await command('windows', {
       includeAll: Boolean(args.all),
+      ...groupScopePayload(args),
       ...confirmationPayload(args),
     }));
     return;
@@ -1829,6 +1838,7 @@ tool_timeout_sec = 60
   if (cmd === 'group') {
     printJson(await command('group', {
       includeTabs: Boolean(args.tabs),
+      ...groupScopePayload(args),
     }));
     return;
   }
@@ -1862,6 +1872,7 @@ tool_timeout_sec = 60
     printJson(await command('ensureTab', {
       url: first,
       active: Boolean(args.active),
+      ...groupScopePayload(args),
     }, 30_000));
     return;
   }
@@ -1870,6 +1881,7 @@ tool_timeout_sec = 60
     if (!args.confirm) throw new Error('adopt-tab requires --confirm');
     printJson(await command('adoptTab', {
       tabId: args.tab ? Number(args.tab) : undefined,
+      ...groupScopePayload(args),
       ...confirmationPayload(args),
     }, 30_000));
     return;
@@ -1883,6 +1895,7 @@ tool_timeout_sec = 60
       ...targetPayload(args),
       active: Boolean(args.active),
       newTab: Boolean(args.new),
+      ...groupScopePayload(args),
     }, 30_000));
     return;
   }
@@ -1906,7 +1919,10 @@ tool_timeout_sec = 60
 
   if (cmd === 'close-group') {
     if (!args.confirm) throw new Error('close-group requires --confirm');
-    printJson(await command('closeGroup', confirmationPayload(args)));
+    printJson(await command('closeGroup', {
+      ...groupScopePayload(args),
+      ...confirmationPayload(args),
+    }));
     return;
   }
 
