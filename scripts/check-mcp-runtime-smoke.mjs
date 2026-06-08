@@ -132,6 +132,18 @@ if (coveragePlanParsed) {
     coveragePlanParsed.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'),
     'MCP coverage-plan final commands must include live runtime-smoke',
   );
+  check(
+    coveragePlanParsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_reload_extension' && call?.arguments?.confirmed === true),
+    'MCP coverage-plan final MCP calls must include confirmed extension reload',
+  );
+  check(
+    coveragePlanParsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_doctor' && call?.arguments?.liveChecks === true),
+    'MCP coverage-plan final MCP calls must include explicit live doctor check',
+  );
+  check(
+    coveragePlanParsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_runtime_smoke' && call?.arguments && Object.keys(call.arguments).length === 0),
+    'MCP coverage-plan final MCP calls must include live runtime-smoke',
+  );
   check(coveragePlanParsed.coverage?.requiredCount > 0, 'MCP coverage-plan must include required coverage count');
   check(
     coveragePlanParsed.verification?.successCriteria?.requiredCoverageCount === coveragePlanParsed.coverage?.requiredCount,

@@ -106,6 +106,18 @@ if (parsed) {
     parsed.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'),
     'coverage plan final commands must include live runtime-smoke',
   );
+  check(
+    parsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_reload_extension' && call?.arguments?.confirmed === true),
+    'coverage plan final MCP calls must include confirmed extension reload',
+  );
+  check(
+    parsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_doctor' && call?.arguments?.liveChecks === true),
+    'coverage plan final MCP calls must include explicit live doctor check',
+  );
+  check(
+    parsed.verification?.finalMcpCalls?.some((call) => call?.tool === 'chrome_bridge_runtime_smoke' && call?.arguments && Object.keys(call.arguments).length === 0),
+    'coverage plan final MCP calls must include live runtime-smoke',
+  );
   check(parsed.verification?.successCriteria?.ok === true, 'coverage plan success criteria must require top-level ok=true');
   check(parsed.verification?.successCriteria?.coverageOk === true, 'coverage plan success criteria must require coverage.ok=true');
   check(parsed.coverage?.ok === false, 'coverage plan coverage.ok must remain false until live smoke runs');
