@@ -7,6 +7,7 @@ const BRIDGE_MANAGED_TITLE_PREFIXES = [
   `${DEFAULT_GROUP_TITLE}/`,
   `${DEFAULT_GROUP_TITLE}#`,
 ];
+const rememberedManagedTabs = new Map();
 
 function errorMessage(error) {
   return String(error?.message || error);
@@ -127,13 +128,95 @@ async function isManagedCodexGroup(group) {
   return !title && context.groupIds.has(group.id);
 }
 
+function rememberManagedTab(tab, group) {
+  if (!Number.isInteger(tab?.id) || !Number.isInteger(group?.id) || group.id < 0) return;
+  rememberedManagedTabs.set(tab.id, {
+    groupId: group.id,
+    windowId: Number.isInteger(group.windowId) ? group.windowId : tab.windowId,
+  });
+}
+
+function forgetManagedGroupTabs(groupId) {
+  for (const [tabId, membership] of rememberedManagedTabs.entries()) {
+    if (membership.groupId === groupId) {
+      rememberedManagedTabs.delete(tabId);
+    }
+  }
+}
+
+async function rememberManagedGroupTabs(group) {
+  if (!Number.isInteger(group?.id) || !chrome.tabs?.query) return { remembered: 0 };
+  const query = Number.isInteger(group.windowId) ? { windowId: group.windowId } : {};
+  const tabs = await chrome.tabs.query(query).catch(() => []);
+  let remembered = 0;
+  for (const tab of tabs) {
+    if (tab.groupId !== group.id) continue;
+    rememberManagedTab(tab, group);
+    remembered += 1;
+  }
+  return { remembered };
+}
+
+export async function rememberManagedTabGroupMembership(tab) {
+  if (!Number.isInteger(tab?.id)) return { remembered: false, reason: 'missing tab id' };
+  if (!Number.isInteger(tab.groupId) || tab.groupId < 0) {
+    rememberedManagedTabs.delete(tab.id);
+    return { remembered: false, reason: 'ungrouped tab' };
+  }
+  if (!chrome.tabGroups?.get) return { remembered: false, reason: 'chrome.tabGroups unavailable' };
+
+  let group;
+  try {
+    group = await chrome.tabGroups.get(tab.groupId);
+  } catch (error) {
+    rememberedManagedTabs.delete(tab.id);
+    return { remembered: false, error: errorMessage(error) };
+  }
+
+  if (!(await isManagedCodexGroup(group))) {
+    rememberedManagedTabs.delete(tab.id);
+    return { remembered: false, groupId: group.id, managed: false };
+  }
+
+  rememberManagedTab(tab, group);
+  return { remembered: true, groupId: group.id, windowId: group.windowId, managed: true };
+}
+
 export async function handleManagedTabGroupChange(group) {
   if (!(await isManagedCodexGroup(group))) {
+    forgetManagedGroupTabs(group?.id);
     return { managed: false, groupId: group?.id };
   }
 
   const result = await disableSavedTabGroupIfSupported(group);
-  return { ...result, managed: true };
+  const membership = await rememberManagedGroupTabs(group);
+  return { ...result, ...membership, managed: true };
+}
+
+export async function handleManagedTabGroupRemoved(group) {
+  const managed = await isManagedCodexGroup(group);
+  if (managed) {
+    await disableSavedTabGroupIfSupported(group);
+  }
+  if (group) forgetManagedGroupTabs(group.id);
+  return { groupId: group?.id, managed };
+}
+
+async function handleManagedTabRemoved(tabId, removeInfo = {}) {
+  const membership = rememberedManagedTabs.get(tabId);
+  rememberedManagedTabs.delete(tabId);
+  if (!membership) return { managed: false };
+
+  const result = removeInfo.isWindowClosing
+    ? { attempted: false, reason: 'window closing' }
+    : await disableSavedTabGroupIfSupported(membership.groupId);
+
+  return {
+    managed: true,
+    groupId: membership.groupId,
+    windowId: membership.windowId,
+    savedGroupPersistence: result,
+  };
 }
 
 export async function enforceManagedTabGroupPersistence() {
@@ -179,6 +262,19 @@ function handleManagedTabGroupChangeEvent(group) {
   handleManagedTabGroupChange(group).catch(() => {});
 }
 
+function handleManagedTabGroupRemovedEvent(group) {
+  handleManagedTabGroupRemoved(group).catch(() => {});
+}
+
+function handleTabUpdatedEvent(_tabId, changeInfo, tab) {
+  if (!Object.prototype.hasOwnProperty.call(changeInfo || {}, 'groupId')) return;
+  rememberManagedTabGroupMembership(tab).catch(() => {});
+}
+
+function handleTabRemovedEvent(tabId, removeInfo) {
+  handleManagedTabRemoved(tabId, removeInfo).catch(() => {});
+}
+
 export function installTabGroupPersistenceListeners() {
   if (!chrome.tabGroups?.onCreated?.addListener || !chrome.tabGroups?.onUpdated?.addListener) {
     return { installed: false, supported: false };
@@ -189,6 +285,24 @@ export function installTabGroupPersistenceListeners() {
   }
   if (!chrome.tabGroups.onUpdated.hasListener?.(handleManagedTabGroupChangeEvent)) {
     chrome.tabGroups.onUpdated.addListener(handleManagedTabGroupChangeEvent);
+  }
+  if (
+    chrome.tabGroups.onRemoved?.addListener
+    && !chrome.tabGroups.onRemoved.hasListener?.(handleManagedTabGroupRemovedEvent)
+  ) {
+    chrome.tabGroups.onRemoved.addListener(handleManagedTabGroupRemovedEvent);
+  }
+  if (
+    chrome.tabs?.onUpdated?.addListener
+    && !chrome.tabs.onUpdated.hasListener?.(handleTabUpdatedEvent)
+  ) {
+    chrome.tabs.onUpdated.addListener(handleTabUpdatedEvent);
+  }
+  if (
+    chrome.tabs?.onRemoved?.addListener
+    && !chrome.tabs.onRemoved.hasListener?.(handleTabRemovedEvent)
+  ) {
+    chrome.tabs.onRemoved.addListener(handleTabRemovedEvent);
   }
 
   return { installed: true, supported: true };
