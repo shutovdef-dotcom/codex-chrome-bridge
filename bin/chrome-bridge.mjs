@@ -1087,6 +1087,25 @@ const RUNTIME_SMOKE_REQUIRED_COVERAGE = Object.freeze([
   'cleanup close smoke tab',
 ]);
 
+const RUNTIME_SMOKE_FINAL_COMMANDS = Object.freeze([
+  'chrome-bridge reload-extension --confirm',
+  'chrome-bridge doctor --live-checks',
+  'chrome-bridge runtime-smoke',
+]);
+
+const RUNTIME_SMOKE_FINAL_MCP_CALLS = Object.freeze([
+  { tool: 'chrome_bridge_reload_extension', arguments: { confirmed: true } },
+  { tool: 'chrome_bridge_doctor', arguments: { liveChecks: true } },
+  { tool: 'chrome_bridge_runtime_smoke', arguments: {} },
+]);
+
+function runtimeSmokeFinalMcpCalls() {
+  return RUNTIME_SMOKE_FINAL_MCP_CALLS.map((call) => ({
+    tool: call.tool,
+    arguments: { ...call.arguments },
+  }));
+}
+
 function redactDebugBundleValue(value) {
   if (Array.isArray(value)) return value.map((item) => redactDebugBundleValue(item));
   if (!value || typeof value !== 'object') return value;
@@ -1127,25 +1146,8 @@ function runtimeSmokeCoveragePlan(startedAt) {
     verification: {
       status: 'not-run',
       liveVerificationRequired: true,
-      finalCommands: [
-        'chrome-bridge reload-extension --confirm',
-        'chrome-bridge doctor --live-checks',
-        'chrome-bridge runtime-smoke',
-      ],
-      finalMcpCalls: [
-        {
-          tool: 'chrome_bridge_reload_extension',
-          arguments: { confirmed: true },
-        },
-        {
-          tool: 'chrome_bridge_doctor',
-          arguments: { liveChecks: true },
-        },
-        {
-          tool: 'chrome_bridge_runtime_smoke',
-          arguments: {},
-        },
-      ],
+      finalCommands: [...RUNTIME_SMOKE_FINAL_COMMANDS],
+      finalMcpCalls: runtimeSmokeFinalMcpCalls(),
       successCriteria: {
         ok: true,
         coverageOk: true,
@@ -1163,6 +1165,8 @@ function runtimeSmokeLiveVerification({ status, bridgeVersion = null, extensionV
   return {
     status: effectiveStatus,
     liveVerificationRequired: effectiveStatus !== 'passed',
+    finalCommands: [...RUNTIME_SMOKE_FINAL_COMMANDS],
+    finalMcpCalls: runtimeSmokeFinalMcpCalls(),
     successCriteria: {
       ok: true,
       coverageOk: true,

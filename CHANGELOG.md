@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added final CLI/MCP recovery sequences to live runtime-smoke verification metadata, so skipped stale-version outputs preserve the exact extension reload, live doctor, and smoke commands.
 - Added CLI `history --start-time/--end-time` forwarding and generated usage docs for history time filters.
 - Added non-negative `historySearch` time-filter validation across direct bridge payloads and MCP schemas.
 - Added payload `timeoutMs` bounds for navigation and selector-wait commands across direct bridge validation, CLI, and MCP schemas.
