@@ -1021,6 +1021,7 @@ for (const helperName of ['storageGet', 'storageSet', 'storageRemove', 'getTarge
 }
 check(workspaceTabsText.includes('export async function getTargetTab'), 'extension workspace tabs module must export getTargetTab');
 check(workspaceTabsText.includes('export async function ensureCodexGroupForTab'), 'extension workspace tabs module must export ensureCodexGroupForTab');
+check(functionBlock(workspaceTabsText, 'chromeId').includes("typeof value === 'number'"), 'extension Chrome id helper must not coerce null or empty strings into id 0');
 check(functionBlock(workspaceTabsText, 'getTargetTab').includes("policyMode === 'strict'"), 'extension workspace tabs module must enforce strict outside-tab policy');
 check(functionBlock(workspaceTabsText, 'ensureCodexGroupForTab').includes('chrome.tabs.group'), 'extension workspace tabs module must own tab grouping');
 check(functionBlock(workspaceTabsText, 'storageSet').includes('chrome.storage.local.set'), 'extension workspace tabs module must own workspace storage writes');
@@ -1106,6 +1107,7 @@ check(
 check(backgroundText.includes('installTabGroupPersistenceListeners();'), 'extension background must install tab-group persistence listeners during service worker startup');
 check(backgroundText.includes('enforceManagedTabGroupPersistence().catch(() => {});'), 'extension background must sweep existing managed groups during service worker startup');
 check(functionBlock(workspaceTabsText, 'ensureCodexGroupForTab').includes('disableSavedTabGroupIfSupported(group)'), 'extension workspace grouping must mark Codex groups ephemeral when Chrome supports it');
+check(functionBlock(navigationActionsText, 'openTab').includes('chromeId(payload.tabId)'), 'extension open action must treat Chrome tab id 0 as present when checking newTab conflicts');
 const tabCloseMitigationBlock = functionBlock(tabCleanupText, 'closeTabsWithGroupPersistenceMitigation');
 check(tabCloseMitigationBlock.includes('disableSavedTabGroupsForTabs(tabs)'), 'extension tab cleanup must try saved-group disablement before ungroup-before-close');
 check(tabCloseMitigationBlock.includes('savedClosedGroupChipPrevention'), 'extension tab cleanup must report saved closed group chip prevention metadata');

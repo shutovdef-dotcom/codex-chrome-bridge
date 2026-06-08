@@ -34,6 +34,10 @@ function normalizedTitle(value) {
   return String(value || '').trim();
 }
 
+export function chromeId(value) {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
 async function rememberedManagedGroupTitles(title) {
   const normalized = normalizedTitle(title);
   const stored = await storageGet(['codexManagedGroupTitles']).catch(() => ({}));
@@ -55,11 +59,13 @@ async function rememberedManagedGroupIds(groupId) {
 
 async function getStoredCodexTab(payload = {}) {
   const { codexTabId, codexWindowId } = await storageGet(['codexTabId', 'codexWindowId']);
+  const tabId = chromeId(codexTabId);
+  const windowId = chromeId(codexWindowId);
 
-  if (codexTabId) {
+  if (tabId !== null) {
     try {
-      const tab = await chrome.tabs.get(codexTabId);
-      if (!codexWindowId || tab.windowId === codexWindowId) return tab;
+      const tab = await chrome.tabs.get(tabId);
+      if (windowId === null || tab.windowId === windowId) return tab;
     } catch {
       // Browser-session tab IDs are not durable; recover by group below.
     }
@@ -78,18 +84,19 @@ export async function getLastFocusedTab() {
     active: true,
     lastFocusedWindow: true,
   });
-  const tab = tabs.find((candidate) => candidate.id);
-  if (!tab?.id) throw new Error('No active browser tab was found in the last focused window');
+  const tab = tabs.find((candidate) => chromeId(candidate.id) !== null);
+  if (!tab) throw new Error('No active browser tab was found in the last focused window');
   return tab;
 }
 
 export async function getTargetTab(payload = {}, options = {}) {
-  if (payload.tabId) {
+  const payloadTabId = chromeId(payload.tabId);
+  if (payloadTabId !== null) {
     const policy = await groupOptions(payload);
     if (payload.allowExternal && policy.policyMode === 'strict') {
       throw new Error('allowExternal is blocked by strict workspace policy');
     }
-    const tab = await chrome.tabs.get(Number(payload.tabId));
+    const tab = await chrome.tabs.get(payloadTabId);
     if (!payload.allowExternal) {
       await assertCodexScopedTab(tab, payload);
     }
@@ -117,7 +124,7 @@ export async function getTargetTab(payload = {}, options = {}) {
   });
 
   const tab = created.tabs?.[0];
-  if (!tab?.id) throw new Error('Failed to create a Codex tab');
+  if (chromeId(tab?.id) === null) throw new Error('Failed to create a Codex tab');
 
   await storageSet({ codexTabId: tab.id, codexWindowId: tab.windowId });
   await ensureCodexGroupForTab(tab, payload);
@@ -128,11 +135,13 @@ async function getStoredCodexGroup(payload = {}, windowId) {
   if (!chrome.tabGroups) return null;
   const options = await groupOptions(payload);
   const stored = await storageGet(['codexGroupId', 'codexGroupWindowId']);
+  const storedGroupId = chromeId(stored.codexGroupId);
+  const targetWindowId = chromeId(windowId);
 
-  if (stored.codexGroupId) {
+  if (storedGroupId !== null) {
     try {
-      const group = await chrome.tabGroups.get(stored.codexGroupId);
-      if ((!windowId || group.windowId === windowId) && group.title === options.title) {
+      const group = await chrome.tabGroups.get(storedGroupId);
+      if ((targetWindowId === null || group.windowId === targetWindowId) && group.title === options.title) {
         return group;
       }
     } catch {
@@ -140,7 +149,7 @@ async function getStoredCodexGroup(payload = {}, windowId) {
     }
   }
 
-  const groups = await chrome.tabGroups.query(windowId ? { windowId } : {});
+  const groups = await chrome.tabGroups.query(targetWindowId !== null ? { windowId: targetWindowId } : {});
   return groups.find((group) => group.title === options.title) || null;
 }
 
@@ -162,20 +171,21 @@ export async function ensureCodexGroupForTab(tab, payload = {}) {
 
   const options = await groupOptions(payload);
   let group = await getStoredCodexGroup(payload, tab.windowId);
-  let groupId = group?.id;
+  let groupId = chromeId(group?.id);
+  const tabGroupId = chromeId(tab.groupId);
 
-  if (!groupId && Number.isInteger(tab.groupId) && tab.groupId >= 0) {
+  if (groupId === null && tabGroupId !== null) {
     try {
-      const existing = await chrome.tabGroups.get(tab.groupId);
+      const existing = await chrome.tabGroups.get(tabGroupId);
       if (existing.windowId === tab.windowId && existing.title === options.title) {
-        groupId = existing.id;
+        groupId = chromeId(existing.id);
       }
     } catch {
       groupId = null;
     }
   }
 
-  if (groupId) {
+  if (groupId !== null) {
     await chrome.tabs.group({ groupId, tabIds: [tab.id] });
   } else {
     groupId = await chrome.tabs.group({ tabIds: [tab.id] });

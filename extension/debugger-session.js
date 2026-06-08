@@ -1,4 +1,5 @@
 import { tabInfo } from './tab-info.js';
+import { chromeId } from './workspace-tabs.js';
 
 const DEBUGGER_PROTOCOL_VERSION = '1.3';
 const MAX_TRACE_EVENTS = 500;
@@ -71,7 +72,7 @@ function pushTraceEvent(tabId, event) {
 
 export function recordDebuggerEvent(source, method, params = {}) {
   const tabId = source?.tabId;
-  if (!tabId) return;
+  if (chromeId(tabId) === null) return;
 
   if (method === 'Runtime.consoleAPICalled') {
     pushTraceEvent(tabId, {

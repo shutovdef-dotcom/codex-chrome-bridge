@@ -7,6 +7,7 @@
 - Added explicit `savedClosedGroupChipPrevention` cleanup metadata so bridge-driven tab closing reports when `ungroup-before-close` prevented new saved closed group chips.
 - Expanded `check:tab-group-persistence` with fake saved closed group chips simulation so the prevention path is verified offline without touching live Chrome.
 - Expanded `check:tab-group-persistence` with listener event callback coverage for future managed groups so create/update/removal and tab membership events stay verified offline.
+- Hardened extension tab/group recovery so Chrome tab, group, and window IDs with value `0` are treated as valid IDs instead of absent values.
 - Hardened direct command validation so workspace `groupColor` must be one of Chrome's supported tab group colors instead of silently normalizing invalid values.
 - Aligned the MCP `chrome_bridge_set_workspace` schema with the shared Chrome tab group color enum.
 - Exposed `groupTitle` and shared `groupColor` enum options across MCP scoped/group actions that already supported those payload keys in the shared command contract.

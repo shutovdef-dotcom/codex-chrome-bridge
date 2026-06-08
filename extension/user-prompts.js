@@ -2,6 +2,7 @@ import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';
 import { groupInfo } from './tab-info.js';
 import { waitForTabComplete } from './tab-loading.js';
 import {
+  chromeId,
   ensureCodexGroupForTab,
   getCodexGroupTabs,
   storageGet,
@@ -134,7 +135,7 @@ async function createPromptTab(url, payload, previous = {}) {
     tab = created.tabs?.[0];
   }
 
-  if (!tab?.id) throw new Error('Failed to create user prompt tab');
+  if (chromeId(tab?.id) === null) throw new Error('Failed to create user prompt tab');
   const group = await ensureCodexGroupForTab(tab, payload);
   const loaded = await waitForTabComplete(tab.id);
   await restoreStoredCodexTarget(previous);
@@ -142,7 +143,7 @@ async function createPromptTab(url, payload, previous = {}) {
 }
 
 async function restoreStoredCodexTarget(previous = {}) {
-  if (previous.codexTabId) {
+  if (chromeId(previous.codexTabId) !== null) {
     await storageSet({
       codexTabId: previous.codexTabId,
       codexWindowId: previous.codexWindowId,
@@ -178,7 +179,7 @@ export function completeUserPrompt(requestId, answer = {}) {
 
   prompt.resolve(result);
 
-  if (prompt.closeOnAnswer && prompt.tabId) {
+  if (prompt.closeOnAnswer && chromeId(prompt.tabId) !== null) {
     closeTabsWithGroupPersistenceMitigation([prompt.tabId], { ignoreMissing: true }).catch(() => {});
   }
   restoreStoredCodexTarget(prompt.previous).catch(() => {});

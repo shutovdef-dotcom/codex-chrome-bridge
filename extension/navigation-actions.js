@@ -4,6 +4,7 @@ import { waitForTabComplete } from './tab-loading.js';
 import { requireConfirmed } from './safety-gates.js';
 import { groupOptions } from './workspace-policy.js';
 import {
+  chromeId,
   ensureCodexGroupForTab,
   getCodexGroupTabs,
   getLastFocusedTab,
@@ -102,8 +103,9 @@ export async function ensureCodexTab(payload) {
 
 export async function adoptTab(payload = {}) {
   requireConfirmed(payload, 'adoptTab');
-  const tab = payload.tabId
-    ? await chrome.tabs.get(Number(payload.tabId))
+  const payloadTabId = chromeId(payload.tabId);
+  const tab = payloadTabId !== null
+    ? await chrome.tabs.get(payloadTabId)
     : await getLastFocusedTab();
   const group = await ensureCodexGroupForTab(tab, payload);
   const latest = await chrome.tabs.get(tab.id);
@@ -116,7 +118,7 @@ export async function adoptTab(payload = {}) {
 
 export async function openTab(payload) {
   if (!payload.url) throw new Error('open requires url');
-  if (payload.newTab && payload.tabId) throw new Error('open cannot use newTab and tabId together');
+  if (payload.newTab && chromeId(payload.tabId) !== null) throw new Error('open cannot use newTab and tabId together');
   if (payload.newTab) return createGroupedTab(payload);
 
   const target = await getTargetTab(payload, { create: true, url: payload.url });
@@ -156,7 +158,7 @@ async function createGroupedTab(payload) {
     tab = created.tabs?.[0];
   }
 
-  if (!tab?.id) throw new Error('Failed to create a grouped Codex tab');
+  if (chromeId(tab?.id) === null) throw new Error('Failed to create a grouped Codex tab');
   const group = await ensureCodexGroupForTab(tab, { ...payload, groupTitle: options.title, groupColor: options.color });
   const loaded = await waitForTabComplete(tab.id);
   await storageSet({ codexTabId: loaded.id, codexWindowId: loaded.windowId });
@@ -208,9 +210,10 @@ export async function setWorkspace(payload = {}) {
   });
 
   const { codexTabId } = await storageGet(['codexTabId']);
-  if (codexTabId) {
+  const storedTabId = chromeId(codexTabId);
+  if (storedTabId !== null) {
     try {
-      const tab = await chrome.tabs.get(codexTabId);
+      const tab = await chrome.tabs.get(storedTabId);
       await ensureCodexGroupForTab(tab, {
         groupTitle: options.title,
         groupColor: options.color,
