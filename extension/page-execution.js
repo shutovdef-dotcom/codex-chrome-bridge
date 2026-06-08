@@ -5,5 +5,9 @@ export async function execute(tabId, func, args = [], options = {}) {
     args,
     world: options.world || 'ISOLATED',
   });
-  return frames?.[0]?.result;
+  const frame = frames?.[0];
+  if (frame?.error) {
+    throw new Error(frame.error.message || String(frame.error));
+  }
+  return frame?.result;
 }

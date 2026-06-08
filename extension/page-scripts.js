@@ -271,6 +271,14 @@ function formFieldValueState(field, value = field.value) {
 }
 
 export function fillFormInPage(options = {}) {
+  const formFieldValueStateInjected = (field, value = field.value) => {
+    const tag = field.tagName.toLowerCase();
+    const type = (field.getAttribute('type') || '').toLowerCase();
+    if (tag === 'select') return value !== undefined && value !== null && String(value) !== '' ? 'selected' : 'empty';
+    if (type === 'checkbox' || type === 'radio') return Boolean(value) ? 'checked' : 'unchecked';
+    if (type === 'password') return value ? 'present-sensitive' : 'empty';
+    return value ? 'present' : 'empty';
+  };
   const fields = options.fields || {};
   const dryRun = options.dryRun !== false;
   const results = [];
@@ -288,8 +296,8 @@ export function fillFormInPage(options = {}) {
       ok: true,
       tag,
       type,
-      beforeState: formFieldValueState(element, type === 'checkbox' || type === 'radio' ? element.checked : element.value),
-      plannedValueState: formFieldValueState(element, nextValue),
+      beforeState: formFieldValueStateInjected(element, type === 'checkbox' || type === 'radio' ? element.checked : element.value),
+      plannedValueState: formFieldValueStateInjected(element, nextValue),
       dryRun,
     };
     if (!dryRun) {
@@ -303,7 +311,7 @@ export function fillFormInPage(options = {}) {
       }
       element.dispatchEvent(new Event('input', { bubbles: true }));
       element.dispatchEvent(new Event('change', { bubbles: true }));
-      result.afterState = formFieldValueState(element, type === 'checkbox' || type === 'radio' ? element.checked : element.value);
+      result.afterState = formFieldValueStateInjected(element, type === 'checkbox' || type === 'radio' ? element.checked : element.value);
     }
     results.push(result);
   }
@@ -341,6 +349,55 @@ export function collectObserve(options = {}) {
   const limit = Math.min(Math.max(Number(options.limit || 80), 1), 300);
   const maxTextChars = Math.min(Math.max(Number(options.maxTextChars || 160), 20), 1000);
   const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+  const cssEscapeInjected = (value) => {
+    if (globalThis.CSS?.escape) return CSS.escape(String(value));
+    return String(value).replace(/["\\]/g, '\\$&');
+  };
+  const selectorMatchesElementInjected = (selector, element) => {
+    try {
+      return document.querySelector(selector) === element;
+    } catch {
+      return false;
+    }
+  };
+  const stableSelectorForInjected = (element, selectorOptions = {}) => {
+    const tag = element.tagName.toLowerCase();
+    const candidateAttributes = [
+      element.id ? `#${cssEscapeInjected(element.id)}` : null,
+      element.getAttribute('data-testid') ? `[data-testid="${cssEscapeInjected(element.getAttribute('data-testid'))}"]` : null,
+      element.getAttribute('data-test') ? `[data-test="${cssEscapeInjected(element.getAttribute('data-test'))}"]` : null,
+      element.getAttribute('name') ? `${tag}[name="${cssEscapeInjected(element.getAttribute('name'))}"]` : null,
+      element.getAttribute('aria-label') ? `${tag}[aria-label="${cssEscapeInjected(element.getAttribute('aria-label'))}"]` : null,
+      selectorOptions.includeHref && tag === 'a' && element.getAttribute('href')
+        ? `a[href="${cssEscapeInjected(element.getAttribute('href'))}"]`
+        : null,
+    ].filter(Boolean);
+
+    for (const selector of candidateAttributes) {
+      if (selectorMatchesElementInjected(selector, element)) return selector;
+    }
+
+    const parts = [];
+    let current = element;
+    while (current?.nodeType === Node.ELEMENT_NODE && current !== document.documentElement) {
+      const currentTag = current.tagName.toLowerCase();
+      let part = currentTag;
+      const parent = current.parentElement;
+      if (parent) {
+        const sameTagSiblings = Array.from(parent.children)
+          .filter((sibling) => sibling.tagName === current.tagName);
+        if (sameTagSiblings.length > 1) {
+          part = `${part}:nth-of-type(${sameTagSiblings.indexOf(current) + 1})`;
+        }
+      }
+      parts.unshift(part);
+      const selector = parts.join(' > ');
+      if (selectorMatchesElementInjected(selector, element)) return selector;
+      current = parent;
+    }
+
+    return parts.join(' > ') || tag;
+  };
   const isVisible = (element) => {
     const style = getComputedStyle(element);
     const rect = element.getBoundingClientRect();
@@ -448,7 +505,7 @@ export function collectObserve(options = {}) {
       const action = actionKind(element, role);
       return {
         index,
-        selector: stableSelectorFor(element, { includeHref: true }),
+        selector: stableSelectorForInjected(element, { includeHref: true }),
         tag: element.tagName.toLowerCase(),
         role,
         action,
@@ -511,6 +568,63 @@ export function collectExtract(options = {}) {
   const maxTextChars = Math.min(Math.max(Number(options.maxTextChars || 300), 50), 2_000);
   const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
   const clip = (value) => clean(value).slice(0, maxTextChars);
+  const cssEscapeInjected = (value) => {
+    if (globalThis.CSS?.escape) return CSS.escape(String(value));
+    return String(value).replace(/["\\]/g, '\\$&');
+  };
+  const selectorMatchesElementInjected = (selector, element) => {
+    try {
+      return document.querySelector(selector) === element;
+    } catch {
+      return false;
+    }
+  };
+  const stableSelectorForInjected = (element, selectorOptions = {}) => {
+    const tag = element.tagName.toLowerCase();
+    const candidateAttributes = [
+      element.id ? `#${cssEscapeInjected(element.id)}` : null,
+      element.getAttribute('data-testid') ? `[data-testid="${cssEscapeInjected(element.getAttribute('data-testid'))}"]` : null,
+      element.getAttribute('data-test') ? `[data-test="${cssEscapeInjected(element.getAttribute('data-test'))}"]` : null,
+      element.getAttribute('name') ? `${tag}[name="${cssEscapeInjected(element.getAttribute('name'))}"]` : null,
+      element.getAttribute('aria-label') ? `${tag}[aria-label="${cssEscapeInjected(element.getAttribute('aria-label'))}"]` : null,
+      selectorOptions.includeHref && tag === 'a' && element.getAttribute('href')
+        ? `a[href="${cssEscapeInjected(element.getAttribute('href'))}"]`
+        : null,
+    ].filter(Boolean);
+
+    for (const selector of candidateAttributes) {
+      if (selectorMatchesElementInjected(selector, element)) return selector;
+    }
+
+    const parts = [];
+    let current = element;
+    while (current?.nodeType === Node.ELEMENT_NODE && current !== document.documentElement) {
+      const currentTag = current.tagName.toLowerCase();
+      let part = currentTag;
+      const parent = current.parentElement;
+      if (parent) {
+        const sameTagSiblings = Array.from(parent.children)
+          .filter((sibling) => sibling.tagName === current.tagName);
+        if (sameTagSiblings.length > 1) {
+          part = `${part}:nth-of-type(${sameTagSiblings.indexOf(current) + 1})`;
+        }
+      }
+      parts.unshift(part);
+      const selector = parts.join(' > ');
+      if (selectorMatchesElementInjected(selector, element)) return selector;
+      current = parent;
+    }
+
+    return parts.join(' > ') || tag;
+  };
+  const formFieldValueStateInjected = (field, value = field.value) => {
+    const tag = field.tagName.toLowerCase();
+    const type = (field.getAttribute('type') || '').toLowerCase();
+    if (tag === 'select') return value !== undefined && value !== null && String(value) !== '' ? 'selected' : 'empty';
+    if (type === 'checkbox' || type === 'radio') return Boolean(value) ? 'checked' : 'unchecked';
+    if (type === 'password') return value ? 'present-sensitive' : 'empty';
+    return value ? 'present' : 'empty';
+  };
   const isVisible = (element) => {
     const style = getComputedStyle(element);
     const rect = element.getBoundingClientRect();
@@ -533,7 +647,7 @@ export function collectExtract(options = {}) {
             .map((cell) => clip(cell.innerText || cell.textContent)));
         return {
           index,
-          selector: stableSelectorFor(table),
+          selector: stableSelectorForInjected(table),
           rows,
         };
       })
@@ -545,17 +659,17 @@ export function collectExtract(options = {}) {
       .slice(0, Math.min(maxItems, 50))
       .map((form, index) => ({
         index,
-        selector: stableSelectorFor(form),
+        selector: stableSelectorForInjected(form),
         fields: Array.from(form.querySelectorAll('input,textarea,select'))
           .filter(isVisible)
           .slice(0, 100)
           .map((field) => ({
-            selector: stableSelectorFor(field),
+            selector: stableSelectorForInjected(field),
             tag: field.tagName.toLowerCase(),
             name: field.getAttribute('name'),
             type: field.getAttribute('type'),
             label: clip(field.getAttribute('aria-label') || field.getAttribute('placeholder') || field.labels?.[0]?.innerText || ''),
-            valueState: formFieldValueState(field),
+            valueState: formFieldValueStateInjected(field),
             required: Boolean(field.required || field.getAttribute('aria-required') === 'true'),
             disabled: Boolean(field.disabled || field.getAttribute('aria-disabled') === 'true'),
           })),
@@ -568,7 +682,7 @@ export function collectExtract(options = {}) {
       .slice(0, Math.min(maxItems, 50))
       .map((list, index) => ({
         index,
-        selector: stableSelectorFor(list),
+        selector: stableSelectorForInjected(list),
         items: Array.from(list.querySelectorAll('li,[role="listitem"]'))
           .filter(isVisible)
           .slice(0, 100)
@@ -614,6 +728,55 @@ export function collectExtract(options = {}) {
 export function collectSnapshot(options = {}) {
   const maxChars = Number(options.maxChars || 50_000);
   const text = (document.body?.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
+  const cssEscapeInjected = (value) => {
+    if (globalThis.CSS?.escape) return CSS.escape(String(value));
+    return String(value).replace(/["\\]/g, '\\$&');
+  };
+  const selectorMatchesElementInjected = (selector, element) => {
+    try {
+      return document.querySelector(selector) === element;
+    } catch {
+      return false;
+    }
+  };
+  const stableSelectorForInjected = (element, selectorOptions = {}) => {
+    const tag = element.tagName.toLowerCase();
+    const candidateAttributes = [
+      element.id ? `#${cssEscapeInjected(element.id)}` : null,
+      element.getAttribute('data-testid') ? `[data-testid="${cssEscapeInjected(element.getAttribute('data-testid'))}"]` : null,
+      element.getAttribute('data-test') ? `[data-test="${cssEscapeInjected(element.getAttribute('data-test'))}"]` : null,
+      element.getAttribute('name') ? `${tag}[name="${cssEscapeInjected(element.getAttribute('name'))}"]` : null,
+      element.getAttribute('aria-label') ? `${tag}[aria-label="${cssEscapeInjected(element.getAttribute('aria-label'))}"]` : null,
+      selectorOptions.includeHref && tag === 'a' && element.getAttribute('href')
+        ? `a[href="${cssEscapeInjected(element.getAttribute('href'))}"]`
+        : null,
+    ].filter(Boolean);
+
+    for (const selector of candidateAttributes) {
+      if (selectorMatchesElementInjected(selector, element)) return selector;
+    }
+
+    const parts = [];
+    let current = element;
+    while (current?.nodeType === Node.ELEMENT_NODE && current !== document.documentElement) {
+      const currentTag = current.tagName.toLowerCase();
+      let part = currentTag;
+      const parent = current.parentElement;
+      if (parent) {
+        const sameTagSiblings = Array.from(parent.children)
+          .filter((sibling) => sibling.tagName === current.tagName);
+        if (sameTagSiblings.length > 1) {
+          part = `${part}:nth-of-type(${sameTagSiblings.indexOf(current) + 1})`;
+        }
+      }
+      parts.unshift(part);
+      const selector = parts.join(' > ');
+      if (selectorMatchesElementInjected(selector, element)) return selector;
+      current = parent;
+    }
+
+    return parts.join(' > ') || tag;
+  };
   const isVisible = (element) => {
     const style = getComputedStyle(element);
     const rect = element.getBoundingClientRect();
@@ -627,7 +790,7 @@ export function collectSnapshot(options = {}) {
     const rect = element.getBoundingClientRect();
     return {
       tag: element.tagName.toLowerCase(),
-      selector: stableSelectorFor(element, { includeHref: true }),
+      selector: stableSelectorForInjected(element, { includeHref: true }),
       text: clean(element.innerText || element.textContent).slice(0, 300),
       ariaLabel: element.getAttribute('aria-label'),
       role: element.getAttribute('role'),
