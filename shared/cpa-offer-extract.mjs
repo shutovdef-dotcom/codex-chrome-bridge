@@ -192,10 +192,8 @@ function inferAccessStatus(text) {
 }
 
 function inferModerationRequired(text) {
-  if (/\b(?:moderation required|requires moderation|pre-approval|approval required)\b|модерац|согласован/i.test(text)) {
-    return true;
-  }
-  if (/\b(?:no moderation|without moderation|no pre-approval)\b|без модерац/i.test(text)) return false;
+  if (/\b(?:no moderation(?: required)?|without moderation|no pre-approval)\b|без\s+модерац/i.test(text)) return false;
+  if (/\b(?:moderation required|requires moderation|pre-approval|approval required)\b|модерац|согласован/i.test(text)) return true;
   return null;
 }
 

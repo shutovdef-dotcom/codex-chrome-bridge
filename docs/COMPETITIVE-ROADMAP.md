@@ -1,6 +1,6 @@
 # Competitive Analysis And Roadmap
 
-Last updated: 2026-06-08
+Last updated: 2026-06-11
 
 This document captures the current competitive landscape for Codex Chrome Bridge, the product gaps that matter, and the phased implementation plan we can execute inside this repository.
 
@@ -12,6 +12,39 @@ The comparison focuses on products and projects that are close to Codex Chrome B
 - MCP or agent-facing browser tooling
 - existing logged-in browser sessions
 - local-first or extension-assisted control surfaces
+
+## Fresh Scan: 2026-06-11
+
+Primary sources reviewed:
+
+- [Playwright MCP](https://github.com/microsoft/playwright-mcp)
+- [Chrome DevTools for agents](https://developer.chrome.com/docs/devtools/agents)
+- [Browserbase MCP](https://docs.browserbase.com/integrations/mcp/introduction)
+- [BrowserMCP](https://github.com/browsermcp/mcp)
+- [Browser Use MCP](https://docs.browser-use.com/open-source/customize/integrations/mcp-server)
+- [Browserless MCP](https://docs.browserless.io/mcp/overview)
+- [Hyperbrowser MCP](https://www.hyperbrowser.ai/docs/integrations/model-context-protocol)
+- [Firecrawl Build with AI](https://docs.firecrawl.dev/ai-onboarding)
+- [Anchor Browser MCP](https://docs.anchorbrowser.io/advanced/mcp)
+- [Apify for AI agents](https://docs.apify.com/platform/integrations/agent-onboarding)
+
+Fresh findings:
+
+- Playwright now explicitly positions CLI plus skills as a token-efficient complement to MCP, while MCP remains useful for persistent rich introspection. This validates Chrome Bridge's cheap-first CLI/skill workflow and artifact-backed reads.
+- Chrome DevTools for agents is moving the category toward live debugging, responsive/geolocation emulation, and Lighthouse-backed proactive QA. Chrome Bridge already has local trace/debug-bundle foundations, but Lighthouse/performance summaries are the clearest remaining diagnostics gap.
+- Browserbase, Browser Use, Browserless, Hyperbrowser, Anchor, Firecrawl, and Apify all emphasize hosted session lifecycle, structured extraction, crawling/scraping, file download/export, proxies, CAPTCHA handling, recordings, live view, or managed infrastructure. These are mostly cloud-browser strengths rather than local-real-profile strengths.
+- BrowserMCP remains the closest local extension competitor because it targets the user's existing logged-in profile. Chrome Bridge's differentiator should stay stricter scoping, explicit confirmations, token hygiene, local artifacts, and repository-grade verification.
+
+Audit outcomes from this scan:
+
+- Fixed CPA offer extraction so "No moderation required" is not misclassified as `moderationRequired: true`.
+- Fixed MCP read-output parity so `artifactDir` is honored by metadata-first read tools, matching CLI behavior.
+
+Implications:
+
+- Do not pivot into hosted cloud browser infrastructure, proxy management, CAPTCHA solving, or large-scale crawling inside this project.
+- Prefer local diagnostics that help coding agents verify real user pages safely: bounded console/network/performance summaries, optional Lighthouse handoff, and redacted artifacts.
+- Continue adding structured extraction presets only when stdout stays metadata-first and raw content remains in local artifacts.
 
 ## Competitor Summary
 
@@ -290,14 +323,15 @@ This repository iteration implements the merged Phase 0-4 roadmap:
 
 After this change set lands cleanly, the highest-value next implementation is:
 
-1. running the deferred real-browser verification once the live bridge is free
-2. adding additional policy modes only after `scoped` and `strict` both have runtime coverage
+1. Add a DevTools-quality diagnostics slice: bounded console/network/performance summaries and a documented Lighthouse handoff path, without dumping raw trace/event logs by default.
+2. Add schema-backed structured extraction presets beyond `cpa-offer` only when they preserve metadata-first stdout and local artifact storage.
+3. Add download/offline-export discovery before attempting any heavier cloud-browser or crawler-style work.
 
-That sequence proves the now-modular browser surface in Chrome before expanding policy behavior further.
+That sequence keeps the product close to its strongest differentiator: safe local control of the user's real Chrome profile with small, agent-friendly outputs.
 
-## Deferred Runtime Verification
+## Runtime Verification When The Live Bridge Is Busy
 
-The current implementation can be statically verified while another session is using the live bridge. Final completion still requires a real-browser pass after the bridge is free:
+The implementation can be statically verified while another session is using the live bridge. When the live bridge is available again, use this sequence as the real-browser verification runbook:
 
 1. Run `npm run runtime-smoke:plan` if you need the offline checklist while another session is using the bridge; this reports `verification.status: "not-run"` until the live smoke pass runs and includes top-level `nextCommand` / `nextAction`, nested `verification.nextCommand`, `verification.nextAction`, `verification.finalCommands`, and `verification.finalMcpCalls` for the recovery and live sequence.
 2. Run `chrome-bridge reload-extension --confirm` after confirming no other session is using the bridge.

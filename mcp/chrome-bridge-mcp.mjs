@@ -104,6 +104,7 @@ function textResult(value) {
 function readOutputOptions(args = {}) {
   return {
     out: args.out,
+    artifactDir: args.artifactDir,
     summaryOnly: Boolean(args.summaryOnly),
     noContent: Boolean(args.noContent),
     includeContent: Boolean(args.includeContent),

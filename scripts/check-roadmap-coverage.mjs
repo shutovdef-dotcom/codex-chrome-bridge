@@ -235,7 +235,13 @@ check(cliLocalToolsCheckerText.includes("runCli(['doctor'])") && cliLocalToolsCh
 check(mcpRuntimeSmokeCheckerText.includes('chrome_bridge_runtime_smoke') && mcpRuntimeSmokeCheckerText.includes('cliExitError'), 'Deferred verification must cover MCP runtime-smoke JSON preservation');
 check(mcpLocalToolsCheckerText.includes('chrome_bridge_command_catalog') && mcpLocalToolsCheckerText.includes('unexpected MCP tool'), 'Deferred verification must cover MCP local tools and listTools parity');
 check(tabGroupPersistenceCheckerText.includes('createFakeChrome') && tabGroupPersistenceCheckerText.includes('savedGroupPersistence'), 'Deferred verification must cover tab-group persistence lifecycle with fake Chrome APIs');
-check(roadmapText.includes('Deferred Runtime Verification') && publishingText.includes('verification.status: "passed"'), 'Deferred live runtime verification criteria must be documented');
+check(
+  (
+    roadmapText.includes('Deferred Runtime Verification')
+    || roadmapText.includes('Runtime Verification When The Live Bridge Is Busy')
+  ) && publishingText.includes('verification.status: "passed"'),
+  'Deferred live runtime verification criteria must be documented',
+);
 check(roadmapText.includes('top-level `nextCommand` / `nextAction`'), 'Deferred runtime roadmap must document top-level recovery metadata');
 check(roadmapText.includes('verification.nextCommand') && roadmapText.includes('verification.nextAction'), 'Deferred runtime roadmap must document contextual next recovery metadata');
 check(roadmapText.includes('verification.finalCommands') && roadmapText.includes('verification.finalMcpCalls'), 'Deferred runtime roadmap must document final CLI/MCP recovery metadata');
