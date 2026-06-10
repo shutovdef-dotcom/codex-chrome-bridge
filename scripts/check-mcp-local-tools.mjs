@@ -351,6 +351,7 @@ let selectTargetChecks = 0;
 let timeoutBoundsChecks = 0;
 let historyTimeChecks = 0;
 let groupScopePayloadChecks = 0;
+let mcpArtifactDirChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const groupTitle = 'Codex Bridge MCP Group Scope';
   const groupColor = 'cyan';
@@ -547,6 +548,23 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
     check(waitZeroPayload?.timeoutMs === 0, 'MCP wait timeout 0 must forward timeoutMs 0');
     timeoutBoundsChecks += 1;
 
+    const mcpArtifactDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-mcp-artifact-dir-check-'));
+    try {
+      const textParsed = parseToolJson(await client.callTool({
+        name: 'chrome_bridge_text',
+        arguments: {
+          tabId: 123,
+          artifactDir: mcpArtifactDir,
+          summaryOnly: true,
+        },
+      }), 'MCP text artifactDir fake command bridge');
+      check(textParsed?.artifactPath?.startsWith(`${mcpArtifactDir}${path.sep}`), 'MCP read tools must honor artifactDir when writing metadata-first artifacts');
+      check(await fs.readFile(textParsed?.artifactPath).then(() => true).catch(() => false), 'MCP read tools must write the artifact into the requested artifactDir');
+      mcpArtifactDirChecks += 1;
+    } finally {
+      await fs.rm(mcpArtifactDir, { recursive: true, force: true });
+    }
+
     const beforeInvalidHistoryTime = receivedCommands.length;
     try {
       const rejected = await client.callTool({
@@ -659,4 +677,5 @@ process.stdout.write(`${JSON.stringify({
   timeoutBoundsChecks,
   historyTimeChecks,
   groupScopePayloadChecks,
+  mcpArtifactDirChecks,
 }, null, 2)}\n`);

@@ -203,6 +203,19 @@ async function checkPureExtraction(tmpDir) {
   check(offer.rawArtifactPath === rawArtifactPath, 'pure cpa offer extraction must include rawArtifactPath');
   check(offer.rawHtmlArtifactPath === rawHtmlArtifactPath, 'pure cpa offer extraction must include rawHtmlArtifactPath');
   check(!JSON.stringify(offer).includes('Full raw offer body'), 'pure cpa offer extraction must not inline the full raw body');
+
+  const noModerationOffer = extractCpaOffer({
+    text: [
+      'Offer #LS-4422: FitLife Trial CPA',
+      'Status: active, access granted',
+      'No moderation required before launch',
+    ].join('\n'),
+    html: '<html><head><title>FitLife Trial CPA</title></head><body>No moderation required before launch</body></html>',
+    sourceNetwork: 'leads_su',
+    sourceUrl: 'https://leads.su/offers/4422',
+    title: 'FitLife Trial CPA',
+  });
+  check(noModerationOffer.moderationRequired === false, 'pure cpa offer extraction must not treat "No moderation required" as moderationRequired=true');
 }
 
 async function checkCliPreset(tmpDir) {
