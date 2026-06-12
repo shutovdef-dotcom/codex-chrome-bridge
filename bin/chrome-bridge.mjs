@@ -479,6 +479,29 @@ function requireElementTarget(args, commandName) {
   }
 }
 
+function dragDropPayload(args) {
+  const sourceHasElement = Boolean(args.selector || args.ref);
+  const sourceHasPoint = args.x !== undefined || args.y !== undefined;
+  const targetHasElement = Boolean(args['target-selector'] || args['target-ref']);
+  const targetHasPoint = args['target-x'] !== undefined || args['target-y'] !== undefined;
+  if (!sourceHasElement && !sourceHasPoint) {
+    throw new Error('drag-drop requires --selector, --ref, or --x/--y');
+  }
+  if (!targetHasElement && !targetHasPoint) {
+    throw new Error('drag-drop requires --target-selector, --target-ref, or --target-x/--target-y');
+  }
+  return {
+    selector: args.selector,
+    elementRef: args.ref,
+    x: sourceHasPoint ? parseRequiredFiniteNumberArg(args.x, '--x', 'drag-drop requires numeric --x and --y') : undefined,
+    y: sourceHasPoint ? parseRequiredFiniteNumberArg(args.y, '--y', 'drag-drop requires numeric --x and --y') : undefined,
+    targetSelector: args['target-selector'],
+    targetElementRef: args['target-ref'],
+    targetX: targetHasPoint ? parseRequiredFiniteNumberArg(args['target-x'], '--target-x', 'drag-drop requires numeric --target-x and --target-y') : undefined,
+    targetY: targetHasPoint ? parseRequiredFiniteNumberArg(args['target-y'], '--target-y', 'drag-drop requires numeric --target-x and --target-y') : undefined,
+  };
+}
+
 function truncateText(value, maxChars = 160) {
   const text = String(value || '').replace(/\s+/g, ' ').trim();
   return text.length > maxChars ? `${text.slice(0, Math.max(0, maxChars - 3))}...` : text;
@@ -3751,6 +3774,17 @@ async function main() {
       ...elementTargetPayload(args),
       ...coordinates,
       trusted: Boolean(args.trusted),
+    }, 30_000));
+    return;
+  }
+
+  if (cmd === 'drag-drop') {
+    if (!args.confirm) throw new Error('drag-drop requires --confirm');
+    printJson(await command('dragDrop', {
+      ...targetPayload(args),
+      ...dragDropPayload(args),
+      trusted: Boolean(args.trusted),
+      ...confirmationPayload(args),
     }, 30_000));
     return;
   }

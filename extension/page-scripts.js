@@ -508,6 +508,70 @@ export function hoverInPage(options = {}) {
   };
 }
 
+export function dragDropInPage(options = {}) {
+  const pointFor = (selector, x, y, label) => {
+    if (selector) {
+      const element = document.querySelector(selector);
+      if (!element) throw new Error(`No element matches ${label} selector: ${selector}`);
+      const rect = element.getBoundingClientRect();
+      return {
+        element,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    }
+    const numericX = Number(x);
+    const numericY = Number(y);
+    if (!Number.isFinite(numericX) || !Number.isFinite(numericY)) throw new Error(`dragDrop requires ${label} selector or coordinates`);
+    const element = document.elementFromPoint(numericX, numericY);
+    if (!element) throw new Error(`No element at ${label} coordinates ${numericX},${numericY}`);
+    return { element, x: numericX, y: numericY };
+  };
+  const source = pointFor(options.selector, options.x, options.y, 'source');
+  const target = pointFor(options.targetSelector, options.targetX, options.targetY, 'target');
+  const dataTransfer = typeof DataTransfer === 'function' ? new DataTransfer() : null;
+  const eventOptions = (point) => ({
+    bubbles: true,
+    cancelable: true,
+    view: window,
+    clientX: point.x,
+    clientY: point.y,
+    dataTransfer,
+  });
+  const dispatchDrag = (element, type, point) => {
+    const EventClass = typeof DragEvent === 'function' ? DragEvent : MouseEvent;
+    element.dispatchEvent(new EventClass(type, eventOptions(point)));
+  };
+
+  source.element.dispatchEvent(new MouseEvent('mouseover', eventOptions(source)));
+  source.element.dispatchEvent(new MouseEvent('mousedown', eventOptions(source)));
+  dispatchDrag(source.element, 'dragstart', source);
+  dispatchDrag(target.element, 'dragenter', target);
+  dispatchDrag(target.element, 'dragover', target);
+  dispatchDrag(target.element, 'drop', target);
+  dispatchDrag(source.element, 'dragend', target);
+  source.element.dispatchEvent(new MouseEvent('mouseup', eventOptions(target)));
+
+  return {
+    dragged: true,
+    trusted: false,
+    source: {
+      selector: options.selector || null,
+      x: Math.round(source.x),
+      y: Math.round(source.y),
+      tag: source.element.tagName.toLowerCase(),
+    },
+    target: {
+      selector: options.targetSelector || null,
+      x: Math.round(target.x),
+      y: Math.round(target.y),
+      tag: target.element.tagName.toLowerCase(),
+    },
+    url: location.href,
+    title: document.title,
+  };
+}
+
 export function pressKeyInPage(options = {}) {
   const eventOptions = {
     key: options.key,

@@ -6,6 +6,7 @@ import {
   CLI_COMMANDS,
   COMMAND_PAYLOAD_SCHEMAS,
   MCP_TOOLS,
+  validateCommandPayload,
 } from '../shared/command-registry.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,6 +14,16 @@ const failures = [];
 
 function check(condition, message) {
   if (!condition) failures.push(message);
+}
+
+function expectPayload(payload, expected, label) {
+  let ok = true;
+  try {
+    validateCommandPayload('dragDrop', payload);
+  } catch {
+    ok = false;
+  }
+  check(ok === expected, label);
 }
 
 function functionBlock(source, name) {
@@ -78,6 +89,10 @@ check(MCP_TOOLS.includes('chrome_bridge_drag_drop'), 'MCP tool list must include
 for (const key of ['selector', 'elementRef', 'targetSelector', 'targetElementRef', 'x', 'y', 'targetX', 'targetY', 'trusted', 'confirmed']) {
   check(COMMAND_PAYLOAD_SCHEMAS.dragDrop?.includes(key), `dragDrop schema must allow ${key}`);
 }
+expectPayload({ selector: '#a', targetElementRef: 'e1', confirmed: true }, true, 'dragDrop selector/ref target payload must validate');
+expectPayload({ x: 1, y: 2, targetX: 3, targetY: 4, confirmed: true }, true, 'dragDrop coordinate payload must validate');
+expectPayload({ selector: '#a', confirmed: true }, false, 'dragDrop must require a target');
+expectPayload({ selector: '#a', targetX: 'bad', targetY: 4, confirmed: true }, false, 'dragDrop target coordinates must be numeric');
 check(registryText.includes('dragDrop') && registryText.includes('chrome_bridge_drag_drop'), 'registry metadata must expose dragDrop CLI/MCP action');
 check(registryText.includes('chrome-bridge drag-drop'), 'CLI usage must document drag-drop');
 check(functionBlock(interactionsText, 'dragDrop').includes("requireConfirmed(payload, 'dragDrop')"), 'extension dragDrop must require confirmation');

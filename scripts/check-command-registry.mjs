@@ -1095,6 +1095,7 @@ const debuggerActionFunctions = {
   clearEmulation: 'clearEmulation',
   clickAt: 'clickAt',
   hover: 'hover',
+  dragDrop: 'dragDrop',
   type: 'typeInto',
   press: 'pressKey',
   handleDialog: 'handleDialog',
@@ -1108,7 +1109,7 @@ for (const action of DEBUGGER_SERIALIZED_ACTIONS) {
     ? pageArtifactsText
     : (['setViewport', 'emulateNetwork', 'clearEmulation'].includes(action)
       ? emulationActionsText
-    : (['clickAt', 'hover', 'type', 'press', 'handleDialog', 'uploadFile'].includes(action)
+    : (['clickAt', 'hover', 'dragDrop', 'type', 'press', 'handleDialog', 'uploadFile'].includes(action)
       ? pageInteractionsText
       : (['traceStart', 'traceStop'].includes(action) ? traceActionsText : backgroundText)));
   const block = functionBlock(source, debuggerActionFunctions[action]);
@@ -1279,10 +1280,10 @@ check(functionBlock(pageReadActionsText, 'observe').includes('collectObserve'), 
 check(functionBlock(pageReadActionsText, 'findElements').includes('elementFilters'), 'extension page read actions module must preserve element filter echo');
 check(functionBlock(pageReadActionsText, 'storageSnapshot').includes("requireSensitiveConfirmed(payload, 'storageSnapshot includeValues')"), 'extension page read actions storage snapshot must require sensitive confirmation for values');
 check(backgroundText.includes("from './page-interactions.js';"), 'extension background must import page interactions from extension/page-interactions.js');
-for (const helperName of ['scroll', 'click', 'clickAt', 'hover', 'typeInto', 'pressKey', 'selectOption', 'fillForm', 'handleDialog', 'uploadFile']) {
+for (const helperName of ['scroll', 'click', 'clickAt', 'hover', 'dragDrop', 'typeInto', 'pressKey', 'selectOption', 'fillForm', 'handleDialog', 'uploadFile']) {
   check(!functionBlock(backgroundText, helperName), `extension background must not own page interaction internals: ${helperName}`);
 }
-for (const helperName of ['scroll', 'click', 'clickAt', 'hover', 'typeInto', 'pressKey', 'selectOption', 'fillForm', 'handleDialog', 'uploadFile']) {
+for (const helperName of ['scroll', 'click', 'clickAt', 'hover', 'dragDrop', 'typeInto', 'pressKey', 'selectOption', 'fillForm', 'handleDialog', 'uploadFile']) {
   check(pageInteractionsText.includes(`export async function ${helperName}`), `extension page interactions module must export ${helperName}`);
 }
 check(functionBlock(pageInteractionsText, 'click').includes("throw new Error('click requires confirmed=true')"), 'extension click interaction must require confirmation');

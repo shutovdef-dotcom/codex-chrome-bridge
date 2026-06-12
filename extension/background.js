@@ -33,6 +33,7 @@ import {
 import {
   click,
   clickAt,
+  dragDrop,
   fillForm,
   handleDialog,
   hover,
@@ -202,6 +203,8 @@ async function dispatch(action, payload) {
       return clickAt(payload);
     case 'hover':
       return hover(payload);
+    case 'dragDrop':
+      return dragDrop(payload);
     case 'type':
       return typeInto(payload);
     case 'press':

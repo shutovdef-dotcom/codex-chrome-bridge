@@ -53,7 +53,7 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - Bounded high-level apply: confirmed `act-apply` executes exactly one previously previewed action, rejects stale previews, and returns before/after evidence plus the next recommended read.
 - Structured extraction: read tables, form structure, lists, key-value blocks, and artifact-backed presets such as `cpa-offer`, `article`, `product-page`, and `pricing-table` without returning private form values.
 - Export helpers: save screenshots, print the current tab to PDF locally, discover likely download/offline-export affordances without clicking them, and run a confirmed single-download export that returns local file metadata only.
-- Controlled interactions: clicks, typing, keyboard, select boxes, hover, and scroll.
+- Controlled interactions: clicks, typing, keyboard, select boxes, hover, drag/drop, and scroll.
 - Workflow helpers: privacy-preserving select option discovery and form fill previews, dialog handling, and file input uploads.
 - Debugging tools: bounded diagnostics, page performance/resource summaries, handoff-only Lighthouse planning, local Lighthouse report ingestion, console/network trace through Chrome Debugger/CDP, and confirmed per-tab viewport/network emulation with explicit reset.
 - Browser data tools: guarded history, bookmarks, cookies, page storage, and extension-context fetch.
@@ -194,6 +194,7 @@ node ./bin/chrome-bridge.mjs adopt-tab --confirm
 node ./bin/chrome-bridge.mjs observe --limit 30
 node ./bin/chrome-bridge.mjs find-elements --near-text "Billing address" --action type
 node ./bin/chrome-bridge.mjs extract --kind forms
+node ./bin/chrome-bridge.mjs drag-drop --ref e3 --target-ref e7 --confirm
 node ./bin/chrome-bridge.mjs extract --preset article --out /tmp/chrome-bridge-article.json --artifact-dir /tmp/chrome-bridge-artifacts
 node ./bin/chrome-bridge.mjs download-discovery --out /tmp/chrome-bridge-downloads.json --artifact-dir /tmp/chrome-bridge-artifacts
 node ./bin/chrome-bridge.mjs download --selector "[data-testid='export-csv']" --confirm --download-timeout-ms 45000

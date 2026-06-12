@@ -38,6 +38,7 @@ Version: 0.4.1
 | download | interaction | interaction | 60000 ms | download | chrome_bridge_download | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, downloadTimeoutMs | Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents. |
 | clickAt | interaction | interaction | 30000 ms | click-at | chrome_bridge_click_at | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, x, y, button, trusted | Click viewport coordinates, optionally through trusted debugger input. |
 | hover | interaction | interaction | 30000 ms | hover | chrome_bridge_hover | no | tabId, allowExternal, groupTitle, groupColor, selector, elementRef, x, y, trusted | Hover an element or coordinates in the selected tab. |
+| dragDrop | interaction | interaction | 30000 ms | drag-drop | chrome_bridge_drag_drop | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, targetSelector, targetElementRef, x, y, targetX, targetY, trusted | Drag one element or coordinate point to another target in the selected tab. |
 | type | interaction | interaction | 30000 ms | type | chrome_bridge_type | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, text, trusted | Type text into a selector, optionally through trusted debugger input. |
 | press | interaction | interaction | 30000 ms | press | chrome_bridge_press | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, key, code, ctrlKey, metaKey, altKey, shiftKey, trusted | Press a keyboard key, optionally through trusted debugger input. |
 | select | interaction | interaction | 30000 ms | select | chrome_bridge_select | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, value, label, index | Select an option in a select element. |
@@ -131,6 +132,7 @@ chrome-bridge clear-emulation --confirm [--tab <id>] [--allow-external]
 chrome-bridge click --tab <id> (--selector <css> | --ref <ref>) --confirm [--allow-external]
 chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]
 chrome-bridge hover [--selector <css> | --ref <ref>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
+chrome-bridge drag-drop (--selector <css> | --ref <ref> | --x <px> --y <px>) (--target-selector <css> | --target-ref <ref> | --target-x <px> --target-y <px>) --confirm [--trusted] [--tab <id>] [--allow-external]
 chrome-bridge type --tab <id> (--selector <css> | --ref <ref>) --text <text> --confirm [--trusted] [--allow-external]
 chrome-bridge press --key <key> --confirm [--selector <css> | --ref <ref>] [--trusted] [--tab <id>] [--allow-external]
 chrome-bridge select (--selector <css> | --ref <ref>) --confirm [--value <value> | --label <label> | --index <n>] [--tab <id>] [--allow-external]
@@ -182,6 +184,7 @@ These extension actions use the Chrome Debugger API and are serialized per tab b
 - `clearEmulation`
 - `clickAt`
 - `hover`
+- `dragDrop`
 - `type`
 - `press`
 - `handleDialog`

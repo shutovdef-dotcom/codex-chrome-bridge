@@ -1,5 +1,6 @@
 import {
   clickAtInPage,
+  dragDropInPage,
   fillFormInPage,
   hoverInPage,
   pressKeyInPage,
@@ -96,6 +97,72 @@ export async function hover(payload) {
     y,
   }]);
   return { tab: tabInfo(await chrome.tabs.get(tab.id)), elementRef: target.elementRef, ...result };
+}
+
+export async function dragDrop(payload) {
+  requireConfirmed(payload, 'dragDrop');
+  const tab = await getTargetTab(payload);
+  const source = await resolveDragPoint(tab.id, payload, {
+    selectorKey: 'selector',
+    elementRefKey: 'elementRef',
+    xKey: 'x',
+    yKey: 'y',
+    label: 'source',
+  });
+  const target = await resolveDragPoint(tab.id, payload, {
+    selectorKey: 'targetSelector',
+    elementRefKey: 'targetElementRef',
+    xKey: 'targetX',
+    yKey: 'targetY',
+    label: 'target',
+  });
+
+  if (payload.trusted) {
+    return withDebugger(tab.id, async () => {
+      await sendDebuggerCommand(tab.id, 'Input.dispatchMouseEvent', {
+        type: 'mouseMoved',
+        x: source.x,
+        y: source.y,
+      });
+      await sendDebuggerCommand(tab.id, 'Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        x: source.x,
+        y: source.y,
+        button: 'left',
+        clickCount: 1,
+      });
+      await sendDebuggerCommand(tab.id, 'Input.dispatchMouseEvent', {
+        type: 'mouseMoved',
+        x: target.x,
+        y: target.y,
+        button: 'left',
+      });
+      await sendDebuggerCommand(tab.id, 'Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x: target.x,
+        y: target.y,
+        button: 'left',
+        clickCount: 1,
+      });
+      return {
+        dragged: true,
+        trusted: true,
+        source,
+        target,
+        tab: tabInfo(await chrome.tabs.get(tab.id)),
+      };
+    });
+  }
+
+  const result = await execute(tab.id, dragDropInPage, [{
+    selector: source.selector,
+    x: source.x,
+    y: source.y,
+    targetSelector: target.selector,
+    targetX: target.x,
+    targetY: target.y,
+  }]);
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
 }
 
 export async function typeInto(payload) {
@@ -259,4 +326,43 @@ async function resolveElementTarget(tabId, payload = {}) {
     selector: payload.selector,
     elementRef: payload.elementRef,
   }]);
+}
+
+async function resolveDragPoint(tabId, payload = {}, options = {}) {
+  const selector = payload[options.selectorKey];
+  const elementRef = payload[options.elementRefKey];
+  if (selector || elementRef) {
+    const target = await execute(tabId, resolveObservedElementTarget, [{
+      selector,
+      elementRef,
+    }]);
+    const point = await execute(tabId, ({ resolvedSelector, label }) => {
+      const element = document.querySelector(resolvedSelector);
+      if (!element) throw new Error(`No element matches ${label} selector: ${resolvedSelector}`);
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) throw new Error(`${label} element has empty bounds: ${resolvedSelector}`);
+      return {
+        x: Math.round(rect.left + rect.width / 2),
+        y: Math.round(rect.top + rect.height / 2),
+      };
+    }, [{ resolvedSelector: target.selector, label: options.label }]);
+    return {
+      selector: target.selector,
+      elementRef: target.elementRef,
+      x: point.x,
+      y: point.y,
+    };
+  }
+
+  const x = Number(payload[options.xKey]);
+  const y = Number(payload[options.yKey]);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    throw new Error(`dragDrop requires ${options.label} selector, elementRef, or coordinates`);
+  }
+  return {
+    selector: null,
+    elementRef: null,
+    x,
+    y,
+  };
 }

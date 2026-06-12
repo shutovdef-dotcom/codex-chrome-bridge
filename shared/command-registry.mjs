@@ -68,6 +68,7 @@ export const COMMAND_PAYLOAD_SCHEMAS = freezeSchemaMap({
   download: [...confirmed, 'selector', 'elementRef', 'downloadTimeoutMs'],
   clickAt: [...confirmed, 'x', 'y', 'button', 'trusted'],
   hover: [...base, 'selector', 'elementRef', 'x', 'y', 'trusted'],
+  dragDrop: [...confirmed, 'selector', 'elementRef', 'targetSelector', 'targetElementRef', 'x', 'y', 'targetX', 'targetY', 'trusted'],
   type: [...confirmed, 'selector', 'elementRef', 'text', 'trusted'],
   press: [...confirmed, 'selector', 'elementRef', 'key', 'code', 'ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'trusted'],
   select: [...confirmed, 'selector', 'elementRef', 'value', 'label', 'index'],
@@ -97,6 +98,7 @@ export const DEBUGGER_SERIALIZED_ACTIONS = Object.freeze([
   'clearEmulation',
   'clickAt',
   'hover',
+  'dragDrop',
   'type',
   'press',
   'handleDialog',
@@ -144,6 +146,7 @@ const INTERACTION_ACTIONS = new Set([
   'download',
   'clickAt',
   'hover',
+  'dragDrop',
   'type',
   'press',
   'select',
@@ -410,6 +413,13 @@ const ACTION_DOCS = Object.freeze({
     summary: 'Hover an element or coordinates in the selected tab.',
     cli: ['hover'],
     mcp: ['chrome_bridge_hover'],
+  },
+  dragDrop: {
+    category: 'interaction',
+    summary: 'Drag one element or coordinate point to another target in the selected tab.',
+    cli: ['drag-drop'],
+    mcp: ['chrome_bridge_drag_drop'],
+    requiresConfirmation: true,
   },
   type: {
     category: 'interaction',
@@ -861,6 +871,7 @@ export const CLI_USAGE_LINES = Object.freeze([
   'chrome-bridge click --tab <id> (--selector <css> | --ref <ref>) --confirm [--allow-external]',
   'chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]',
   'chrome-bridge hover [--selector <css> | --ref <ref>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]',
+  'chrome-bridge drag-drop (--selector <css> | --ref <ref> | --x <px> --y <px>) (--target-selector <css> | --target-ref <ref> | --target-x <px> --target-y <px>) --confirm [--trusted] [--tab <id>] [--allow-external]',
   'chrome-bridge type --tab <id> (--selector <css> | --ref <ref>) --text <text> --confirm [--trusted] [--allow-external]',
   'chrome-bridge press --key <key> --confirm [--selector <css> | --ref <ref>] [--trusted] [--tab <id>] [--allow-external]',
   'chrome-bridge select (--selector <css> | --ref <ref>) --confirm [--value <value> | --label <label> | --index <n>] [--tab <id>] [--allow-external]',
@@ -978,6 +989,7 @@ export const CLI_USAGE_GROUPS = Object.freeze([
       'download',
       'click-at',
       'hover',
+      'drag-drop',
       'type',
       'press',
       'select',
@@ -1187,6 +1199,7 @@ export const CLI_COMMANDS = Object.freeze([
   'click',
   'click-at',
   'hover',
+  'drag-drop',
   'type',
   'press',
   'select',
@@ -1269,6 +1282,7 @@ export const MCP_TOOLS = Object.freeze([
   'chrome_bridge_clear_emulation',
   'chrome_bridge_click_at',
   'chrome_bridge_hover',
+  'chrome_bridge_drag_drop',
   'chrome_bridge_click',
   'chrome_bridge_type',
   'chrome_bridge_press',
@@ -1630,7 +1644,7 @@ export function validateCommandPayload(action, payload = {}) {
   const normalizedPayload = payload === undefined ? {} : payload;
   rejectUnknownKeys(normalizedPayload, allowed, action);
 
-  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'maxPixels', 'requestTimeoutMs', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs', 'downloadTimeoutMs', 'width', 'height', 'deviceScaleFactor', 'latencyMs', 'downloadKbps', 'uploadKbps']) {
+  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'maxPixels', 'requestTimeoutMs', 'x', 'y', 'targetX', 'targetY', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs', 'downloadTimeoutMs', 'width', 'height', 'deviceScaleFactor', 'latencyMs', 'downloadKbps', 'uploadKbps']) {
     ensureNumber(normalizedPayload, key, action);
   }
   ensureNonNegativeInteger(normalizedPayload, 'tabId', action);
@@ -1638,7 +1652,7 @@ export function validateCommandPayload(action, payload = {}) {
   for (const key of ['includeAll', 'includeTabs', 'active', 'newTab', 'allowExternal', 'focusWindow', 'confirmed', 'confirmSensitive', 'bypassCache', 'visible', 'outer', 'fullPage', 'landscape', 'printBackground', 'preferCssPageSize', 'trusted', 'ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'network', 'console', 'includeExtensionEvents', 'includeValues', 'allowText', 'closeOnAnswer', 'dryRun', 'accept', 'mobile']) {
     ensureBoolean(normalizedPayload, key, action);
   }
-  for (const key of ['url', 'selector', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk', 'kind', 'fallback', 'pageRanges', 'button', 'key', 'code', 'value', 'label', 'file', 'query', 'domain', 'name', 'method', 'credentials', 'question', 'groupTitle', 'groupColor', 'promptText', 'policyMode', 'waitForText', 'waitForPattern', 'networkProfile']) {
+  for (const key of ['url', 'selector', 'elementRef', 'targetSelector', 'targetElementRef', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk', 'kind', 'fallback', 'pageRanges', 'button', 'key', 'code', 'value', 'label', 'file', 'query', 'domain', 'name', 'method', 'credentials', 'question', 'groupTitle', 'groupColor', 'promptText', 'policyMode', 'waitForText', 'waitForPattern', 'networkProfile']) {
     ensureString(normalizedPayload, key, action);
   }
   ensureStringArray(normalizedPayload, 'files', action);
@@ -1749,6 +1763,14 @@ export function validateCommandPayload(action, payload = {}) {
   if (action === 'clickAt') {
     ensureRequired(normalizedPayload, 'x', action);
     ensureRequired(normalizedPayload, 'y', action);
+  }
+  if (action === 'dragDrop') {
+    const hasSourceElement = normalizedPayload.selector || normalizedPayload.elementRef;
+    const hasSourcePoint = normalizedPayload.x !== undefined && normalizedPayload.y !== undefined;
+    const hasTargetElement = normalizedPayload.targetSelector || normalizedPayload.targetElementRef;
+    const hasTargetPoint = normalizedPayload.targetX !== undefined && normalizedPayload.targetY !== undefined;
+    if (!hasSourceElement && !hasSourcePoint) throw payloadError('dragDrop requires selector, elementRef, or x/y');
+    if (!hasTargetElement && !hasTargetPoint) throw payloadError('dragDrop requires targetSelector, targetElementRef, or targetX/targetY');
   }
   if (action === 'type') {
     ensureNonEmptyString(normalizedPayload, 'selector', action);

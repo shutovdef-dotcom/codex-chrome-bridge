@@ -1673,6 +1673,32 @@ server.tool(
 );
 
 server.tool(
+  'chrome_bridge_drag_drop',
+  'Drag one selector, elementRef, or coordinate point to another selector, elementRef, or coordinate point. Requires confirmed=true; trusted=true uses Chrome Debugger mouse input.',
+  {
+    selector: z.string().optional(),
+    elementRef: z.string().optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    targetSelector: z.string().optional(),
+    targetElementRef: z.string().optional(),
+    targetX: z.number().optional(),
+    targetY: z.number().optional(),
+    tabId: chromeIdSchema.optional(),
+    trusted: z.boolean().optional(),
+    confirmed: z.boolean(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => {
+    const hasSource = Boolean(args.selector || args.elementRef || (args.x !== undefined && args.y !== undefined));
+    const hasTarget = Boolean(args.targetSelector || args.targetElementRef || (args.targetX !== undefined && args.targetY !== undefined));
+    if (!hasSource) throw new Error('chrome_bridge_drag_drop requires source selector, elementRef, or x/y');
+    if (!hasTarget) throw new Error('chrome_bridge_drag_drop requires targetSelector, targetElementRef, or targetX/targetY');
+    return textResult(await bridgeCommand('dragDrop', args, 30_000));
+  },
+);
+
+server.tool(
   'chrome_bridge_click',
   'Click a selector or observed elementRef in the selected tab. Requires confirmed=true.',
   {

@@ -60,6 +60,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `click` | `click` | interaction | 30000 ms | yes | yes | Click a selector in the selected tab. |
 | `click-at` | `clickAt` | interaction | 30000 ms | yes | yes | Click viewport coordinates, optionally through trusted debugger input. |
 | `hover` | `hover` | interaction | 30000 ms | no | yes | Hover an element or coordinates in the selected tab. |
+| `drag-drop` | `dragDrop` | interaction | 30000 ms | yes | yes | Drag one element or coordinate point to another target in the selected tab. |
 | `type` | `type` | interaction | 30000 ms | yes | yes | Type text into a selector, optionally through trusted debugger input. |
 | `press` | `press` | interaction | 30000 ms | yes | yes | Press a keyboard key, optionally through trusted debugger input. |
 | `select` | `select` | interaction | 30000 ms | yes | yes | Select an option in a select element. |
@@ -104,7 +105,7 @@ The command metadata table below is generated from the shared registry by `npm r
 <!-- BEGIN GENERATED CLI SAFETY NOTES -->
 The safety notes below are generated from the shared registry by `npm run docs:commands`.
 
-- `--confirm` is required for: `set-workspace`, `clear-workspace`, `adopt-tab`, `close-tab`, `close-group`, `act-apply`, `download`, `set-viewport`, `emulate-network`, `clear-emulation`, `click`, `click-at`, `type`, `press`, `select`, `fill-form`, `handle-dialog`, `upload-file`, `trace-start`, `history`, `bookmarks`, `reload-extension`.
+- `--confirm` is required for: `set-workspace`, `clear-workspace`, `adopt-tab`, `close-tab`, `close-group`, `act-apply`, `download`, `set-viewport`, `emulate-network`, `clear-emulation`, `click`, `click-at`, `drag-drop`, `type`, `press`, `select`, `fill-form`, `handle-dialog`, `upload-file`, `trace-start`, `history`, `bookmarks`, `reload-extension`.
 - `--confirm` is conditionally required for: `windows`, `tabs`; use it with `--all` on scoped inventory commands.
 - `--confirm-sensitive` is required in addition to `--confirm` for private-value requests exposed by: `cookies`, `storage`, `request`.
 - Live bridge caution: run `reload-extension --confirm`, `doctor --live-checks`, and `runtime-smoke` only when no other session is using the bridge.
@@ -238,6 +239,7 @@ chrome-bridge click --tab <id> (--selector <css> | --ref <ref>) --confirm [--all
 chrome-bridge download (--selector <css> | --ref <ref>) --confirm [--download-timeout-ms <ms>] [--tab <id>] [--allow-external]
 chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]
 chrome-bridge hover [--selector <css> | --ref <ref>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
+chrome-bridge drag-drop (--selector <css> | --ref <ref> | --x <px> --y <px>) (--target-selector <css> | --target-ref <ref> | --target-x <px> --target-y <px>) --confirm [--trusted] [--tab <id>] [--allow-external]
 chrome-bridge type --tab <id> (--selector <css> | --ref <ref>) --text <text> --confirm [--trusted] [--allow-external]
 chrome-bridge press --key <key> --confirm [--selector <css> | --ref <ref>] [--trusted] [--tab <id>] [--allow-external]
 chrome-bridge select (--selector <css> | --ref <ref>) --confirm [--value <value> | --label <label> | --index <n>] [--tab <id>] [--allow-external]
