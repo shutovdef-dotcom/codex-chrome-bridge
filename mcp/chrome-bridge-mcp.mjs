@@ -24,6 +24,7 @@ import {
   isAbortError,
 } from '../shared/fetch-timeout.mjs';
 import { formatReadOutput } from '../shared/output-envelope.mjs';
+import { withSessionGroupTitle } from '../shared/session-group-title.mjs';
 
 const BRIDGE_URL = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -103,10 +104,11 @@ async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
 
 async function bridgeCommand(action, payload = {}, timeoutMs) {
   const effectiveTimeoutMs = timeoutMs ?? commandDefaultTimeoutMs(action);
+  const scopedPayload = withSessionGroupTitle(action, payload);
   const json = await bridgeFetch('/command', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action, payload, timeoutMs: effectiveTimeoutMs }),
+    body: JSON.stringify({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs }),
   }, effectiveTimeoutMs);
   return json.result;
 }

@@ -22,6 +22,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'shared/output-envelope.mjs',
   'shared/run-tabs.mjs',
   'shared/safe-record.mjs',
+  'shared/session-group-title.mjs',
   'shared/structured-extract.mjs',
   'extension/manifest.json',
   'extension/background.js',

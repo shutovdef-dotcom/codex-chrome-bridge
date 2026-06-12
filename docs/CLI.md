@@ -145,7 +145,7 @@ chrome-bridge reload [--tab <id>] [--bypass-cache] [--allow-external]
 ```
 <!-- END GENERATED CLI USAGE: tabs-navigation -->
 
-By default, tab operations stay inside the configured workspace tab group, initially `Codex Bridge`.
+By default, tab operations stay inside the configured workspace tab group, initially `Codex Bridge`. When the CLI runs inside a Codex session, it derives a per-session default group title from `CHROME_BRIDGE_SESSION_TITLE`, `CODEX_SESSION_TITLE`, `CODEX_THREAD_TITLE`, or a short `CODEX_THREAD_ID`, for example `Codex Bridge - Kurerok Research`. Pass `--group-title` to override this automatic session scope.
 
 `workspace` reports the local workspace defaults, policy mode, group counts, and optionally scoped tabs. `set-workspace` stores local defaults for the group title/color and explicit policy mode. It requires `--confirm`. `scoped` keeps outside tabs explicit-only through `--allow-external`; `strict` blocks outside tabs even when `--allow-external` is passed.
 
@@ -270,7 +270,7 @@ chrome-bridge debug-bundle --out <dir> [--tab <id>] [--allow-external] [--includ
 ```
 <!-- END GENERATED CLI USAGE: human-in-the-loop -->
 
-The command opens a local extension page inside the `Codex Bridge` group and waits for the user to respond.
+The command opens a local extension page inside the active scoped group and waits for the user to respond.
 
 `--choices-json` accepts either strings or `{ "value": "...", "label": "..." }` objects:
 

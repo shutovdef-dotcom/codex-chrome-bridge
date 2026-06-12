@@ -27,6 +27,7 @@ import {
   recordOwnedTab,
   removeOwnedTabs,
 } from '../shared/run-tabs.mjs';
+import { withSessionGroupTitle } from '../shared/session-group-title.mjs';
 import {
   BRIDGE_VERSION,
   CLI_COMMANDS,
@@ -111,10 +112,11 @@ async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
 
 async function command(action, payload = {}, timeoutMs) {
   const effectiveTimeoutMs = timeoutMs ?? commandDefaultTimeoutMs(action);
+  const scopedPayload = withSessionGroupTitle(action, payload);
   const json = await bridgeFetch('/command', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action, payload, timeoutMs: effectiveTimeoutMs }),
+    body: JSON.stringify({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs }),
   }, effectiveTimeoutMs);
   return json.result;
 }
@@ -182,6 +184,7 @@ function targetPayload(args) {
   return {
     tabId: parseChromeIdArg(args.tab, '--tab'),
     allowExternal: Boolean(args['allow-external']),
+    ...groupScopePayload(args),
   };
 }
 
@@ -814,6 +817,7 @@ async function selfTest() {
     lighthouseIngest: path.join(rootDir, 'shared/lighthouse-ingest.mjs'),
     fetchTimeout: path.join(rootDir, 'shared/fetch-timeout.mjs'),
     safeRecord: path.join(rootDir, 'shared/safe-record.mjs'),
+    sessionGroupTitle: path.join(rootDir, 'shared/session-group-title.mjs'),
     commandCatalogDoc: path.join(rootDir, 'docs/COMMAND-CATALOG.md'),
     commandCatalogGenerator: path.join(rootDir, 'scripts/generate-command-catalog.mjs'),
     bridgeContractChecker: path.join(rootDir, 'scripts/check-bridge-contract.mjs'),
@@ -947,6 +951,7 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.lighthouseIngest]),
     tryExec(process.execPath, ['--check', paths.fetchTimeout]),
     tryExec(process.execPath, ['--check', paths.safeRecord]),
+    tryExec(process.execPath, ['--check', paths.sessionGroupTitle]),
     tryExec(process.execPath, ['--check', paths.commandCatalogGenerator]),
     tryExec(process.execPath, ['--check', paths.bridgeContractChecker]),
     tryExec(process.execPath, ['--check', paths.docsCoverageChecker]),
@@ -1012,6 +1017,7 @@ async function selfTest() {
     { label: 'server registry version', item: EXPECTED_EXTENSION_VERSION, ok: server.includes('BRIDGE_VERSION') },
     { label: 'cli registry version', item: EXPECTED_EXTENSION_VERSION, ok: cli.includes('EXPECTED_EXTENSION_VERSION = BRIDGE_VERSION') },
     { label: 'mcp registry version', item: EXPECTED_EXTENSION_VERSION, ok: mcp.includes('version: BRIDGE_VERSION') },
+    { label: 'session group title imports', item: 'CLI and MCP', ok: cli.includes("from '../shared/session-group-title.mjs'") && mcp.includes("from '../shared/session-group-title.mjs'") },
     { label: 'package version', item: EXPECTED_EXTENSION_VERSION, ok: packageJson.version === EXPECTED_EXTENSION_VERSION },
     { label: 'package-lock root version', item: EXPECTED_EXTENSION_VERSION, ok: packageLock.version === EXPECTED_EXTENSION_VERSION && packageLock.packages?.['']?.version === EXPECTED_EXTENSION_VERSION },
   ];

@@ -52,6 +52,7 @@ It also rejects unsupported actions, rejects browser and extension origins on di
 ## Shared Command Registry
 
 `shared/command-registry.mjs` is the Node-side command contract source of truth.
+`shared/session-group-title.mjs` derives CLI/MCP per-session group titles from `CHROME_BRIDGE_SESSION_TITLE`, Codex session title env vars, or a short `CODEX_THREAD_ID`, while preserving explicit `groupTitle` overrides.
 
 It defines:
 
@@ -111,4 +112,4 @@ The important boundary is the user's real Chrome profile. Anything visible to Ch
 
 Use [SAFETY.md](SAFETY.md) as the source of truth for confirmation gates and private-data handling.
 
-Named workspace defaults are stored in extension-local storage. They make the active group title/color and policy mode explicit without weakening the default tab boundary: `scoped` requires `allowExternal` for outside tabs, while `strict` blocks outside tabs entirely.
+Named workspace defaults are stored in extension-local storage. They make the active group title/color and policy mode explicit without weakening the default tab boundary: `scoped` requires `allowExternal` for outside tabs, while `strict` blocks outside tabs entirely. CLI/MCP session-derived titles are not persisted as workspace defaults; they are applied to each scoped command payload so separate Codex sessions can use separate Chrome tab groups.

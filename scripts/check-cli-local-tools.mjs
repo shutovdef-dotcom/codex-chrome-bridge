@@ -992,6 +992,18 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
   check(sessionDefaultPayload?.groupTitle === sessionGroupTitle, 'CLI must derive default groupTitle from CHROME_BRIDGE_SESSION_TITLE');
   groupScopePayloadChecks += 1;
 
+  const beforeSessionRead = receivedCommands.length;
+  const sessionReadResult = await runCli(['text', '--summary-only'], {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    CHROME_BRIDGE_SESSION_TITLE: sessionTitle,
+  });
+  check(sessionReadResult.ok, 'CLI text must succeed with CHROME_BRIDGE_SESSION_TITLE');
+  const sessionReadParsed = parseJsonOutput(sessionReadResult, 'CLI session title read group default fake command bridge');
+  const sessionReadPayload = receivedCommands[beforeSessionRead]?.payload || sessionReadParsed?.payload;
+  check(receivedCommands[beforeSessionRead]?.action === 'text', 'CLI session title read default must dispatch text');
+  check(sessionReadPayload?.groupTitle === sessionGroupTitle, 'CLI read commands must preserve session-derived groupTitle');
+  groupScopePayloadChecks += 1;
+
   const beforeSessionOverride = receivedCommands.length;
   const sessionOverrideResult = await runCli(['open', 'https://example.com/override', '--new', '--group-title', groupTitle], {
     CHROME_BRIDGE_URL: bridgeUrl,

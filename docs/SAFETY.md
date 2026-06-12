@@ -4,7 +4,7 @@ Codex Chrome Bridge can inspect a real Chrome profile. That is powerful and sens
 
 ## Default Scope
 
-The bridge scopes browser work to a Chrome tab group named `Codex Bridge` by default.
+The bridge scopes browser work to a Chrome tab group named `Codex Bridge` by default. CLI and MCP clients automatically switch to a per-session title such as `Codex Bridge - Kurerok Research` when `CHROME_BRIDGE_SESSION_TITLE`, `CODEX_SESSION_TITLE`, `CODEX_THREAD_TITLE`, or `CODEX_THREAD_ID` is present; explicit `groupTitle`/`--group-title` still wins.
 
 Users can configure local workspace defaults for the group title/color with `set-workspace` or `chrome_bridge_set_workspace`. This does not grant broader browser access.
 

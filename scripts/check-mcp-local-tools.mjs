@@ -666,6 +666,16 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
     check(sessionDefaultPayload?.groupTitle === sessionGroupTitle, 'MCP must derive default groupTitle from CHROME_BRIDGE_SESSION_TITLE');
     groupScopePayloadChecks += 1;
 
+    const beforeSessionRead = receivedCommands.length;
+    const sessionReadParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_text',
+      arguments: { summaryOnly: true },
+    }), 'MCP session title read group default fake command bridge');
+    const sessionReadPayload = receivedCommands[beforeSessionRead]?.payload || sessionReadParsed?.payload;
+    check(receivedCommands[beforeSessionRead]?.action === 'text', 'MCP session title read default must dispatch text');
+    check(sessionReadPayload?.groupTitle === sessionGroupTitle, 'MCP read commands must preserve session-derived groupTitle');
+    groupScopePayloadChecks += 1;
+
     const beforeSessionOverride = receivedCommands.length;
     const sessionOverrideParsed = parseToolJson(await client.callTool({
       name: 'chrome_bridge_open',

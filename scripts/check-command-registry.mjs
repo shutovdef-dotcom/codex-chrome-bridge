@@ -254,6 +254,7 @@ for (const requiredPackageFile of [
   'shared/output-envelope.mjs',
   'shared/run-tabs.mjs',
   'shared/safe-record.mjs',
+  'shared/session-group-title.mjs',
   'shared/structured-extract.mjs',
   'extension/extension-errors.js',
   'extension/page-scripts.js',

@@ -15,7 +15,8 @@ export const MANIFEST_PERMISSIONS = [
 ];
 
 export const TAB_GROUP_COLORS = ['grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'];
-export const TARGET_KEYS = ['tabId', 'allowExternal'];
+export const GROUP_SCOPE_KEYS = ['groupTitle', 'groupColor'];
+export const TARGET_KEYS = ['tabId', 'allowExternal', ...GROUP_SCOPE_KEYS];
 export const CONFIRMATION_KEYS = ['confirmed', 'confirmSensitive'];
 
 const base = [...TARGET_KEYS];
@@ -39,7 +40,7 @@ export const COMMAND_PAYLOAD_SCHEMAS = freezeSchemaMap({
   clearWorkspace: ['confirmed'],
   ensureTab: ['url', 'active', 'groupTitle', 'groupColor'],
   adoptTab: ['tabId', 'confirmed', 'groupTitle', 'groupColor'],
-  open: [...base, 'url', 'active', 'newTab', 'groupTitle', 'groupColor'],
+  open: [...base, 'url', 'active', 'newTab'],
   activateTab: [...base, 'focusWindow'],
   closeTab: confirmed,
   closeGroup: ['confirmed', 'groupTitle', 'groupColor'],

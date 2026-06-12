@@ -112,7 +112,11 @@ Agents should ask the user before setting these flags unless the user has alread
 
 Use `chrome_bridge_ask_user` when the agent needs clarification, account selection, confirmation, or coordination for a manual browser step.
 
-It opens a local extension page in the `Codex Bridge` group and returns the user's answer. It does not bypass CAPTCHA or automate protected challenges.
+It opens a local extension page in the active scoped group and returns the user's answer. It does not bypass CAPTCHA or automate protected challenges.
+
+## Session-Scoped Groups
+
+MCP commands that operate on the scoped Chrome group derive a per-session default group title when the MCP server process exposes `CHROME_BRIDGE_SESSION_TITLE`, `CODEX_SESSION_TITLE`, `CODEX_THREAD_TITLE`, or `CODEX_THREAD_ID`. For example, `CHROME_BRIDGE_SESSION_TITLE="Kurerok Research"` yields `Codex Bridge - Kurerok Research`; without a title, a short thread id fallback such as `Codex Bridge - 019ea301` is used. Explicit `groupTitle` arguments always override the session-derived default.
 
 `chrome_bridge_session_summary` includes bridge health, scoped group state, workspace policy state, and recommendations such as bridge server restart, extension reload, first-tab setup, or active `strict` policy warnings. `chrome_bridge_debug_bundle` writes the same policy-aware summary into `session-summary.json`.
 
