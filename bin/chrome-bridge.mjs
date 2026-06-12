@@ -47,6 +47,7 @@ import {
 
 const DEFAULT_ENDPOINT = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
 const EXPECTED_EXTENSION_VERSION = BRIDGE_VERSION;
+let suppressSessionGroupTitle = false;
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const execFileAsync = promisify(execFile);
@@ -112,7 +113,7 @@ async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
 
 async function command(action, payload = {}, timeoutMs) {
   const effectiveTimeoutMs = timeoutMs ?? commandDefaultTimeoutMs(action);
-  const scopedPayload = withSessionGroupTitle(action, payload);
+  const scopedPayload = suppressSessionGroupTitle ? payload : withSessionGroupTitle(action, payload);
   const json = await bridgeFetch('/command', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -1969,6 +1970,9 @@ async function runtimeSmoke(args = {}) {
     }
   };
 
+  const previousSuppressSessionGroupTitle = suppressSessionGroupTitle;
+  suppressSessionGroupTitle = true;
+
   try {
     const opened = await run('open adoption source smoke tab', () => command('open', {
       url: fixture.url,
@@ -2030,7 +2034,13 @@ async function runtimeSmoke(args = {}) {
     });
 
     debugBundleDir = await fs.mkdtemp(path.join(tmpdir(), 'chrome-bridge-smoke-bundle-'));
-    await run('debug bundle default redaction', () => debugBundle({ out: debugBundleDir }), {
+    await run('debug bundle default redaction', () => debugBundle({
+      out: debugBundleDir,
+      tab: tabId,
+      'allow-external': true,
+      groupTitle: strictGroupTitle,
+      groupColor: 'cyan',
+    }), {
       assert: async (result) => {
         const expectedFiles = ['session-summary.json', 'health.json', 'trace-summary.json', 'manifest.json'];
         for (const expectedFile of expectedFiles) {
@@ -2053,12 +2063,18 @@ async function runtimeSmoke(args = {}) {
       },
     });
 
-    await run('group includes smoke tab', () => command('group', {}, 10_000), {
+    await run('group includes smoke tab', () => command('group', {
+      groupTitle: strictGroupTitle,
+      groupColor: 'cyan',
+    }, 10_000), {
       assert: (result) => {
         if (!result.tabs?.some((tab) => tab.id === tabId)) throw new Error('group does not include smoke tab');
       },
     });
-    await run('tabs scoped includes smoke tab', () => command('tabs', {}, 10_000), {
+    await run('tabs scoped includes smoke tab', () => command('tabs', {
+      groupTitle: strictGroupTitle,
+      groupColor: 'cyan',
+    }, 10_000), {
       assert: (result) => {
         if (result.scope !== 'codex-group') throw new Error('tabs is not scoped to codex-group');
         if (!result.tabs?.some((tab) => tab.id === tabId)) throw new Error('scoped tabs does not include smoke tab');
@@ -2417,6 +2433,7 @@ async function runtimeSmoke(args = {}) {
     await closeServer(fixture.server).catch((error) => {
       steps.push({ name: 'cleanup close smoke fixture server', ok: false, error: String(error?.message || error) });
     });
+    suppressSessionGroupTitle = previousSuppressSessionGroupTitle;
   }
 
   const failures = steps.filter((step) => !step.ok);
