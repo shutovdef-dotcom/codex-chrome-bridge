@@ -295,6 +295,7 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - add read-only download/offline-export discovery that reports candidate links/actions without clicking or fetching them
   - add local Lighthouse JSON ingestion that exposes category scores, failing-audit summaries, and artifact paths without dumping raw audit payloads
   - add a fixture-backed examples gallery for `article`, `product-page`, `pricing-table`, `download-discovery`, and `lighthouse-ingest`, plus checker coverage for JSON-LD article/product data, pricing cards, download type inference, and Lighthouse summaries
+  - validate examples against representative public pages and add fixture-backed tuning for text-only pricing layouts without introducing a new preset
   - add safe `session-summary` and redacted-by-default `debug-bundle`
   - include workspace policy state and strict-policy recommendations in summaries
   - omit page artifacts and full trace events from debug bundles unless explicitly requested, while keeping trace summaries available by default
@@ -333,11 +334,12 @@ The previous recommended slice has now landed:
 2. Download/offline-export discovery is available as a read-only candidate detector before any heavier crawler-style work.
 3. Lighthouse result ingestion is local-only and keeps raw reports out of stdout by default.
 4. A small examples gallery now gives agents fixture-backed command choices without rediscovering usage.
-5. Remaining UBS noise stays evidence-gated: only findings that map to reachable runtime behavior should become code changes.
+5. Representative public-page validation found one repeatable gap, now covered by `examples/fixtures/pricing-linear.html`; no new preset is justified yet.
+6. Remaining UBS noise stays evidence-gated: only findings that map to reachable runtime behavior should become code changes.
 
 After this change set, the highest-value next implementation is:
 
-1. Exercise the examples against representative real pages and add fixture-backed schema tuning only where repeatable gaps appear.
+1. Continue collecting real-page evidence and add fixtures only for repeated gaps.
 2. Consider one more high-value preset only after real usage shows a stable schema need.
 3. Keep UBS triage evidence-first; do not broad-clean pattern noise unless it becomes a confirmed runtime path.
 

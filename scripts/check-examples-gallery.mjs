@@ -26,10 +26,13 @@ function visibleText(html) {
   return String(html || '')
     .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<\/?(?:h[1-6]|p|li|tr|td|th|article|section|main|div|ul|ol)\b[^>]*>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
-    .replace(/\s+/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s+/g, '\n')
+    .replace(/\n{2,}/g, '\n')
     .trim();
 }
 
@@ -106,6 +109,23 @@ function checkPricingFixture(html) {
   check(result.data?.plans?.some((plan) => plan.name === 'Enterprise' && plan.features?.includes('Audit logs')), 'pricing fixture must extract card features');
 }
 
+function checkLinearPricingFixture(html) {
+  if (!html) return;
+  const result = extractStructuredPreset({
+    preset: 'pricing-table',
+    html,
+    text: visibleText(html),
+    sourceUrl: sourceUrl('pricing-linear'),
+    title: '',
+    rawArtifactPath: '/tmp/pricing-linear.txt',
+    rawHtmlArtifactPath: '/tmp/pricing-linear.html',
+  });
+  check(result.data?.plans?.length === 5, 'linear pricing fixture must extract five text-only plans');
+  check(result.data?.plans?.some((plan) => plan.name === 'Prototyping' && plan.price === '$25/month'), 'linear pricing fixture must combine split monthly price');
+  check(result.data?.plans?.some((plan) => plan.name === 'Enterprise' && /^Custom pricing/.test(plan.price)), 'linear pricing fixture must preserve custom enterprise pricing');
+  check(result.data?.plans?.some((plan) => plan.name === 'Starter' && plan.features?.includes('180k units per month')), 'linear pricing fixture must collect text-only plan features');
+}
+
 function checkDownloadsFixture(html) {
   if (!html) return;
   const result = discoverDownloads({
@@ -155,6 +175,7 @@ const [
   pricingHtml,
   downloadsHtml,
   lighthouseReport,
+  linearPricingHtml,
 ] = await Promise.all([
   readRequired('docs/EXAMPLES.md'),
   readRequired('package.json'),
@@ -163,6 +184,7 @@ const [
   readRequired('examples/fixtures/pricing-table.html'),
   readRequired('examples/fixtures/downloads.html'),
   readRequired('examples/fixtures/lighthouse-report.json'),
+  readRequired('examples/fixtures/pricing-linear.html'),
 ]);
 
 checkDocs(docs);
@@ -170,6 +192,7 @@ checkPackageJson(packageText);
 checkArticleFixture(articleHtml);
 checkProductFixture(productHtml);
 checkPricingFixture(pricingHtml);
+checkLinearPricingFixture(linearPricingHtml);
 checkDownloadsFixture(downloadsHtml);
 checkLighthouseFixture(lighthouseReport);
 

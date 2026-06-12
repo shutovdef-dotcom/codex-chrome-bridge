@@ -348,6 +348,72 @@ function pricingCards(html) {
   return plans.slice(0, 50);
 }
 
+function isLinearPricingName(line) {
+  if (!line || line.length > 60) return false;
+  if (/[$€£₽]|\d+(?:[.,]\d+)?\s?(?:USD|EUR|GBP|RUB)|\/month|\/mo|per month/i.test(line)) return false;
+  if (/^(get started|buy now|contact sales|popular option|no card required|billed annually|pay yearly|pay monthly|save \d+%?)$/i.test(line)) return false;
+  if (/\b(pricing|faq|question|overview|resources|docs|login|sign up|contact us)\b/i.test(line)) return false;
+  return /^[A-Z][A-Za-z0-9 &+_-]{1,58}$/.test(line);
+}
+
+function isLinearPricingBoundaryBeforePrice(line) {
+  return /^(get started|buy now|contact sales|popular option)$/i.test(line);
+}
+
+function linearPriceAt(textLines, index) {
+  const name = textLines[index];
+  if (/^free$/i.test(name)) return { price: 'Free', priceIndex: index };
+  for (let offset = 1; offset <= 4 && index + offset < textLines.length; offset += 1) {
+    const line = textLines[index + offset];
+    if (isLinearPricingBoundaryBeforePrice(line)) return null;
+    if (/^custom pricing/i.test(line)) return { price: clip(line, 120), priceIndex: index + offset };
+    const amount = /^(?:[$€£]\s?\d+(?:[.,]\d+)?|\d+(?:[.,]\d+)?\s?(?:USD|EUR|GBP|RUB|₽))$/i.exec(line)?.[0];
+    if (!amount) continue;
+    const next = textLines[index + offset + 1] || '';
+    const suffix = /^\/\s?(month|mo|year|yr)$/i.test(next)
+      ? next.replace(/\s+/g, '')
+      : '';
+    return {
+      price: suffix ? `${clip(amount, 80)}${suffix}` : clip(amount, 80),
+      priceIndex: index + offset + (suffix ? 1 : 0),
+    };
+  }
+  return null;
+}
+
+function isLinearPricingFeature(line) {
+  if (!line) return false;
+  if (/^(get started|buy now|contact sales|popular option|pay yearly|pay monthly|save \d+%?)$/i.test(line)) return false;
+  if (/^\/\s?(month|mo|year|yr)$/i.test(line)) return false;
+  if (/^[$€£]\s?\d+(?:[.,]\d+)?$/i.test(line)) return false;
+  return line.length <= 140;
+}
+
+function linearPricingPlans(text) {
+  const textLines = lines(text);
+  const plans = [];
+  for (let index = 0; index < textLines.length; index += 1) {
+    const name = textLines[index];
+    if (!isLinearPricingName(name)) continue;
+    const priceInfo = linearPriceAt(textLines, index);
+    if (!priceInfo) continue;
+    const features = [];
+    for (let featureIndex = priceInfo.priceIndex + 1; featureIndex < textLines.length; featureIndex += 1) {
+      const line = textLines[featureIndex];
+      if (isLinearPricingName(line) && linearPriceAt(textLines, featureIndex)) break;
+      if (isLinearPricingFeature(line)) features.push(line);
+      if (features.length >= 20) break;
+    }
+    plans.push({
+      name: clip(name, 100),
+      price: clip(priceInfo.price, 120),
+      features,
+    });
+    if (plans.length >= 50) break;
+  }
+  return plans;
+}
+
 function pricingPlans({ html, text }) {
   const plans = [];
   for (const rows of tableRows(html)) {
@@ -374,6 +440,9 @@ function pricingPlans({ html, text }) {
 
   const cardPlans = pricingCards(html);
   if (cardPlans.length) return cardPlans;
+
+  const linearPlans = linearPricingPlans(text);
+  if (linearPlans.length) return linearPlans;
 
   for (const line of lines(text)) {
     const match = /^([A-Z][A-Za-z0-9 _-]{2,40})\s+-\s+(.+?(?:month|mo|pricing|custom|\$|€|£|₽|USD|EUR|RUB)[^-]*)\s+-\s*(.*)$/i.exec(line);

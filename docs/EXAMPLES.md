@@ -46,6 +46,8 @@ The preset supports conventional tables and common pricing-card markup. Keep the
 
 Fixture: `examples/fixtures/pricing-table.html`.
 
+Related fixture: `examples/fixtures/pricing-linear.html` covers real-world pages where plan names, prices, and features are exposed as sequential visible text rather than table/card markup.
+
 ## Download Discovery
 
 Use this before clicking export buttons or attempting browser downloads. The command inspects page HTML/text, reports candidate links and export controls, and does not click, download, or fetch candidate URLs.

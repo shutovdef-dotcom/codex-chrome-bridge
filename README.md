@@ -268,6 +268,7 @@ codex/      optional Codex skill handoff
 | MCP reference | [docs/MCP.md](docs/MCP.md) |
 | Generated command catalog | [docs/COMMAND-CATALOG.md](docs/COMMAND-CATALOG.md) |
 | Examples gallery | [docs/EXAMPLES.md](docs/EXAMPLES.md) |
+| Real page validation | [docs/REAL-PAGE-VALIDATION.md](docs/REAL-PAGE-VALIDATION.md) |
 | Chrome extension setup | [docs/EXTENSION.md](docs/EXTENSION.md) |
 | Safety and privacy | [docs/SAFETY.md](docs/SAFETY.md) |
 | Agent token budget | [docs/AGENT-TOKEN-BUDGET.md](docs/AGENT-TOKEN-BUDGET.md) |
