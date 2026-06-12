@@ -1,0 +1,4 @@
+mcp_servers:
+  chrome_bridge:
+    command: "node"
+    args: ["/absolute/path/to/codex-chrome-bridge/mcp/chrome-bridge-mcp.mjs"]

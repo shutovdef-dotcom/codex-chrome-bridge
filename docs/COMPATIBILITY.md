@@ -16,6 +16,7 @@ node ./bin/chrome-bridge.mjs mcp-config --client hermes
 
 The MCP tool `chrome_bridge_mcp_config` returns the same snippets from inside clients that already have the server installed.
 For a safer install flow, `chrome_bridge_doctor`, `chrome_bridge_session_summary`, `chrome_bridge_tool_advisor`, and the `chrome-bridge://profiles/current` resource now echo the recommended profile and next setup steps after install.
+If you prefer checked-in template files, see `examples/mcp-clients/`.
 
 ## Shared Requirements
 

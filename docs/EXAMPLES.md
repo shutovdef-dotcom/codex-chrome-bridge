@@ -76,10 +76,25 @@ The raw Lighthouse report stays at `reportPath`; stdout and the summary artifact
 
 Fixture: `examples/fixtures/lighthouse-report.json`.
 
+## MCP Client Config Files
+
+Use these when you want checked-in installable templates instead of regenerating a snippet every time:
+
+- `examples/mcp-clients/claude-code.mcp.json`
+- `examples/mcp-clients/cursor.mcp.json`
+- `examples/mcp-clients/codex.config.toml`
+- `examples/mcp-clients/vscode.mcp.json`
+- `examples/mcp-clients/windsurf.mcp.json`
+- `examples/mcp-clients/hermes.config.yaml`
+- `examples/mcp-clients/generic.mcp.json`
+
+Replace `/absolute/path/to/codex-chrome-bridge` with the real local repository path before using them. Cursor and Windsurf stay on `core`; the generic stdio template stays on `read`.
+
 ## Verification
 
 ```bash
 npm run check:examples-gallery
+npm run check:client-config-examples
 ```
 
-This checker validates the examples gallery, fixtures, package exposure, metadata-first output expectations, and fixture-backed extraction behavior.
+These checkers validate the examples gallery, fixtures, checked-in client templates, package exposure, metadata-first output expectations, and fixture-backed extraction behavior.

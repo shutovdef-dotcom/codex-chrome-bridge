@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "chromeBridge": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/absolute/path/to/codex-chrome-bridge/mcp/chrome-bridge-mcp.mjs"
+      ]
+    }
+  }
+}

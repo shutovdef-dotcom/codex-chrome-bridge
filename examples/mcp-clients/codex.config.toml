@@ -1,0 +1,5 @@
+[mcp_servers.chrome-bridge]
+command = "node"
+args = ["/absolute/path/to/codex-chrome-bridge/mcp/chrome-bridge-mcp.mjs"]
+startup_timeout_sec = 20
+tool_timeout_sec = 60

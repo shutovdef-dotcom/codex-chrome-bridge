@@ -273,7 +273,7 @@ server/     local HTTP/WebSocket bridge server
 shared/     command registry and payload contract metadata
 scripts/    macOS LaunchAgent helpers
 docs/       user and developer docs
-examples/   fixture-backed command examples
+examples/   fixture-backed command examples and MCP client config templates
 codex/      optional Codex skill handoff
 ```
 
