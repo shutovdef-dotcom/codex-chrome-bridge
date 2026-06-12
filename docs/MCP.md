@@ -65,6 +65,8 @@ When the next step is unclear, call `chrome_bridge_tool_advisor`; when the insta
 
 `chrome_bridge_act_preview` is the new read-only action-planning layer: give it a natural-language intent and it will inspect the current page with the local bridge, rank likely next actions, and return exact low-level CLI/MCP proposals without mutating page state.
 
+`chrome_bridge_act_apply` is the bounded apply layer for that preview flow. It requires a previously issued `previewId`, `confirmed: true`, rejects stale or replayed preview ids, executes exactly one low-level action, and returns before/after evidence plus the next recommended read.
+
 ## Tools
 
 For risk tiers, default timeouts, confirmation requirements, direct `/command` payload keys, CLI aliases, MCP tool names, local diagnostic/tooling commands, and live-bridge flags, see the generated [command catalog](COMMAND-CATALOG.md) or call `chrome_bridge_command_catalog`.
@@ -110,6 +112,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_wait_for_selector` | `waitForSelector` | read | 30000 ms | no | yes | Wait for a selector to appear in the selected tab. |
 | `chrome_bridge_observe` | `observe` | read | 30000 ms | no | yes | Read ranked actionable elements with querySelector-verified selectors without mutating page state. |
 | `chrome_bridge_act_preview` | `act-preview` | read | 30000 ms | no | yes | Plan one likely next browser action from intent and observed page state without mutating the page. |
+| `chrome_bridge_act_apply` | `act-apply` | interaction | 30000 ms | yes | yes | Apply exactly one previously previewed action by id with confirmation, then return before/after evidence and a recommended next read. |
 | `chrome_bridge_find_elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | `chrome_bridge_extract` | `extractPage` | read | 30000 ms | no | yes | Extract structured tables, form structure, lists, key-value blocks, or artifact-backed CPA offer presets without current form values. |
 | `chrome_bridge_download_discovery` | `download-discovery` | read | 30000 ms | no | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
@@ -152,7 +155,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 <!-- BEGIN GENERATED MCP SAFETY NOTES -->
 The safety notes below are generated from the shared registry by `npm run docs:commands`.
 
-- `confirmed: true` is required for: `chrome_bridge_reload_extension`, `chrome_bridge_set_workspace`, `chrome_bridge_clear_workspace`, `chrome_bridge_adopt_tab`, `chrome_bridge_close_tab`, `chrome_bridge_close_group`, `chrome_bridge_click_at`, `chrome_bridge_click`, `chrome_bridge_type`, `chrome_bridge_press`, `chrome_bridge_select`, `chrome_bridge_fill_form`, `chrome_bridge_handle_dialog`, `chrome_bridge_upload_file`, `chrome_bridge_trace_start`, `chrome_bridge_history_search`, `chrome_bridge_bookmarks_search`.
+- `confirmed: true` is required for: `chrome_bridge_reload_extension`, `chrome_bridge_set_workspace`, `chrome_bridge_clear_workspace`, `chrome_bridge_adopt_tab`, `chrome_bridge_close_tab`, `chrome_bridge_close_group`, `chrome_bridge_act_apply`, `chrome_bridge_click_at`, `chrome_bridge_click`, `chrome_bridge_type`, `chrome_bridge_press`, `chrome_bridge_select`, `chrome_bridge_fill_form`, `chrome_bridge_handle_dialog`, `chrome_bridge_upload_file`, `chrome_bridge_trace_start`, `chrome_bridge_history_search`, `chrome_bridge_bookmarks_search`.
 - `confirmed: true` is conditionally required for: `chrome_bridge_windows`, `chrome_bridge_tabs`; use it when passing `includeAll: true`.
 - `confirmSensitive: true` is required in addition to `confirmed: true` for private-value requests exposed by: `chrome_bridge_cookies_list`, `chrome_bridge_storage_snapshot`, `chrome_bridge_request`.
 - Live bridge caution: run `chrome_bridge_reload_extension`, `chrome_bridge_doctor` with `liveChecks: true`, and `chrome_bridge_runtime_smoke` only when no other session is using the bridge.

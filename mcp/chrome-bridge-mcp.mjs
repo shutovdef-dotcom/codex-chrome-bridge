@@ -280,6 +280,39 @@ async function localActPreview(args = {}) {
   }
 }
 
+async function localActApply(args = {}) {
+  try {
+    const cliArgs = [
+      path.join(rootDir, 'bin/chrome-bridge.mjs'),
+      'act-apply',
+      '--preview-id',
+      args.previewId,
+      '--confirm',
+    ];
+    if (args.text !== undefined) cliArgs.push('--text', args.text);
+    if (args.value !== undefined) cliArgs.push('--value', args.value);
+    if (args.label !== undefined) cliArgs.push('--label', args.label);
+    if (args.index !== undefined) cliArgs.push('--index', String(args.index));
+    const result = await execFileAsync(process.execPath, cliArgs, { timeout: 30_000 });
+    return parseLocalCliJson(result.stdout) || {};
+  } catch (error) {
+    const parsed = parseLocalCliJson(error?.stdout);
+    if (parsed) {
+      return {
+        ...parsed,
+        cliExitError: String(error?.message || error),
+        stderr: error?.stderr || '',
+      };
+    }
+    return {
+      ok: false,
+      error: String(error?.message || error),
+      stdout: error?.stdout || '',
+      stderr: error?.stderr || '',
+    };
+  }
+}
+
 async function sessionSummary() {
   const health = await bridgeFetch('/health').catch((error) => ({
     ok: false,
@@ -1230,6 +1263,23 @@ server.tool(
     allowExternal: z.boolean().optional(),
   },
   async (args) => textResult(await localActPreview(args)),
+);
+
+server.tool(
+  'chrome_bridge_act_apply',
+  'Apply exactly one previously previewed action by previewId with explicit confirmation, then return before/after evidence and a recommended next read.',
+  {
+    previewId: z.string(),
+    text: z.string().optional(),
+    value: z.string().optional(),
+    label: z.string().optional(),
+    index: z.number().min(0).optional(),
+    confirmed: z.boolean(),
+  },
+  async (args) => {
+    if (!args.confirmed) throw new Error('chrome_bridge_act_apply requires confirmed=true');
+    return textResult(await localActApply(args));
+  },
 );
 
 server.tool(

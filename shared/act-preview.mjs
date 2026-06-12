@@ -298,3 +298,31 @@ export function buildActPreviewPlan(input = {}) {
     ],
   };
 }
+
+export function actionRecordForCandidate(plan = {}, candidate = {}) {
+  const applyAction = candidate.action === 'type'
+    ? 'type'
+    : candidate.action === 'select'
+      ? 'select'
+      : 'click';
+  const baseArguments = {
+    selector: candidate.selector,
+  };
+  if (applyAction === 'type' && candidate.exactMcpCall?.arguments?.text) {
+    baseArguments.text = candidate.exactMcpCall.arguments.text;
+  }
+  return {
+    kind: applyAction,
+    selector: candidate.selector,
+    label: candidate.label,
+    role: candidate.role,
+    risk: candidate.risk,
+    confidence: candidate.confidence,
+    exactCommand: candidate.exactCommand,
+    exactMcpCall: candidate.exactMcpCall,
+    askUserFirst: candidate.askUserFirst,
+    inputHint: candidate.inputHint,
+    possibleSideEffects: candidate.possibleSideEffects,
+    baseArguments,
+  };
+}

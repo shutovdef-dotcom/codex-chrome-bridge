@@ -11,7 +11,15 @@ import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
 import { buildStructuredPresetExtraction } from '../shared/structured-extract.mjs';
 import { buildDownloadDiscovery } from '../shared/download-discovery.mjs';
 import { ingestLighthouseReportFile } from '../shared/lighthouse-ingest.mjs';
-import { buildActPreviewPlan } from '../shared/act-preview.mjs';
+import { actionRecordForCandidate, buildActPreviewPlan } from '../shared/act-preview.mjs';
+import {
+  createPreviewActionId,
+  DEFAULT_ACT_PREVIEW_TTL_MS,
+  markPreviewActionUsed,
+  previewActionIsExpired,
+  readPreviewAction,
+  writePreviewAction,
+} from '../shared/act-preview-state.mjs';
 import { buildToolAdvisor } from '../shared/tool-advisor.mjs';
 import {
   bridgeFetchTimeoutSignal,
@@ -105,6 +113,185 @@ function actPreviewInput(args, observed) {
     riskTolerance: args.risk || 'confirmed-interaction',
     selectorPreference: args['selector-preference'] || 'stable',
   };
+}
+
+async function persistedActPreviewPlan(input, options = {}) {
+  const plan = buildActPreviewPlan(input);
+  const createdAt = new Date().toISOString();
+  const ttlMs = DEFAULT_ACT_PREVIEW_TTL_MS;
+  const candidates = await Promise.all(plan.candidates.map(async (candidate) => {
+    const previewActionId = createPreviewActionId();
+    const record = await writePreviewAction({
+      previewActionId,
+      createdAt,
+      ttlMs,
+      intent: plan.intent,
+      page: {
+        tabId: plan.page?.tabId,
+        url: plan.page?.url,
+        title: plan.page?.title,
+      },
+      action: actionRecordForCandidate(plan, candidate),
+    });
+    return {
+      ...candidate,
+      id: previewActionId,
+      previewExpiresAt: record.expiresAt,
+      previewTtlMs: ttlMs,
+    };
+  }));
+  const recommended = candidates.find((candidate) => candidate.id === plan.recommended?.id)
+    || candidates[0]
+    || null;
+  return {
+    ...plan,
+    createdAt,
+    previewTtlMs: ttlMs,
+    candidates,
+    recommended,
+  };
+}
+
+function currentPageMeta(result = {}) {
+  return {
+    tabId: result?.tab?.id ?? result?.tabId ?? null,
+    url: result?.url || result?.tab?.url || null,
+    title: result?.title || result?.tab?.title || null,
+  };
+}
+
+function nextReadForAppliedAction(kind) {
+  return kind === 'type' || kind === 'select'
+    ? {
+      cli: 'chrome-bridge snapshot',
+      mcp: { tool: 'chrome_bridge_snapshot', arguments: {} },
+    }
+    : {
+      cli: 'chrome-bridge observe',
+      mcp: { tool: 'chrome_bridge_observe', arguments: {} },
+    };
+}
+
+async function actApply(args = {}) {
+  if (!args['preview-id']) throw new Error('act-apply requires --preview-id <id>');
+  if (!args.confirm) throw new Error('act-apply requires --confirm');
+
+  const record = await readPreviewAction({ previewActionId: args['preview-id'] });
+  if (!record) throw new Error('Preview action not found or already expired from local state');
+  if (record.usedAt) throw new Error('Preview action was already used');
+  if (previewActionIsExpired(record)) throw new Error('Preview action is stale or expired');
+
+  const expectedTabId = Number.isInteger(record.page?.tabId) ? record.page.tabId : null;
+  if (!Number.isInteger(expectedTabId)) throw new Error('Preview action is missing a target tab id');
+
+  const beforeObserve = await command('observe', {
+    tabId: expectedTabId,
+    limit: 20,
+    maxTextChars: 120,
+  }, 30_000);
+  const beforePage = currentPageMeta(beforeObserve);
+  if (record.page?.url && beforePage.url !== record.page.url) {
+    throw new Error(`Preview action is stale: expected URL ${record.page.url}, got ${beforePage.url || '<none>'}`);
+  }
+  if (record.page?.title && beforePage.title !== record.page.title) {
+    throw new Error(`Preview action is stale: expected title ${record.page.title}, got ${beforePage.title || '<none>'}`);
+  }
+
+  const actionKind = record.action?.kind;
+  const selector = record.action?.selector;
+  if (!selector) throw new Error('Preview action is missing selector data');
+
+  const baseArguments = {
+    tabId: expectedTabId,
+    confirmed: true,
+  };
+  let actionName;
+  let actionArguments;
+
+  if (actionKind === 'click') {
+    actionName = 'click';
+    actionArguments = {
+      ...baseArguments,
+      selector,
+    };
+  } else if (actionKind === 'type') {
+    const text = typeof args.text === 'string' ? args.text : record.action?.baseArguments?.text;
+    if (typeof text !== 'string' || !text.length) {
+      throw new Error('This previewed type action still needs --text <value> before apply');
+    }
+    actionName = 'type';
+    actionArguments = {
+      ...baseArguments,
+      selector,
+      text,
+    };
+  } else if (actionKind === 'select') {
+    const value = args.value;
+    const label = args.label;
+    const index = parseNonNegativeIntegerArg(args.index, '--index');
+    if (value === undefined && label === undefined && index === undefined) {
+      throw new Error('This previewed select action needs --value, --label, or --index before apply');
+    }
+    actionName = 'select';
+    actionArguments = {
+      ...baseArguments,
+      selector,
+      value,
+      label,
+      index,
+    };
+  } else {
+    throw new Error(`Unsupported preview action kind: ${actionKind}`);
+  }
+
+  const actionResult = await command(actionName, actionArguments, 30_000);
+  const afterObserve = await command('observe', {
+    tabId: expectedTabId,
+    limit: 20,
+    maxTextChars: 120,
+  }, 30_000).catch(() => null);
+  const afterPage = afterObserve ? currentPageMeta(afterObserve) : {
+    tabId: expectedTabId,
+    url: actionResult?.url || actionResult?.tab?.url || null,
+    title: actionResult?.title || actionResult?.tab?.title || null,
+  };
+
+  const nextRead = nextReadForAppliedAction(actionKind);
+  const result = {
+    ok: true,
+    action: 'act-apply',
+    previewId: record.previewActionId,
+    appliedAction: {
+      kind: actionKind,
+      selector,
+      label: record.action?.label || null,
+      risk: record.action?.risk || null,
+    },
+    before: beforePage,
+    after: afterPage,
+    evidence: {
+      previewCreatedAt: record.createdAt,
+      previewExpiresAt: record.expiresAt,
+      usedAt: new Date().toISOString(),
+      exactCommand: record.action?.exactCommand || null,
+      exactMcpCall: record.action?.exactMcpCall || null,
+    },
+    nextRead,
+    notes: [
+      'act-apply executed exactly one low-level action.',
+      'Read the page again before attempting another mutation.',
+    ],
+  };
+  await markPreviewActionUsed({
+    previewActionId: record.previewActionId,
+    usedAt: result.evidence.usedAt,
+    result: {
+      before: beforePage,
+      after: afterPage,
+      action: result.appliedAction,
+    },
+  });
+  return result;
 }
 
 async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
@@ -3245,7 +3432,12 @@ async function main() {
       limit: parseNumberRangeArg(args.limit, '--limit', 1, 300) ?? 120,
       maxTextChars: parseNumberRangeArg(args['max-text-chars'], '--max-text-chars', 20, 1_000) ?? 200,
     }, 30_000);
-    printJson(buildActPreviewPlan(actPreviewInput(args, observed)));
+    printJson(await persistedActPreviewPlan(actPreviewInput(args, observed)));
+    return;
+  }
+
+  if (cmd === 'act-apply') {
+    printJson(await actApply(args));
     return;
   }
 
