@@ -11,6 +11,8 @@ import { validateCommandPayload } from '../../../shared/command-registry.mjs';
 import { readRegistrySource } from '../lib/registry-source.mjs';
 import { fetchUrl } from '../../../extension/browser-data.js';
 
+import { readCliSource } from '../lib/cli-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 
@@ -36,7 +38,7 @@ async function checkSourceSurface() {
   ] = await Promise.all([
     readProjectFile('package.json'),
     readRegistrySource(rootDir),
-    readProjectFile('bin/chrome-bridge.mjs'),
+    readCliSource(rootDir),
     readProjectFile('mcp/chrome-bridge-mcp.mjs'),
     readProjectFile('extension/browser-data.js'),
     readProjectFile('server/bridge-server.mjs'),

@@ -11,6 +11,8 @@ import { validateCommandPayload } from '../../../shared/command-registry.mjs';
 import { readRegistrySource } from '../lib/registry-source.mjs';
 
 const execFileAsync = promisify(execFile);
+import { readCliSource } from '../lib/cli-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const cliPath = path.join(rootDir, 'bin/chrome-bridge.mjs');
 const failures = [];
@@ -317,7 +319,7 @@ async function checkSurface() {
   const [packageText, registry, cli, outputEnvelope] = await Promise.all([
     fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
     readRegistrySource(rootDir),
-    fs.readFile(path.join(rootDir, 'bin/chrome-bridge.mjs'), 'utf8'),
+    readCliSource(rootDir),
     fs.readFile(path.join(rootDir, 'shared/output-envelope.mjs'), 'utf8'),
   ]);
   const packageJson = JSON.parse(packageText);

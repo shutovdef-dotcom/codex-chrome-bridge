@@ -11,6 +11,7 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.
 
 const REQUIRED_PACKAGE_FILES = Object.freeze([
   'bin/chrome-bridge.mjs',
+  'bin/cli/main.mjs',
   'mcp/chrome-bridge-mcp.mjs',
   'server/bridge-server.mjs',
   'shared/action-recording.mjs',
@@ -104,6 +105,8 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'scripts/checks/release/check-runtime-smoke-plan.mjs',
   'scripts/checks/release/check-roadmap-coverage.mjs',
   'scripts/checks/cli/check-cli-local-tools.mjs',
+  'scripts/checks/cli/check-cli-module-boundaries.mjs',
+  'scripts/checks/lib/cli-source.mjs',
   'scripts/checks/mcp/check-mcp-runtime-smoke.mjs',
   'scripts/checks/mcp/check-mcp-local-tools.mjs',
   'scripts/checks/mcp/check-mcp-prompts.mjs',

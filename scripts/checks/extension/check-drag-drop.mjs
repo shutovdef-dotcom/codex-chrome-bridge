@@ -10,6 +10,8 @@ import {
 } from '../../../shared/command-registry.mjs';
 import { readRegistrySource } from '../lib/registry-source.mjs';
 
+import { readCliSource } from '../lib/cli-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 
@@ -72,7 +74,7 @@ const [
 ] = await Promise.all([
   fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
   readRegistrySource(rootDir),
-  fs.readFile(path.join(rootDir, 'bin/chrome-bridge.mjs'), 'utf8'),
+  readCliSource(rootDir),
   fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-interactions.js'), 'utf8'),
