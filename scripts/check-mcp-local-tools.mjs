@@ -276,6 +276,8 @@ await withMcpClient(async (client) => {
   check(catalogParsed?.mcpTools?.length === MCP_TOOLS.length, 'MCP command catalog must expose every registry MCP tool');
   check(catalogParsed?.counts?.cliCommands === CLI_COMMANDS.length, 'MCP command catalog must expose registry CLI command count');
   check(catalogParsed?.counts?.mcpTools === MCP_TOOLS.length, 'MCP command catalog must expose registry MCP tool count');
+  check(catalogParsed?.mcpProfile?.profile === 'full', 'MCP command catalog must expose the active full profile by default');
+  check(catalogParsed?.mcpProfile?.counts?.enabled === MCP_TOOLS.length, 'MCP command catalog must expose the enabled tool count for the active profile');
   const catalogCommandNames = new Set(catalogParsed?.cliCommands || []);
   const catalogToolNames = new Set(catalogParsed?.mcpTools || []);
   for (const command of CLI_COMMANDS) {
@@ -333,6 +335,13 @@ await withMcpClient(async (client) => {
   check(toolNames.has('chrome_bridge_observe'), 'MCP core profile must expose read-first observe');
   check(toolNames.has('chrome_bridge_click'), 'MCP core profile must expose confirmed click');
   check(!toolNames.has('chrome_bridge_cookies_list'), 'MCP core profile must omit sensitive private-browser tools by default');
+
+  const catalogParsed = parseToolJson(await client.callTool({
+    name: 'chrome_bridge_command_catalog',
+    arguments: {},
+  }), 'MCP command catalog core profile');
+  check(catalogParsed?.mcpProfile?.profile === 'core', 'MCP command catalog must expose the active core profile when profile-gated');
+  check(Array.isArray(catalogParsed?.mcpProfile?.omittedTools) && catalogParsed.mcpProfile.omittedTools.includes('chrome_bridge_cookies_list'), 'MCP command catalog core profile must list omitted sensitive tools');
 }, {
   CHROME_BRIDGE_MCP_TOOL_PROFILE: 'core',
 });

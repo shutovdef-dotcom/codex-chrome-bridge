@@ -43,13 +43,13 @@ Audit outcomes from this scan:
 - Repositioned public docs around **Chrome MCP Bridge** while keeping the existing package, repository, and `chrome-bridge` binary for compatibility.
 - Added `mcp-config` and `chrome_bridge_mcp_config` to generate snippets for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients.
 - Added `CHROME_BRIDGE_MCP_TOOL_PROFILE=full|core|read`; the `core` profile exposes 39 high-value tools and omits sensitive private-browser tools, giving IDE clients a compact default.
+- Added MCP prompts and compact resources for quickstart, safety, compatibility, active profile, and read-first/debug workflows.
 - Added [MCP Client Compatibility](COMPATIBILITY.md) as an SEO/distribution page and updated AI-discovery metadata.
 
 Remaining gaps:
 
 - GitHub repository/package rename or alias package (`chrome-mcp-bridge`) is still not done; doing it safely needs release planning, npm ownership checks, redirects, and migration docs.
 - One-click install buttons or marketplace entries for VS Code/Cursor/Claude plugin-style distribution are not implemented.
-- MCP prompts/resources are not yet exposed; the current surface is tools plus CLI/skill docs.
 - We do not provide hosted cloud sessions, proxy pools, CAPTCHA solving, live-view sharing, or large-scale crawling. Keep these out of the default scope unless the product intentionally moves beyond local real-profile control.
 
 ## Fresh Scan: 2026-06-11

@@ -10,6 +10,7 @@ import { z } from 'zod';
 import {
   BRIDGE_VERSION,
   HTTP_METHODS,
+  MCP_TOOLS,
   TAB_GROUP_COLORS,
   commandCatalog,
   commandDefaultTimeoutMs,
@@ -521,6 +522,366 @@ server.tool = (name, ...args) => {
   if (enabledMcpTools && !enabledMcpTools.has(name)) return undefined;
   return registerTool(name, ...args);
 };
+
+const MCP_TOOL_PROFILE_DESCRIPTIONS = Object.freeze({
+  full: 'Full MCP tool surface for local-first clients that can handle the entire browser and diagnostics set.',
+  core: 'Compact MCP tool surface for IDE agents; keeps high-value browser tools while omitting sensitive private-browser tools by default.',
+  read: 'Read-mostly MCP tool surface for conservative clients that should inspect and export before mutating.',
+});
+
+function currentMcpProfileSummary() {
+  const enabledTools = enabledMcpTools ? MCP_TOOLS.filter((name) => enabledMcpTools.has(name)) : [...MCP_TOOLS];
+  const omittedTools = enabledMcpTools ? MCP_TOOLS.filter((name) => !enabledMcpTools.has(name)) : [];
+  return {
+    profile: mcpToolProfile,
+    description: MCP_TOOL_PROFILE_DESCRIPTIONS[mcpToolProfile],
+    enabledTools,
+    omittedTools,
+    counts: {
+      enabled: enabledTools.length,
+      omitted: omittedTools.length,
+      total: MCP_TOOLS.length,
+    },
+  };
+}
+
+function markdownResource(uri, text) {
+  return {
+    contents: [
+      {
+        uri,
+        mimeType: 'text/markdown',
+        text,
+      },
+    ],
+  };
+}
+
+function jsonResource(uri, value) {
+  return {
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: `${JSON.stringify(value, null, 2)}\n`,
+      },
+    ],
+  };
+}
+
+function quickstartResourceText() {
+  return [
+    '# Chrome MCP Bridge Quickstart',
+    '',
+    '1. Load the unpacked Chrome extension from `extension/`.',
+    '2. Start the bridge server with `npm run server` or the installed daemon.',
+    '3. Configure your MCP client with `chrome-bridge mcp-config` or `chrome_bridge_mcp_config`.',
+    '4. Start every workflow with `chrome_bridge_health` and `chrome_bridge_workspace`.',
+    '5. If the target page is already open, ask the user to focus it and use `chrome_bridge_adopt_tab` with `confirmed: true`.',
+    '6. Prefer read-first tools before interaction: `chrome_bridge_snapshot`, `chrome_bridge_text`, `chrome_bridge_observe`, `chrome_bridge_find_elements`, `chrome_bridge_extract`.',
+    '7. Use interaction tools only after explicit user approval for the exact action.',
+    '',
+    'When another session is using the live bridge, prefer `chrome_bridge_doctor`, `chrome_bridge_command_catalog`, and `chrome_bridge_runtime_smoke` with `coveragePlan: true`.',
+  ].join('\n');
+}
+
+function safetyResourceText() {
+  return [
+    '# Chrome MCP Bridge Safety',
+    '',
+    '- The bridge controls a real logged-in Chrome profile on the local machine.',
+    '- Default scope is the dedicated Chrome Bridge tab group; outside tabs require explicit override or are blocked in strict mode.',
+    '- Inventory reads like `tabs` and `windows` require confirmation when `includeAll: true` is used.',
+    '- Mutating tools require `confirmed: true`.',
+    '- Private browser reads such as cookies, storage values, and credentialed requests require `confirmSensitive: true` in addition to `confirmed: true`.',
+    '- Large or sensitive outputs should go to local artifacts instead of inline MCP text.',
+    '- Do not use the bridge for CAPTCHA bypass, stealth automation, proxy rotation, credential extraction, or unattended private-account mutation.',
+  ].join('\n');
+}
+
+function compatibilityResourceText() {
+  return [
+    '# MCP Client Compatibility',
+    '',
+    'Supported local stdio clients include Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic MCP clients.',
+    '',
+    'Fast path:',
+    '',
+    '- `chrome_bridge_mcp_config` from MCP',
+    '- `chrome-bridge mcp-config` from CLI',
+    '',
+    'Profile guidance:',
+    '',
+    '- `full`: broad local harnesses and clients that can handle the full surface',
+    '- `core`: compact IDE profile for Cursor and Windsurf',
+    '- `read`: conservative read-mostly profile',
+    '',
+    'If a client warns about too many tools, switch to `CHROME_BRIDGE_MCP_TOOL_PROFILE=core` first.',
+  ].join('\n');
+}
+
+function toolCatalogResourceText() {
+  const profile = currentMcpProfileSummary();
+  return [
+    '# Chrome MCP Bridge Tool Guide',
+    '',
+    `Active MCP profile: \`${profile.profile}\``,
+    '',
+    profile.description,
+    '',
+    `Enabled tools: ${profile.counts.enabled}/${profile.counts.total}`,
+    `Omitted tools: ${profile.counts.omitted}`,
+    '',
+    'Recommended local diagnostics:',
+    '',
+    '- `chrome_bridge_health`',
+    '- `chrome_bridge_doctor`',
+    '- `chrome_bridge_command_catalog`',
+    '- `chrome_bridge_mcp_config`',
+    '- `chrome_bridge_session_summary`',
+    '',
+    'Recommended read-first browser tools:',
+    '',
+    '- `chrome_bridge_workspace`',
+    '- `chrome_bridge_group`',
+    '- `chrome_bridge_tabs`',
+    '- `chrome_bridge_observe`',
+    '- `chrome_bridge_find_elements`',
+    '- `chrome_bridge_extract`',
+    '- `chrome_bridge_snapshot`',
+    '- `chrome_bridge_text`',
+    '',
+    'Recommended artifact/debug tools:',
+    '',
+    '- `chrome_bridge_screenshot`',
+    '- `chrome_bridge_pdf`',
+    '- `chrome_bridge_diagnostics`',
+    '- `chrome_bridge_debug_bundle`',
+    '- `chrome_bridge_lighthouse_ingest`',
+    '',
+    'Use `chrome_bridge_command_catalog` when the agent needs the full local contract, risk tiers, default timeouts, CLI aliases, or confirmation metadata.',
+  ].join('\n');
+}
+
+function readFirstWorkflowText() {
+  return [
+    '# Read-First Workflow',
+    '',
+    '1. Call `chrome_bridge_health`.',
+    '2. Call `chrome_bridge_workspace` and note policy mode.',
+    '3. If the page is already open, ask the user to focus it and call `chrome_bridge_adopt_tab` with `confirmed: true`.',
+    '4. Otherwise use `chrome_bridge_ensure_tab` and `chrome_bridge_open`.',
+    '5. Inspect the page with `chrome_bridge_snapshot` or `chrome_bridge_text`.',
+    '6. Use `chrome_bridge_observe` to get ranked actionable elements.',
+    '7. Narrow with `chrome_bridge_find_elements` or `chrome_bridge_extract` before proposing any mutation.',
+    '8. Ask for confirmation before click, type, select, upload, dialog, or private-data reads.',
+  ].join('\n');
+}
+
+function debugBundleWorkflowText() {
+  return [
+    '# Debug Bundle Workflow',
+    '',
+    '1. Start with `chrome_bridge_session_summary` to confirm bridge state and workspace policy.',
+    '2. Use `chrome_bridge_diagnostics` for bounded performance/resource hints.',
+    '3. Use `chrome_bridge_debug_bundle` with only the minimum required include flags.',
+    '4. Keep page artifacts local; default debug bundles should stay redacted.',
+    '5. If the issue is performance-specific, ingest a local Lighthouse report with `chrome_bridge_lighthouse_ingest`.',
+    '6. Prefer `chrome_bridge_trace_summary` and `chrome_bridge_diagnostics` before requesting heavier evidence.',
+  ].join('\n');
+}
+
+function promptTextResult(text, description) {
+  return {
+    description,
+    messages: [
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text,
+        },
+      },
+    ],
+  };
+}
+
+server.resource(
+  'quickstart-doc',
+  'chrome-bridge://docs/quickstart',
+  {
+    title: 'Quickstart',
+    description: 'Compact quickstart for loading the extension, starting the bridge, and beginning a safe browser workflow.',
+    mimeType: 'text/markdown',
+  },
+  async (uri) => markdownResource(uri.toString(), quickstartResourceText()),
+);
+
+server.resource(
+  'safety-doc',
+  'chrome-bridge://docs/safety',
+  {
+    title: 'Safety',
+    description: 'Compact safety boundary for real-profile local Chrome automation.',
+    mimeType: 'text/markdown',
+  },
+  async (uri) => markdownResource(uri.toString(), safetyResourceText()),
+);
+
+server.resource(
+  'compatibility-doc',
+  'chrome-bridge://docs/compatibility',
+  {
+    title: 'Client Compatibility',
+    description: 'Compact MCP client compatibility guide and profile guidance.',
+    mimeType: 'text/markdown',
+  },
+  async (uri) => markdownResource(uri.toString(), compatibilityResourceText()),
+);
+
+server.resource(
+  'tool-catalog-guide',
+  'chrome-bridge://catalog/tools',
+  {
+    title: 'Tool Guide',
+    description: 'Compact guide to the highest-value Chrome MCP Bridge tools and when to use the full command catalog.',
+    mimeType: 'text/markdown',
+  },
+  async (uri) => markdownResource(uri.toString(), toolCatalogResourceText()),
+);
+
+server.resource(
+  'current-profile',
+  'chrome-bridge://profiles/current',
+  {
+    title: 'Current MCP Profile',
+    description: 'Current MCP profile, enabled tool count, and omitted tools for this server process.',
+    mimeType: 'application/json',
+  },
+  async (uri) => jsonResource(uri.toString(), {
+    generatedAt: new Date().toISOString(),
+    ...currentMcpProfileSummary(),
+  }),
+);
+
+server.resource(
+  'read-first-workflow',
+  'chrome-bridge://workflows/read-first',
+  {
+    title: 'Read-First Workflow',
+    description: 'Recommended safe workflow for inspecting a page before proposing interaction.',
+    mimeType: 'text/markdown',
+  },
+  async (uri) => markdownResource(uri.toString(), readFirstWorkflowText()),
+);
+
+server.resource(
+  'debug-bundle-workflow',
+  'chrome-bridge://workflows/debug-bundle',
+  {
+    title: 'Debug Bundle Workflow',
+    description: 'Recommended bounded debugging flow before collecting heavier local artifacts.',
+    mimeType: 'text/markdown',
+  },
+  async (uri) => markdownResource(uri.toString(), debugBundleWorkflowText()),
+);
+
+server.prompt(
+  'chrome_bridge_read_first',
+  'Plan a safe read-first workflow before any browser mutation.',
+  {
+    goal: z.string().optional(),
+  },
+  async ({ goal } = {}) => promptTextResult([
+    'Use Chrome MCP Bridge in read-first mode.',
+    goal ? `Goal: ${goal}` : 'Goal: inspect the current browser task safely before mutation.',
+    'First call chrome_bridge_health, then chrome_bridge_workspace.',
+    'If the page is already open, ask the user to focus it and use chrome_bridge_adopt_tab with confirmed=true.',
+    'Then prefer chrome_bridge_snapshot or chrome_bridge_text, followed by chrome_bridge_observe and chrome_bridge_find_elements.',
+    'Use chrome_bridge_extract for structured output when that is cheaper than free-form reading.',
+    'Do not click, type, submit, or read private browser data until the user explicitly approves the exact action.',
+    'If output may be large, keep it in local artifacts instead of inline MCP text.',
+  ].join('\n'), 'Read-first browser inspection workflow.'),
+);
+
+server.prompt(
+  'chrome_bridge_existing_tab',
+  'Guide the agent through adopting an already-open tab into the scoped group.',
+  {
+    pageHint: z.string().optional(),
+  },
+  async ({ pageHint } = {}) => promptTextResult([
+    'Help the user work with an already-open Chrome tab.',
+    pageHint ? `Target tab hint: ${pageHint}` : 'Ask the user to focus the target tab in Chrome first.',
+    'After the user confirms the correct tab is focused, call chrome_bridge_adopt_tab with confirmed=true.',
+    'Then call chrome_bridge_group or chrome_bridge_tabs to verify scope.',
+    'Read first with chrome_bridge_snapshot, chrome_bridge_observe, and chrome_bridge_find_elements before suggesting interaction.',
+    'If the wrong tab is in scope, stop and ask the user to refocus rather than guessing.',
+  ].join('\n'), 'Existing-tab adoption workflow.'),
+);
+
+server.prompt(
+  'chrome_bridge_debug_page',
+  'Guide the agent through a bounded debugging workflow with local artifacts.',
+  {
+    suspectedIssue: z.string().optional(),
+  },
+  async ({ suspectedIssue } = {}) => promptTextResult([
+    'Use a bounded Chrome MCP Bridge debugging flow.',
+    suspectedIssue ? `Suspected issue: ${suspectedIssue}` : 'Suspected issue: unknown browser, UI, or performance problem.',
+    'Start with chrome_bridge_session_summary and chrome_bridge_diagnostics.',
+    'Prefer chrome_bridge_trace_summary and chrome_bridge_diagnostics before heavier artifact collection.',
+    'If needed, write a redacted local debug bundle with chrome_bridge_debug_bundle and only the minimum include flags.',
+    'For performance reports, ingest a local Lighthouse JSON report with chrome_bridge_lighthouse_ingest instead of dumping raw audits.',
+    'Keep raw page artifacts local; summarize findings in metadata-first form.',
+  ].join('\n'), 'Bounded debug workflow for browser issues.'),
+);
+
+server.prompt(
+  'chrome_bridge_extract_structured',
+  'Guide the agent to structured extraction with the lowest-risk and lowest-token path.',
+  {
+    preset: z.enum(['cpa-offer', 'article', 'product-page', 'pricing-table', 'tables', 'forms', 'lists', 'keyValues']).optional(),
+  },
+  async ({ preset } = {}) => promptTextResult([
+    'Use Chrome MCP Bridge for structured extraction.',
+    preset ? `Preferred extraction target: ${preset}` : 'Choose the smallest extraction surface that fits the task.',
+    'If a known preset applies, use chrome_bridge_extract with a preset first.',
+    'Otherwise use chrome_bridge_extract with kind=tables, forms, lists, or keyValues.',
+    'If the page is large, prefer artifact paths with out or artifactDir rather than inlining everything.',
+    'Do not use free-form screenshot reading when structured extraction can answer the question more cheaply.',
+  ].join('\n'), 'Structured extraction workflow.'),
+);
+
+server.prompt(
+  'chrome_bridge_safe_interaction',
+  'Guide the agent through a confirmation-aware interaction workflow.',
+  {
+    intent: z.string().optional(),
+  },
+  async ({ intent } = {}) => promptTextResult([
+    'Use Chrome MCP Bridge interaction mode carefully.',
+    intent ? `Planned interaction: ${intent}` : 'Planned interaction: unknown.',
+    'Before mutation, inspect the page with chrome_bridge_observe and chrome_bridge_find_elements.',
+    'Propose the exact selector or action to the user before calling click, type, press, select, upload, or handle dialog.',
+    'Use confirmed=true only after the user explicitly approves the exact action.',
+    'If the interaction could expose private browser data, also require confirmSensitive=true where applicable.',
+    'After the interaction, read the page again rather than chaining autonomous mutations.',
+  ].join('\n'), 'Confirmation-aware browser interaction workflow.'),
+);
+
+server.prompt(
+  'chrome_bridge_release_smoke',
+  'Guide the agent through the safe live verification sequence after bridge or extension changes.',
+  {},
+  async () => promptTextResult([
+    'Run the Chrome MCP Bridge live verification flow only when no other session is using the bridge.',
+    'First use chrome_bridge_runtime_smoke with coveragePlan=true if you need the offline checklist.',
+    'When the bridge is free, reload the extension, run doctor with liveChecks=true, then run runtime smoke.',
+    'Treat the verification as complete only when ok=true, coverage.ok=true, and verification.status="passed".',
+    'If the smoke output includes nextCommand or nextAction, follow that recovery guidance rather than guessing.',
+  ].join('\n'), 'Release verification workflow.'),
+);
 
 server.tool(
   'chrome_bridge_health',
@@ -1407,7 +1768,10 @@ server.tool(
   'chrome_bridge_command_catalog',
   'Return local Chrome Bridge command metadata from the shared registry, including actions, risk tiers, default timeouts, CLI aliases, MCP tools, and confirmation requirements.',
   {},
-  async () => textResult(commandCatalog()),
+  async () => textResult({
+    ...commandCatalog(),
+    mcpProfile: currentMcpProfileSummary(),
+  }),
 );
 
 await server.connect(new StdioServerTransport());

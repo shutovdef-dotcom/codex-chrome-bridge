@@ -43,6 +43,7 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - CLI and MCP: usable from a terminal or any MCP-capable client.
 - MCP client setup: `mcp-config` prints ready-to-paste snippets for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients.
 - Compact IDE profile: Cursor/Windsurf snippets set `CHROME_BRIDGE_MCP_TOOL_PROFILE=core`, exposing 39 high-value tools instead of the full surface for better IDE-agent ergonomics.
+- MCP guidance surfaces: built-in prompts and resources expose quickstart, safety, compatibility, profile, and workflow guidance without forcing agents to rediscover the right tool chain.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
 - Agent discovery: ranked read-only `observe` output for actionable elements and querySelector-verified selectors.
 - Structured extraction: read tables, form structure, lists, key-value blocks, and artifact-backed presets such as `cpa-offer`, `article`, `product-page`, and `pricing-table` without returning private form values.

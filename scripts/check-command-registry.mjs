@@ -230,8 +230,12 @@ check((packageJson.files || []).includes('docs/'), 'package.json files must incl
 check(packageJson.scripts?.['check:pack'] === 'node ./scripts/check-package-contents.mjs', 'check:pack must verify exact package contents');
 check(packageJson.scripts?.['check:privacy'] === 'node ./scripts/check-privacy-scan.mjs', 'check:privacy must run the privacy scanner');
 check(packageJson.scripts?.['check:roadmap'] === 'node ./scripts/check-roadmap-coverage.mjs', 'check:roadmap must verify merged roadmap coverage');
+check(packageJson.scripts?.['check:mcp-prompts'] === 'node ./scripts/check-mcp-prompts.mjs', 'check:mcp-prompts must verify MCP prompts');
+check(packageJson.scripts?.['check:mcp-resources'] === 'node ./scripts/check-mcp-resources.mjs', 'check:mcp-resources must verify MCP resources');
 check(packageJson.scripts?.check?.includes('npm run check:privacy'), 'npm run check must include check:privacy');
 check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include check:roadmap');
+check(packageJson.scripts?.check?.includes('npm run check:mcp-prompts'), 'npm run check must include check:mcp-prompts');
+check(packageJson.scripts?.check?.includes('npm run check:mcp-resources'), 'npm run check must include check:mcp-resources');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-cleanup.js'), 'npm run check must syntax-check extension/tab-cleanup.js');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-group-persistence.js'), 'npm run check must syntax-check extension/tab-group-persistence.js');
 if (isRepositoryCheckout || checkWorkflowText) {
@@ -817,6 +821,9 @@ check(llmsText.includes('finalVerificationComplete'), 'llms metadata must mentio
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
 check(mcpText.includes('CHROME_BRIDGE_MCP_TOOL_PROFILE'), 'MCP server must support compact tool profiles for IDE client compatibility');
 check(mcpText.includes('chrome_bridge_cookies_list') && mcpText.includes('MCP_TOOL_PROFILES'), 'MCP tool profiles must make sensitive/private tools intentionally profile-gated');
+check(mcpText.includes("server.prompt(\n  'chrome_bridge_read_first'"), 'MCP server must register the read-first prompt');
+check(mcpText.includes("server.resource(\n  'current-profile'"), 'MCP server must register the current-profile resource');
+check(mcpText.includes('chrome-bridge://profiles/current'), 'MCP server must expose the current-profile resource URI');
 check(LOCAL_COMMAND_METADATA.doctor?.mcp?.includes('chrome_bridge_doctor'), 'registry local doctor command must expose an MCP tool');
 check(LOCAL_COMMAND_METADATA['extension-path']?.mcp?.includes('chrome_bridge_extension_path'), 'registry local extension-path command must expose an MCP tool');
 check(LOCAL_COMMAND_METADATA['mcp-config']?.mcp?.includes('chrome_bridge_mcp_config'), 'registry local mcp-config command must expose an MCP tool');
