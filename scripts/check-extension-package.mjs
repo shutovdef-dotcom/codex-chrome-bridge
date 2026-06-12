@@ -62,7 +62,7 @@ async function zipEntries(zipPath) {
   }
 }
 
-const [packageJson, manifestJson, readmeText, extensionDocText, publishingText, installText, registryText, privacyPolicyText] = await Promise.all([
+const [packageJson, manifestJson, readmeText, extensionDocText, publishingText, installText, registryText, privacyPolicyText, storeListingText] = await Promise.all([
   fs.readFile(path.join(rootDir, 'package.json'), 'utf8').then((text) => JSON.parse(text)),
   fs.readFile(path.join(rootDir, 'extension/manifest.json'), 'utf8').then((text) => JSON.parse(text)),
   fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
@@ -71,6 +71,7 @@ const [packageJson, manifestJson, readmeText, extensionDocText, publishingText, 
   fs.readFile(path.join(rootDir, 'docs/INSTALL.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/REGISTRY-SUBMISSIONS.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/PRIVACY-POLICY.md'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'docs/CHROME-WEB-STORE.md'), 'utf8').catch(() => ''),
 ]);
 
 const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-extension-zip-'));
@@ -97,14 +98,19 @@ check(packageJson.scripts?.check?.includes('npm run check:extension-package'), '
 check(readmeText.includes('docs/INSTALL.md'), 'README must link the install guide');
 check(readmeText.includes('docs/REGISTRY-SUBMISSIONS.md'), 'README must link the registry submission guide');
 check(readmeText.includes('docs/PRIVACY-POLICY.md'), 'README must link the extension privacy policy');
+check(readmeText.includes('docs/CHROME-WEB-STORE.md'), 'README must link the Chrome Web Store submission packet');
 check(readmeText.includes('npm run extension:zip'), 'README must document the extension zip command');
 check(extensionDocText.includes('npm run extension:zip'), 'docs/EXTENSION.md must document the extension zip command');
 check(extensionDocText.includes('Chrome Web Store'), 'docs/EXTENSION.md must mention Chrome Web Store readiness');
+check(extensionDocText.includes('CHROME-WEB-STORE.md'), 'docs/EXTENSION.md must link the Chrome Web Store submission packet');
 check(publishingText.includes('npm run extension:zip'), 'docs/PUBLISHING.md must include extension zip packaging');
 check(publishingText.includes('npm run check:extension-package'), 'docs/PUBLISHING.md must include extension package verification');
+check(publishingText.includes('docs/CHROME-WEB-STORE.md'), 'docs/PUBLISHING.md must include the Chrome Web Store submission packet');
 check(installText.includes('Claude Code') && installText.includes('Cursor') && installText.includes('Windsurf / Cascade'), 'docs/INSTALL.md must include client fast paths');
 check(registryText.includes('GitHub topics') && registryText.includes('npm keywords'), 'docs/REGISTRY-SUBMISSIONS.md must include directory metadata guidance');
 check(privacyPolicyText.includes('Chrome MCP Bridge') && privacyPolicyText.includes('loopback') && privacyPolicyText.includes('no analytics'), 'docs/PRIVACY-POLICY.md must describe local loopback behavior and no analytics');
+check(storeListingText.includes('Chrome Web Store Submission Packet'), 'docs/CHROME-WEB-STORE.md must exist with a submission packet');
+check(storeListingText.includes('Permission Justification') && storeListingText.includes('Data Use Answers'), 'Chrome Web Store packet must include permissions and data-use answers');
 
 await fs.rm(tempDir, { recursive: true, force: true });
 

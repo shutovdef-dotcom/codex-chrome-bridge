@@ -32,6 +32,9 @@ for (const client of clients) {
 }
 
 check(installText.includes('under five minutes'), 'docs/INSTALL.md must set the fast-path expectation');
+check(installText.includes('One-Command And One-Click Status'), 'docs/INSTALL.md must include the one-command/one-click status matrix');
+check(installText.includes('code --add-mcp'), 'docs/INSTALL.md must include the VS Code one-command install path');
+check(installText.includes('Cursor Settings'), 'docs/INSTALL.md must include the Cursor UI install fallback');
 check(installText.includes('mcp-config') && installText.includes('mcp-write'), 'docs/INSTALL.md must mention mcp-config and mcp-write');
 check(installText.includes('CHROME_BRIDGE_MCP_TOOL_PROFILE=core'), 'docs/INSTALL.md must mention the core tool profile for IDE clients');
 check(installText.includes('Load unpacked') && installText.includes('doctor --live-checks'), 'docs/INSTALL.md must include extension loading and live verification');
