@@ -11,6 +11,7 @@ import {
   BRIDGE_VERSION,
   HTTP_METHODS,
   MCP_TOOLS,
+  NETWORK_EMULATION_PROFILES,
   TAB_GROUP_COLORS,
   commandCatalog,
   commandDefaultTimeoutMs,
@@ -1572,6 +1573,56 @@ server.tool(
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, Buffer.from(match[1], 'base64'));
     return textResult({ ...result, dataUrl: undefined, out: outputPath });
+  },
+);
+
+server.tool(
+  'chrome_bridge_set_viewport',
+  'Apply confirmed viewport emulation to the selected tab until chrome_bridge_clear_emulation resets it.',
+  {
+    tabId: chromeIdSchema.optional(),
+    width: z.number().int().min(200).max(10000),
+    height: z.number().int().min(200).max(10000),
+    deviceScaleFactor: z.number().min(0.1).max(5).optional(),
+    mobile: z.boolean().optional(),
+    confirmed: z.boolean(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => {
+    if (!args.confirmed) throw new Error('chrome_bridge_set_viewport requires confirmed=true');
+    return textResult(await bridgeCommand('setViewport', args, 10_000));
+  },
+);
+
+server.tool(
+  'chrome_bridge_emulate_network',
+  'Apply confirmed bounded network emulation to the selected tab until chrome_bridge_clear_emulation resets it.',
+  {
+    tabId: chromeIdSchema.optional(),
+    networkProfile: z.enum(NETWORK_EMULATION_PROFILES),
+    latencyMs: z.number().int().min(1).max(120000).optional(),
+    downloadKbps: z.number().int().min(1).max(1000000).optional(),
+    uploadKbps: z.number().int().min(1).max(1000000).optional(),
+    confirmed: z.boolean(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => {
+    if (!args.confirmed) throw new Error('chrome_bridge_emulate_network requires confirmed=true');
+    return textResult(await bridgeCommand('emulateNetwork', args, 10_000));
+  },
+);
+
+server.tool(
+  'chrome_bridge_clear_emulation',
+  'Reset confirmed viewport and network emulation overrides for the selected tab.',
+  {
+    tabId: chromeIdSchema.optional(),
+    confirmed: z.boolean(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => {
+    if (!args.confirmed) throw new Error('chrome_bridge_clear_emulation requires confirmed=true');
+    return textResult(await bridgeCommand('clearEmulation', args, 10_000));
   },
 );
 

@@ -77,6 +77,26 @@ The result is intentionally metadata-first: local path, file name, extension, by
 
 Fixture: `examples/fixtures/downloads.html`.
 
+## Viewport And Network Emulation
+
+Use this when you need to reproduce a responsive layout issue or a rough network condition locally without leaving the current real-profile tab. These commands are stateful on purpose, so always clear them when the check is done.
+
+```bash
+node ./bin/chrome-bridge.mjs set-viewport \
+  --width 390 \
+  --height 844 \
+  --mobile \
+  --confirm
+
+node ./bin/chrome-bridge.mjs emulate-network \
+  --profile slow-4g \
+  --confirm
+
+node ./bin/chrome-bridge.mjs clear-emulation --confirm
+```
+
+Use `--profile custom --latency-ms <n> --download-kbps <n> --upload-kbps <n>` only when the preset profiles are not enough. Every response includes a reset hint so agents can unwind the state explicitly.
+
 ## Lighthouse Ingest
 
 Use this after Lighthouse has already produced a local JSON report. Chrome Bridge does not run Lighthouse here; it ingests a local report and emits scores plus a bounded list of failing audits.

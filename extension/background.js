@@ -70,6 +70,11 @@ import {
   historySearch,
 } from './browser-data.js';
 import { download } from './download-actions.js';
+import {
+  clearEmulation,
+  emulateNetwork,
+  setViewport,
+} from './emulation-actions.js';
 chrome.runtime.onInstalled.addListener(startBridge);
 chrome.runtime.onStartup.addListener(startBridge);
 chrome.action.onClicked.addListener(startBridge);
@@ -183,6 +188,12 @@ async function dispatch(action, payload) {
       return listSelectOptions(payload);
     case 'scroll':
       return scroll(payload);
+    case 'setViewport':
+      return setViewport(payload);
+    case 'emulateNetwork':
+      return emulateNetwork(payload);
+    case 'clearEmulation':
+      return clearEmulation(payload);
     case 'click':
       return click(payload);
     case 'download':

@@ -3656,6 +3656,42 @@ async function main() {
     return;
   }
 
+  if (cmd === 'set-viewport') {
+    if (!args.confirm) throw new Error('set-viewport requires --confirm');
+    printJson(await command('setViewport', {
+      ...targetPayload(args),
+      ...confirmationPayload(args),
+      width: parseNumberRangeArg(args.width, '--width', 200, 10_000),
+      height: parseNumberRangeArg(args.height, '--height', 200, 10_000),
+      deviceScaleFactor: parseNumberRangeArg(args['device-scale-factor'], '--device-scale-factor', 0.1, 5),
+      mobile: Boolean(args.mobile),
+    }, 10_000));
+    return;
+  }
+
+  if (cmd === 'emulate-network') {
+    if (!args.confirm) throw new Error('emulate-network requires --confirm');
+    if (!args.profile) throw new Error('emulate-network requires --profile <name>');
+    printJson(await command('emulateNetwork', {
+      ...targetPayload(args),
+      ...confirmationPayload(args),
+      networkProfile: args.profile,
+      latencyMs: parseNumberRangeArg(args['latency-ms'], '--latency-ms', 1, 120_000),
+      downloadKbps: parseNumberRangeArg(args['download-kbps'], '--download-kbps', 1, 1_000_000),
+      uploadKbps: parseNumberRangeArg(args['upload-kbps'], '--upload-kbps', 1, 1_000_000),
+    }, 10_000));
+    return;
+  }
+
+  if (cmd === 'clear-emulation') {
+    if (!args.confirm) throw new Error('clear-emulation requires --confirm');
+    printJson(await command('clearEmulation', {
+      ...targetPayload(args),
+      ...confirmationPayload(args),
+    }, 10_000));
+    return;
+  }
+
   if (cmd === 'click') {
     if (!args.confirm) throw new Error('click requires --confirm');
     if (!args.selector) throw new Error('click requires --selector <css>');

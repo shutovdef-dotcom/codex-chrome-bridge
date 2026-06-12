@@ -54,7 +54,7 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - Export helpers: save screenshots, print the current tab to PDF locally, discover likely download/offline-export affordances without clicking them, and run a confirmed single-download export that returns local file metadata only.
 - Controlled interactions: clicks, typing, keyboard, select boxes, hover, and scroll.
 - Workflow helpers: privacy-preserving select option discovery and form fill previews, dialog handling, and file input uploads.
-- Debugging tools: bounded diagnostics, page performance/resource summaries, handoff-only Lighthouse planning, local Lighthouse report ingestion, and console/network trace through Chrome Debugger/CDP.
+- Debugging tools: bounded diagnostics, page performance/resource summaries, handoff-only Lighthouse planning, local Lighthouse report ingestion, console/network trace through Chrome Debugger/CDP, and confirmed per-tab viewport/network emulation with explicit reset.
 - Browser data tools: guarded history, bookmarks, cookies, page storage, and extension-context fetch.
 - Human-in-the-loop: local prompt tab for user choices, manual confirmations, and CAPTCHA coordination.
 - Policy-aware diagnostics: session summaries and redacted debug bundles include workspace policy state; debug bundles omit page artifacts and full trace events unless explicitly requested.
@@ -141,6 +141,9 @@ node ./bin/chrome-bridge.mjs extract --preset cpa-offer --network leads_su --out
 node ./bin/chrome-bridge.mjs extract --preset article --out /tmp/article.json --artifact-dir /tmp/chrome-bridge-artifacts
 node ./bin/chrome-bridge.mjs download-discovery --out /tmp/downloads.json --artifact-dir /tmp/chrome-bridge-artifacts
 node ./bin/chrome-bridge.mjs download --selector "[data-testid='export-csv']" --confirm --download-timeout-ms 45000
+node ./bin/chrome-bridge.mjs set-viewport --width 390 --height 844 --mobile --confirm
+node ./bin/chrome-bridge.mjs emulate-network --profile slow-4g --confirm
+node ./bin/chrome-bridge.mjs clear-emulation --confirm
 node ./bin/chrome-bridge.mjs network-export --artifact-dir /tmp/chrome-bridge-artifacts --har-out /tmp/chrome-bridge-network.har.json
 node ./bin/chrome-bridge.mjs lighthouse-plan --url https://example.com --out /tmp/lighthouse.json --summary-out /tmp/lighthouse-summary.json
 node ./bin/chrome-bridge.mjs lighthouse-ingest --report /tmp/lighthouse.json --out /tmp/lighthouse-summary.json

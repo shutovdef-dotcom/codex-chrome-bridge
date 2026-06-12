@@ -54,6 +54,9 @@ The command metadata table below is generated from the shared registry by `npm r
 | `screenshot` | `screenshot` | read | 30000 ms | no | yes | Capture a PNG screenshot of the selected tab, full page, or selector. |
 | `pdf` | `printPdf` | read | 60000 ms | no | yes | Print the selected tab to a local PDF artifact. |
 | `scroll` | `scroll` | interaction | 10000 ms | no | yes | Scroll the selected tab. |
+| `set-viewport` | `setViewport` | interaction | 10000 ms | yes | yes | Apply confirmed viewport emulation to the selected tab until clear-emulation resets it. |
+| `emulate-network` | `emulateNetwork` | interaction | 10000 ms | yes | yes | Apply confirmed bounded network emulation to the selected tab until clear-emulation resets it. |
+| `clear-emulation` | `clearEmulation` | interaction | 10000 ms | yes | yes | Reset confirmed viewport and network emulation overrides for the selected tab. |
 | `click` | `click` | interaction | 30000 ms | yes | yes | Click a selector in the selected tab. |
 | `click-at` | `clickAt` | interaction | 30000 ms | yes | yes | Click viewport coordinates, optionally through trusted debugger input. |
 | `hover` | `hover` | interaction | 30000 ms | no | yes | Hover an element or coordinates in the selected tab. |
@@ -101,7 +104,7 @@ The command metadata table below is generated from the shared registry by `npm r
 <!-- BEGIN GENERATED CLI SAFETY NOTES -->
 The safety notes below are generated from the shared registry by `npm run docs:commands`.
 
-- `--confirm` is required for: `set-workspace`, `clear-workspace`, `adopt-tab`, `close-tab`, `close-group`, `act-apply`, `download`, `click`, `click-at`, `type`, `press`, `select`, `fill-form`, `handle-dialog`, `upload-file`, `trace-start`, `history`, `bookmarks`, `reload-extension`.
+- `--confirm` is required for: `set-workspace`, `clear-workspace`, `adopt-tab`, `close-tab`, `close-group`, `act-apply`, `download`, `set-viewport`, `emulate-network`, `clear-emulation`, `click`, `click-at`, `type`, `press`, `select`, `fill-form`, `handle-dialog`, `upload-file`, `trace-start`, `history`, `bookmarks`, `reload-extension`.
 - `--confirm` is conditionally required for: `windows`, `tabs`; use it with `--all` on scoped inventory commands.
 - `--confirm-sensitive` is required in addition to `--confirm` for private-value requests exposed by: `cookies`, `storage`, `request`.
 - Live bridge caution: run `reload-extension --confirm`, `doctor --live-checks`, and `runtime-smoke` only when no other session is using the bridge.
@@ -259,6 +262,9 @@ chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-networ
 chrome-bridge trace-summary [--tab <id>] [--allow-external]
 chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]
 chrome-bridge diagnostics [--tab <id>] [--out <file>] [--allow-external]
+chrome-bridge set-viewport --width <px> --height <px> --confirm [--device-scale-factor <n>] [--mobile] [--tab <id>] [--allow-external]
+chrome-bridge emulate-network --profile offline|slow-3g|fast-3g|slow-4g|wifi|no-throttling|custom --confirm [--latency-ms <n>] [--download-kbps <n>] [--upload-kbps <n>] [--tab <id>] [--allow-external]
+chrome-bridge clear-emulation --confirm [--tab <id>] [--allow-external]
 chrome-bridge network-export [--tab <id>] [--artifact-dir <dir>] [--out <file>] [--requests-out <file>] [--har-out <file>] [--limit <n>] [--include-headers --confirm-sensitive] [--include-bodies --confirm-sensitive] [--allow-external]
 chrome-bridge trace-stop [--tab <id>] [--limit 100] [--allow-external]
 ```

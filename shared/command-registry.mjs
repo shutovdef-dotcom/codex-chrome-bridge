@@ -1,4 +1,5 @@
 export const BRIDGE_VERSION = '0.4.1';
+export const NETWORK_EMULATION_PROFILES = Object.freeze(['offline', 'slow-3g', 'fast-3g', 'slow-4g', 'wifi', 'no-throttling', 'custom']);
 
 export const MANIFEST_PERMISSIONS = [
   'activeTab',
@@ -60,6 +61,9 @@ export const COMMAND_PAYLOAD_SCHEMAS = freezeSchemaMap({
   printPdf: [...base, 'landscape', 'printBackground', 'preferCssPageSize', 'pageRanges', 'scale'],
   listSelectOptions: stringSelector,
   scroll: [...base, 'x', 'y'],
+  setViewport: [...confirmed, 'width', 'height', 'deviceScaleFactor', 'mobile'],
+  emulateNetwork: [...confirmed, 'networkProfile', 'latencyMs', 'downloadKbps', 'uploadKbps'],
+  clearEmulation: confirmed,
   click: [...confirmed, 'selector'],
   download: [...confirmed, 'selector', 'downloadTimeoutMs'],
   clickAt: [...confirmed, 'x', 'y', 'button', 'trusted'],
@@ -88,6 +92,9 @@ export const EXTENSION_ACTIONS = Object.freeze(Object.keys(COMMAND_PAYLOAD_SCHEM
 export const DEBUGGER_SERIALIZED_ACTIONS = Object.freeze([
   'screenshot',
   'printPdf',
+  'setViewport',
+  'emulateNetwork',
+  'clearEmulation',
   'clickAt',
   'hover',
   'type',
@@ -130,6 +137,9 @@ const INTERACTION_ACTIONS = new Set([
   'goForward',
   'reloadTab',
   'scroll',
+  'setViewport',
+  'emulateNetwork',
+  'clearEmulation',
   'click',
   'download',
   'clickAt',
@@ -146,6 +156,9 @@ const SYSTEM_ACTIONS = new Set([
   'ensureTab',
   'setWorkspace',
   'clearWorkspace',
+  'setViewport',
+  'emulateNetwork',
+  'clearEmulation',
   'traceStart',
   'traceStop',
   'askUser',
@@ -170,6 +183,9 @@ export const ACTION_DEFAULT_TIMEOUT_MS = Object.freeze({
   fetchUrl: 60_000,
   uploadFile: 60_000,
   download: 60_000,
+  setViewport: 10_000,
+  emulateNetwork: 10_000,
+  clearEmulation: 10_000,
 });
 
 export function commandRiskTier(action) {
@@ -346,6 +362,27 @@ const ACTION_DOCS = Object.freeze({
     summary: 'Scroll the selected tab.',
     cli: ['scroll'],
     mcp: ['chrome_bridge_scroll'],
+  },
+  setViewport: {
+    category: 'debug',
+    summary: 'Apply confirmed viewport emulation to the selected tab until clear-emulation resets it.',
+    cli: ['set-viewport'],
+    mcp: ['chrome_bridge_set_viewport'],
+    requiresConfirmation: true,
+  },
+  emulateNetwork: {
+    category: 'debug',
+    summary: 'Apply confirmed bounded network emulation to the selected tab until clear-emulation resets it.',
+    cli: ['emulate-network'],
+    mcp: ['chrome_bridge_emulate_network'],
+    requiresConfirmation: true,
+  },
+  clearEmulation: {
+    category: 'debug',
+    summary: 'Reset confirmed viewport and network emulation overrides for the selected tab.',
+    cli: ['clear-emulation'],
+    mcp: ['chrome_bridge_clear_emulation'],
+    requiresConfirmation: true,
   },
   click: {
     category: 'interaction',
@@ -818,6 +855,9 @@ export const CLI_USAGE_LINES = Object.freeze([
   'chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]',
   'chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]',
   'chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]',
+  'chrome-bridge set-viewport --width <px> --height <px> --confirm [--device-scale-factor <n>] [--mobile] [--tab <id>] [--allow-external]',
+  'chrome-bridge emulate-network --profile offline|slow-3g|fast-3g|slow-4g|wifi|no-throttling|custom --confirm [--latency-ms <n>] [--download-kbps <n>] [--upload-kbps <n>] [--tab <id>] [--allow-external]',
+  'chrome-bridge clear-emulation --confirm [--tab <id>] [--allow-external]',
   'chrome-bridge click --tab <id> --selector <css> --confirm [--allow-external]',
   'chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]',
   'chrome-bridge hover [--selector <css>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]',
@@ -955,6 +995,9 @@ export const CLI_USAGE_GROUPS = Object.freeze([
       'trace-summary',
       'trace-events',
       'diagnostics',
+      'set-viewport',
+      'emulate-network',
+      'clear-emulation',
       'network-export',
       'trace-stop',
     ]),
@@ -1138,6 +1181,9 @@ export const CLI_COMMANDS = Object.freeze([
   'screenshot',
   'pdf',
   'scroll',
+  'set-viewport',
+  'emulate-network',
+  'clear-emulation',
   'click',
   'click-at',
   'hover',
@@ -1218,6 +1264,9 @@ export const MCP_TOOLS = Object.freeze([
   'chrome_bridge_html',
   'chrome_bridge_screenshot',
   'chrome_bridge_pdf',
+  'chrome_bridge_set_viewport',
+  'chrome_bridge_emulate_network',
+  'chrome_bridge_clear_emulation',
   'chrome_bridge_click_at',
   'chrome_bridge_hover',
   'chrome_bridge_click',
@@ -1581,15 +1630,15 @@ export function validateCommandPayload(action, payload = {}) {
   const normalizedPayload = payload === undefined ? {} : payload;
   rejectUnknownKeys(normalizedPayload, allowed, action);
 
-  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'maxPixels', 'requestTimeoutMs', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs', 'downloadTimeoutMs']) {
+  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'maxPixels', 'requestTimeoutMs', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs', 'downloadTimeoutMs', 'width', 'height', 'deviceScaleFactor', 'latencyMs', 'downloadKbps', 'uploadKbps']) {
     ensureNumber(normalizedPayload, key, action);
   }
   ensureNonNegativeInteger(normalizedPayload, 'tabId', action);
   ensureNonNegativeInteger(normalizedPayload, 'index', action);
-  for (const key of ['includeAll', 'includeTabs', 'active', 'newTab', 'allowExternal', 'focusWindow', 'confirmed', 'confirmSensitive', 'bypassCache', 'visible', 'outer', 'fullPage', 'landscape', 'printBackground', 'preferCssPageSize', 'trusted', 'ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'network', 'console', 'includeExtensionEvents', 'includeValues', 'allowText', 'closeOnAnswer', 'dryRun', 'accept']) {
+  for (const key of ['includeAll', 'includeTabs', 'active', 'newTab', 'allowExternal', 'focusWindow', 'confirmed', 'confirmSensitive', 'bypassCache', 'visible', 'outer', 'fullPage', 'landscape', 'printBackground', 'preferCssPageSize', 'trusted', 'ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'network', 'console', 'includeExtensionEvents', 'includeValues', 'allowText', 'closeOnAnswer', 'dryRun', 'accept', 'mobile']) {
     ensureBoolean(normalizedPayload, key, action);
   }
-  for (const key of ['url', 'selector', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk', 'kind', 'fallback', 'pageRanges', 'button', 'key', 'code', 'value', 'label', 'file', 'query', 'domain', 'name', 'method', 'credentials', 'question', 'groupTitle', 'groupColor', 'promptText', 'policyMode', 'waitForText', 'waitForPattern']) {
+  for (const key of ['url', 'selector', 'role', 'text', 'nearText', 'placeholder', 'href', 'actionKind', 'risk', 'kind', 'fallback', 'pageRanges', 'button', 'key', 'code', 'value', 'label', 'file', 'query', 'domain', 'name', 'method', 'credentials', 'question', 'groupTitle', 'groupColor', 'promptText', 'policyMode', 'waitForText', 'waitForPattern', 'networkProfile']) {
     ensureString(normalizedPayload, key, action);
   }
   ensureStringArray(normalizedPayload, 'files', action);
@@ -1601,6 +1650,7 @@ export function validateCommandPayload(action, payload = {}) {
   ensureEnum(normalizedPayload, 'kind', action, ['all', 'tables', 'forms', 'lists', 'keyValues']);
   ensureEnum(normalizedPayload, 'fallback', action, ['viewport', 'error']);
   ensureEnum(normalizedPayload, 'credentials', action, ['omit', 'include']);
+  ensureEnum(normalizedPayload, 'networkProfile', action, NETWORK_EMULATION_PROFILES);
   if (action === 'fetchUrl') {
     ensureHttpMethod(normalizedPayload, action);
   }
@@ -1666,9 +1716,31 @@ export function validateCommandPayload(action, payload = {}) {
   if (action === 'download') {
     ensureNumberRange(normalizedPayload, 'downloadTimeoutMs', action, 1_000, 180_000);
   }
+  if (action === 'setViewport') {
+    ensureNumberRange(normalizedPayload, 'width', action, 200, 10_000);
+    ensureNumberRange(normalizedPayload, 'height', action, 200, 10_000);
+    ensureNumberRange(normalizedPayload, 'deviceScaleFactor', action, 0.1, 5);
+  }
+  if (action === 'emulateNetwork') {
+    ensureNumberRange(normalizedPayload, 'latencyMs', action, 1, 120_000);
+    ensureNumberRange(normalizedPayload, 'downloadKbps', action, 1, 1_000_000);
+    ensureNumberRange(normalizedPayload, 'uploadKbps', action, 1, 1_000_000);
+  }
 
   if (action === 'open') {
     ensureNonEmptyString(normalizedPayload, 'url', action);
+  }
+  if (action === 'setViewport') {
+    ensureRequired(normalizedPayload, 'width', action);
+    ensureRequired(normalizedPayload, 'height', action);
+  }
+  if (action === 'emulateNetwork') {
+    ensureNonEmptyString(normalizedPayload, 'networkProfile', action);
+    if (normalizedPayload.networkProfile === 'custom') {
+      ensureRequired(normalizedPayload, 'latencyMs', action);
+      ensureRequired(normalizedPayload, 'downloadKbps', action);
+      ensureRequired(normalizedPayload, 'uploadKbps', action);
+    }
   }
   if (['waitForSelector', 'click', 'download', 'select', 'listSelectOptions', 'uploadFile'].includes(action)) {
     ensureNonEmptyString(normalizedPayload, 'selector', action);

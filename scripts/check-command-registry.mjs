@@ -45,6 +45,7 @@ const [
   backgroundText,
   browserDataText,
   debuggerSessionText,
+  emulationActionsText,
   extensionErrorsText,
   keyboardEventsText,
   navigationActionsText,
@@ -86,6 +87,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/browser-data.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/debugger-session.js'), 'utf8').catch(() => ''),
+  fs.readFile(path.join(rootDir, 'extension/emulation-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/extension-errors.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/keyboard-events.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/navigation-actions.js'), 'utf8').catch(() => ''),
@@ -234,13 +236,16 @@ check(packageJson.scripts?.['check:mcp-prompts'] === 'node ./scripts/check-mcp-p
 check(packageJson.scripts?.['check:mcp-resources'] === 'node ./scripts/check-mcp-resources.mjs', 'check:mcp-resources must verify MCP resources');
 check(packageJson.scripts?.['check:tool-advisor'] === 'node ./scripts/check-tool-advisor.mjs', 'check:tool-advisor must verify deterministic advisor surfaces');
 check(packageJson.scripts?.['check:download-manager'] === 'node ./scripts/check-download-manager.mjs', 'check:download-manager must verify confirmed single-download behavior');
+check(packageJson.scripts?.['check:emulation'] === 'node ./scripts/check-emulation.mjs', 'check:emulation must verify bounded viewport and network emulation behavior');
 check(packageJson.scripts?.check?.includes('npm run check:privacy'), 'npm run check must include check:privacy');
 check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include check:roadmap');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-prompts'), 'npm run check must include check:mcp-prompts');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-resources'), 'npm run check must include check:mcp-resources');
 check(packageJson.scripts?.check?.includes('npm run check:tool-advisor'), 'npm run check must include check:tool-advisor');
 check(packageJson.scripts?.check?.includes('npm run check:download-manager'), 'npm run check must include check:download-manager');
+check(packageJson.scripts?.check?.includes('npm run check:emulation'), 'npm run check must include check:emulation');
 check(packageJson.scripts?.check?.includes('node --check ./extension/download-actions.js'), 'npm run check must syntax-check extension/download-actions.js');
+check(packageJson.scripts?.check?.includes('node --check ./extension/emulation-actions.js'), 'npm run check must syntax-check extension/emulation-actions.js');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-cleanup.js'), 'npm run check must syntax-check extension/tab-cleanup.js');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-group-persistence.js'), 'npm run check must syntax-check extension/tab-group-persistence.js');
 if (isRepositoryCheckout || checkWorkflowText) {
@@ -266,6 +271,7 @@ for (const requiredPackageFile of [
   'shared/session-group-title.mjs',
   'shared/structured-extract.mjs',
   'extension/download-actions.js',
+  'extension/emulation-actions.js',
   'extension/extension-errors.js',
   'extension/page-scripts.js',
   'extension/navigation-actions.js',
@@ -288,6 +294,7 @@ for (const requiredPackageFile of [
   'scripts/check-package-contents.mjs',
   'scripts/check-privacy-scan.mjs',
   'scripts/check-download-manager.mjs',
+  'scripts/check-emulation.mjs',
   'scripts/check-diagnostics.mjs',
   'scripts/check-ubs-fixes.mjs',
   'scripts/check-roadmap-next-slice.mjs',
@@ -557,6 +564,15 @@ expectPayload('download', { selector: '#export' }, false, 'download missing conf
 expectPayload('download', { selector: '#export', confirmed: true }, true, 'download confirmed payload');
 expectPayload('download', { selector: '#export', confirmed: true, downloadTimeoutMs: 1_000 }, true, 'download minimum timeout payload');
 expectPayload('download', { selector: '#export', confirmed: true, downloadTimeoutMs: 999 }, false, 'download invalid timeout payload');
+expectPayload('setViewport', { width: 1280, height: 720 }, false, 'setViewport missing confirmation payload');
+expectPayload('setViewport', { width: 1280, height: 720, confirmed: true }, true, 'setViewport confirmed payload');
+expectPayload('setViewport', { width: 199, height: 720, confirmed: true }, false, 'setViewport invalid width payload');
+expectPayload('emulateNetwork', { networkProfile: 'slow-4g' }, false, 'emulateNetwork missing confirmation payload');
+expectPayload('emulateNetwork', { networkProfile: 'slow-4g', confirmed: true }, true, 'emulateNetwork profile payload');
+expectPayload('emulateNetwork', { networkProfile: 'custom', confirmed: true }, false, 'emulateNetwork custom missing bounds payload');
+expectPayload('emulateNetwork', { networkProfile: 'custom', confirmed: true, latencyMs: 900, downloadKbps: 4096, uploadKbps: 2048 }, true, 'emulateNetwork custom payload');
+expectPayload('clearEmulation', {}, false, 'clearEmulation missing confirmation payload');
+expectPayload('clearEmulation', { confirmed: true }, true, 'clearEmulation confirmed payload');
 expectPayload('type', { selector: '#name', text: '', confirmed: true }, true, 'type empty text payload');
 expectPayload('type', { selector: '#name', confirmed: true }, false, 'type missing text payload');
 expectPayload('press', { confirmed: true }, false, 'press missing key payload');
@@ -660,6 +676,7 @@ check(packageJson.scripts?.['check:ubs-fixes'] === 'node ./scripts/check-ubs-fix
 check(packageJson.scripts?.['check:roadmap-next-slice'] === 'node ./scripts/check-roadmap-next-slice.mjs', 'package scripts must expose next roadmap slice contract check');
 check(packageJson.scripts?.['check:examples-gallery'] === 'node ./scripts/check-examples-gallery.mjs', 'package scripts must expose examples gallery contract check');
 check(packageJson.scripts?.['check:download-manager'] === 'node ./scripts/check-download-manager.mjs', 'package scripts must expose download-manager contract check');
+check(packageJson.scripts?.['check:emulation'] === 'node ./scripts/check-emulation.mjs', 'package scripts must expose emulation contract check');
 check(packageJson.scripts?.['check:network-export'] === 'node ./scripts/check-network-export.mjs', 'package scripts must expose network-export contract check');
 check(packageJson.scripts?.['check:client-docs'] === 'node ./scripts/check-client-docs.mjs', 'package scripts must expose client docs contract check');
 check(packageJson.scripts?.['check:client-config-examples'] === 'node ./scripts/check-client-config-examples.mjs', 'package scripts must expose client config examples contract check');
@@ -683,8 +700,10 @@ check(packageContentsCheckerText.includes('shared/act-preview-state.mjs'), 'pack
 check(packageContentsCheckerText.includes('shared/lighthouse-plan.mjs'), 'package contents checker must require lighthouse-plan shared helper');
 check(packageContentsCheckerText.includes('shared/network-export.mjs'), 'package contents checker must require network-export shared helper');
 check(packageContentsCheckerText.includes('extension/download-actions.js'), 'package contents checker must require download-actions extension helper');
+check(packageContentsCheckerText.includes('extension/emulation-actions.js'), 'package contents checker must require emulation-actions extension helper');
 check(packageContentsCheckerText.includes('scripts/check-lighthouse-plan.mjs'), 'package contents checker must require lighthouse-plan checker');
 check(packageContentsCheckerText.includes('scripts/check-download-manager.mjs'), 'package contents checker must require download-manager checker');
+check(packageContentsCheckerText.includes('scripts/check-emulation.mjs'), 'package contents checker must require emulation checker');
 check(packageContentsCheckerText.includes('scripts/check-network-export.mjs'), 'package contents checker must require network-export checker');
 check(packageContentsCheckerText.includes('docs/INSTALL.md'), 'package contents checker must require the install guide');
 check(packageContentsCheckerText.includes('docs/REGISTRY-SUBMISSIONS.md'), 'package contents checker must require the registry submissions guide');
@@ -701,6 +720,7 @@ check(packageJson.scripts?.check?.includes('npm run check:mcp-local-tools'), 'np
 check(packageJson.scripts?.check?.includes('npm run check:tab-group-persistence'), 'npm run check must include tab-group persistence behavior check');
 check(packageJson.scripts?.check?.includes('npm run check:examples-gallery'), 'npm run check must include examples gallery contract check');
 check(packageJson.scripts?.check?.includes('npm run check:download-manager'), 'npm run check must include download-manager contract check');
+check(packageJson.scripts?.check?.includes('npm run check:emulation'), 'npm run check must include emulation contract check');
 check(packageJson.scripts?.check?.includes('npm run check:network-export'), 'npm run check must include network-export contract check');
 check(packageJson.scripts?.check?.includes('npm run check:client-docs'), 'npm run check must include client docs contract check');
 check(packageJson.scripts?.check?.includes('npm run check:client-config-examples'), 'npm run check must include client config examples contract check');
@@ -717,6 +737,7 @@ check(packageJson.scripts?.['check:mcp-local-tools'] && packageText.includes('ch
 check(packageJson.scripts?.['check:tab-group-persistence'] && packageText.includes('check:tab-group-persistence'), 'package metadata must keep tab-group persistence checker discoverable');
 check(packageJson.scripts?.['check:lighthouse-plan'] && packageText.includes('check:lighthouse-plan'), 'package metadata must keep lighthouse-plan checker discoverable');
 check(packageJson.scripts?.['check:download-manager'] && packageText.includes('check:download-manager'), 'package metadata must keep download-manager checker discoverable');
+check(packageJson.scripts?.['check:emulation'] && packageText.includes('check:emulation'), 'package metadata must keep emulation checker discoverable');
 check(packageJson.scripts?.['check:network-export'] && packageText.includes('check:network-export'), 'package metadata must keep network-export checker discoverable');
 check(packageJson.scripts?.['check:client-docs'] && packageText.includes('check:client-docs'), 'package metadata must keep client docs checker discoverable');
 check(packageJson.scripts?.['check:extension-package'] && packageText.includes('check:extension-package'), 'package metadata must keep extension package checker discoverable');
@@ -762,6 +783,7 @@ check(packageContentsCheckerText.includes("'scripts/check-mcp-local-tools.mjs'")
 check(packageContentsCheckerText.includes("'scripts/check-tab-group-persistence.mjs'"), 'package contents must include tab-group persistence checker');
 check(packageContentsCheckerText.includes("'scripts/check-lighthouse-plan.mjs'"), 'package contents must include lighthouse-plan checker');
 check(packageContentsCheckerText.includes("'scripts/check-download-manager.mjs'"), 'package contents must include download-manager checker');
+check(packageContentsCheckerText.includes("'scripts/check-emulation.mjs'"), 'package contents must include emulation checker');
 check(packageContentsCheckerText.includes("'scripts/check-network-export.mjs'"), 'package contents must include network-export checker');
 check(packageContentsCheckerText.includes("'scripts/check-client-docs.mjs'"), 'package contents must include client docs checker');
 check(packageContentsCheckerText.includes("'scripts/check-extension-package.mjs'"), 'package contents must include extension package checker');
@@ -1066,6 +1088,9 @@ check(!functionBlock(pageInteractionsText, 'handleDialog').includes("'Page.enabl
 const debuggerActionFunctions = {
   screenshot: 'screenshot',
   printPdf: 'printPdf',
+  setViewport: 'setViewport',
+  emulateNetwork: 'emulateNetwork',
+  clearEmulation: 'clearEmulation',
   clickAt: 'clickAt',
   hover: 'hover',
   type: 'typeInto',
@@ -1079,9 +1104,11 @@ const debuggerActionFunctions = {
 for (const action of DEBUGGER_SERIALIZED_ACTIONS) {
   const source = ['screenshot', 'printPdf'].includes(action)
     ? pageArtifactsText
+    : (['setViewport', 'emulateNetwork', 'clearEmulation'].includes(action)
+      ? emulationActionsText
     : (['clickAt', 'hover', 'type', 'press', 'handleDialog', 'uploadFile'].includes(action)
       ? pageInteractionsText
-      : (['traceStart', 'traceStop'].includes(action) ? traceActionsText : backgroundText));
+      : (['traceStart', 'traceStop'].includes(action) ? traceActionsText : backgroundText)));
   const block = functionBlock(source, debuggerActionFunctions[action]);
   check(block, `${action} debugger action function is missing`);
   if (action === 'traceStart') {
@@ -1228,6 +1255,11 @@ check(functionBlock(pageArtifactsText, 'screenshot').includes('chrome.tabs.captu
 check(functionBlock(pageArtifactsText, 'screenshot').includes('Page.captureScreenshot'), 'extension page artifacts module must own debugger screenshot capture');
 check(functionBlock(pageArtifactsText, 'screenshot').includes('setTimeout'), 'extension page artifacts module must own viewport capture delay');
 check(functionBlock(pageArtifactsText, 'printPdf').includes('Page.printToPDF'), 'extension page artifacts module must own PDF printing');
+check(backgroundText.includes("from './emulation-actions.js';"), 'extension background must import emulation actions from extension/emulation-actions.js');
+for (const helperName of ['setViewport', 'emulateNetwork', 'clearEmulation']) {
+  check(!functionBlock(backgroundText, helperName), `extension background must not own emulation action internals: ${helperName}`);
+  check(emulationActionsText.includes(`export async function ${helperName}`), `extension emulation actions module must export ${helperName}`);
+}
 check(backgroundText.includes("from './page-read-actions.js';"), 'extension background must import page read actions from extension/page-read-actions.js');
 for (const helperName of ['waitForSelector', 'observe', 'findElements', 'elementFilters', 'extractPage', 'snapshot', 'pageText', 'pageHTML', 'listSelectOptions', 'storageSnapshot']) {
   check(!functionBlock(backgroundText, helperName), `extension background must not own page read action internals: ${helperName}`);

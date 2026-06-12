@@ -31,6 +31,9 @@ Version: 0.4.1
 | printPdf | artifact | read | 60000 ms | pdf | chrome_bridge_pdf | no | tabId, allowExternal, groupTitle, groupColor, landscape, printBackground, preferCssPageSize, pageRanges, scale | Print the selected tab to a local PDF artifact. |
 | listSelectOptions | read | read | 30000 ms | select-options | chrome_bridge_select_options | no | tabId, allowExternal, groupTitle, groupColor, selector | Read available select options without returning current selection state. |
 | scroll | interaction | interaction | 10000 ms | scroll | chrome_bridge_scroll | no | tabId, allowExternal, groupTitle, groupColor, x, y | Scroll the selected tab. |
+| setViewport | debug | interaction | 10000 ms | set-viewport | chrome_bridge_set_viewport | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, width, height, deviceScaleFactor, mobile | Apply confirmed viewport emulation to the selected tab until clear-emulation resets it. |
+| emulateNetwork | debug | interaction | 10000 ms | emulate-network | chrome_bridge_emulate_network | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, networkProfile, latencyMs, downloadKbps, uploadKbps | Apply confirmed bounded network emulation to the selected tab until clear-emulation resets it. |
+| clearEmulation | debug | interaction | 10000 ms | clear-emulation | chrome_bridge_clear_emulation | yes | tabId, allowExternal, groupTitle, groupColor, confirmed | Reset confirmed viewport and network emulation overrides for the selected tab. |
 | click | interaction | interaction | 30000 ms | click | chrome_bridge_click | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector | Click a selector in the selected tab. |
 | download | interaction | interaction | 60000 ms | download | chrome_bridge_download | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, downloadTimeoutMs | Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents. |
 | clickAt | interaction | interaction | 30000 ms | click-at | chrome_bridge_click_at | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, x, y, button, trusted | Click viewport coordinates, optionally through trusted debugger input. |
@@ -122,6 +125,9 @@ chrome-bridge download --selector <css> --confirm [--download-timeout-ms <ms>] [
 chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
 chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
+chrome-bridge set-viewport --width <px> --height <px> --confirm [--device-scale-factor <n>] [--mobile] [--tab <id>] [--allow-external]
+chrome-bridge emulate-network --profile offline|slow-3g|fast-3g|slow-4g|wifi|no-throttling|custom --confirm [--latency-ms <n>] [--download-kbps <n>] [--upload-kbps <n>] [--tab <id>] [--allow-external]
+chrome-bridge clear-emulation --confirm [--tab <id>] [--allow-external]
 chrome-bridge click --tab <id> --selector <css> --confirm [--allow-external]
 chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]
 chrome-bridge hover [--selector <css>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
@@ -171,6 +177,9 @@ These extension actions use the Chrome Debugger API and are serialized per tab b
 
 - `screenshot`
 - `printPdf`
+- `setViewport`
+- `emulateNetwork`
+- `clearEmulation`
 - `clickAt`
 - `hover`
 - `type`
