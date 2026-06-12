@@ -2,6 +2,8 @@
 
 Chrome MCP Bridge is a local stdio MCP server plus a Chrome extension and bridge daemon. It can be used from any MCP client that can start a local command over standard input/output.
 
+Streamable HTTP is tracked as a future opt-in transport, not a shipped runtime path. For the current safety stance and implementation requirements, see [STREAMABLE-HTTP.md](STREAMABLE-HTTP.md). The stdio server remains the recommended default because it avoids exposing a network MCP endpoint for a real logged-in browser profile.
+
 The fastest way to get a client-specific snippet is:
 
 ```bash
