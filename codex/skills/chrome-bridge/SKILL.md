@@ -54,6 +54,7 @@ npm run check:cli-local-tools
 npm run check:mcp-runtime-smoke
 npm run check:mcp-local-tools
 npm run check:tab-group-persistence
+npm run check:examples-gallery
 npm run check:privacy
 npm run runtime-smoke:plan
 ```
@@ -110,6 +111,19 @@ Structured CPA offer extraction keeps stdout small and writes raw text/html only
 ```bash
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" extract --preset cpa-offer --network leads_su --out /tmp/offer.json
 ```
+
+Use the examples gallery before broad page reads when the task shape is known:
+
+```bash
+less "$CHROME_BRIDGE_ROOT/docs/EXAMPLES.md"
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" extract --preset article --out /tmp/article.json --artifact-dir /tmp/chrome-bridge-artifacts
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" extract --preset product-page --out /tmp/product.json --artifact-dir /tmp/chrome-bridge-artifacts
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" extract --preset pricing-table --out /tmp/pricing.json --artifact-dir /tmp/chrome-bridge-artifacts
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" download-discovery --out /tmp/downloads.json --artifact-dir /tmp/chrome-bridge-artifacts
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" lighthouse-ingest --report /tmp/lighthouse-report.json --out /tmp/lighthouse-summary.json
+```
+
+These commands are metadata-first: stdout stays small and raw page/report payloads stay in local artifacts.
 
 Guard large screenshots:
 
