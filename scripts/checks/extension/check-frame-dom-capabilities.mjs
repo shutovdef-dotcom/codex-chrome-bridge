@@ -3,6 +3,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readPageScriptsSource } from '../lib/page-scripts-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 
@@ -51,7 +53,7 @@ const [
   safetyDocsText,
 ] = await Promise.all([
   fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
-  fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
+  readPageScriptsSource(rootDir),
   fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/CLI.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/MCP.md'), 'utf8'),

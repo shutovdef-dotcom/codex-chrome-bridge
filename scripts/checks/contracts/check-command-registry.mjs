@@ -28,6 +28,8 @@ import { readCliSource } from '../lib/cli-source.mjs';
 
 import { readMcpSource } from '../lib/mcp-source.mjs';
 
+import { readPageScriptsSource } from '../lib/page-scripts-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 const isRepositoryCheckout = Boolean(await fs.stat(path.join(rootDir, '.git')).catch(() => null));
@@ -102,7 +104,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/page-artifacts.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-read-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/page-interactions.js'), 'utf8').catch(() => ''),
-  fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
+  readPageScriptsSource(rootDir),
   fs.readFile(path.join(rootDir, 'extension/runtime-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/safety-gates.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/tab-cleanup.js'), 'utf8'),
@@ -289,6 +291,7 @@ for (const requiredPackageFile of [
   'extension/emulation-actions.js',
   'extension/extension-errors.js',
   'extension/page-scripts.js',
+  'extension/page-scripts/main.js',
   'extension/navigation-actions.js',
   'extension/offscreen-lifecycle.js',
   'extension/page-execution.js',
@@ -312,6 +315,8 @@ for (const requiredPackageFile of [
   'scripts/checks/lib/cli-source.mjs',
   'scripts/checks/mcp/check-mcp-module-boundaries.mjs',
   'scripts/checks/lib/mcp-source.mjs',
+  'scripts/checks/extension/check-page-scripts-modules.mjs',
+  'scripts/checks/lib/page-scripts-source.mjs',
   'scripts/package/check-package-contents.mjs',
   'scripts/checks/release/check-privacy-scan.mjs',
   'scripts/checks/extension/check-download-manager.mjs',

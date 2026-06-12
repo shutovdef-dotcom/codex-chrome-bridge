@@ -15,6 +15,8 @@ import { readCliSource } from '../lib/cli-source.mjs';
 
 import { readMcpSource } from '../lib/mcp-source.mjs';
 
+import { readPageScriptsSource } from '../lib/page-scripts-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const cliPath = path.join(rootDir, 'bin/chrome-bridge.mjs');
 const failures = [];
@@ -167,7 +169,7 @@ const [
   cli,
   mcp,
 ] = await Promise.all([
-  fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
+  readPageScriptsSource(rootDir),
   readRegistrySource(rootDir),
   readCliSource(rootDir),
   readMcpSource(rootDir),

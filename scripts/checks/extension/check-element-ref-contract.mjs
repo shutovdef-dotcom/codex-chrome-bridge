@@ -9,6 +9,8 @@ import { readCliSource } from '../lib/cli-source.mjs';
 
 import { readMcpSource } from '../lib/mcp-source.mjs';
 
+import { readPageScriptsSource } from '../lib/page-scripts-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 
@@ -65,7 +67,7 @@ const [
   readRegistrySource(rootDir),
   readCliSource(rootDir),
   readMcpSource(rootDir),
-  fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
+  readPageScriptsSource(rootDir),
   fs.readFile(path.join(rootDir, 'extension/page-interactions.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-artifacts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-read-actions.js'), 'utf8'),

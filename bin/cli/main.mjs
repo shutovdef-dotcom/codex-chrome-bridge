@@ -1519,6 +1519,15 @@ async function readSelfTestMcpSource(paths) {
   return parts.join('\n');
 }
 
+async function readSelfTestPageScriptsSource(paths) {
+  const files = [
+    paths.pageScripts,
+    paths.pageScriptsMain,
+  ];
+  const parts = await Promise.all(files.map((filePath) => fs.readFile(filePath, 'utf8').catch(() => '')));
+  return parts.join('\n');
+}
+
 async function selfTest() {
   const paths = {
     manifest: path.join(rootDir, 'extension/manifest.json'),
@@ -1534,6 +1543,7 @@ async function selfTest() {
     pageReadActions: path.join(rootDir, 'extension/page-read-actions.js'),
     pageInteractions: path.join(rootDir, 'extension/page-interactions.js'),
     pageScripts: path.join(rootDir, 'extension/page-scripts.js'),
+    pageScriptsMain: path.join(rootDir, 'extension/page-scripts/main.js'),
     runtimeActions: path.join(rootDir, 'extension/runtime-actions.js'),
     safetyGates: path.join(rootDir, 'extension/safety-gates.js'),
     tabCleanup: path.join(rootDir, 'extension/tab-cleanup.js'),
@@ -1632,7 +1642,7 @@ async function selfTest() {
     fs.readFile(paths.pageArtifacts, 'utf8'),
     fs.readFile(paths.pageReadActions, 'utf8'),
     fs.readFile(paths.pageInteractions, 'utf8'),
-    fs.readFile(paths.pageScripts, 'utf8'),
+    readSelfTestPageScriptsSource(paths),
     fs.readFile(paths.runtimeActions, 'utf8'),
     fs.readFile(paths.safetyGates, 'utf8'),
     fs.readFile(paths.tabCleanup, 'utf8'),
@@ -1678,6 +1688,7 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.pageReadActions]),
     tryExec(process.execPath, ['--check', paths.pageInteractions]),
     tryExec(process.execPath, ['--check', paths.pageScripts]),
+    tryExec(process.execPath, ['--check', paths.pageScriptsMain]),
     tryExec(process.execPath, ['--check', paths.runtimeActions]),
     tryExec(process.execPath, ['--check', paths.safetyGates]),
     tryExec(process.execPath, ['--check', paths.tabCleanup]),

@@ -17,6 +17,8 @@ import { readCliSource } from '../lib/cli-source.mjs';
 
 import { readMcpSource } from '../lib/mcp-source.mjs';
 
+import { readPageScriptsSource } from '../lib/page-scripts-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const cliPath = path.join(rootDir, 'bin/chrome-bridge.mjs');
 const failures = [];
@@ -131,7 +133,7 @@ const [
   readProjectFile('extension/page-read-actions.js'),
   readProjectFile('extension/page-interactions.js'),
   readProjectFile('extension/page-artifacts.js'),
-  readProjectFile('extension/page-scripts.js'),
+  readPageScriptsSource(rootDir),
   readProjectFile('extension/trace-actions.js'),
   readProjectFile('extension/workspace-tabs.js'),
   readProjectFile('extension/workspace-policy.js'),
