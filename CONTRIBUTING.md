@@ -14,9 +14,12 @@ npm run check:mcp-runtime-smoke
 npm run check:mcp-local-tools
 npm run check:tab-group-persistence
 npm run check:privacy
+npm run check:maintainability
 npm run check:audit
 npm run check:pack
 ```
+
+For command-surface, checker, dependency, or module-boundary work, read [docs/MAINTAINABILITY.md](docs/MAINTAINABILITY.md). It records the current hot spots, source-string check policy, dependency strategy, and command-change workflow.
 
 For runtime verification, start with the offline plan. Run the live smoke only when no other session is using the bridge:
 
@@ -43,6 +46,7 @@ If live smoke is skipped or failed, use top-level `nextCommand` / `nextAction` f
 - Run `npm run check:mcp-local-tools`.
 - Run `npm run check:tab-group-persistence`.
 - Run `npm run check:privacy`.
+- Run `npm run check:maintainability`.
 - Run `npm run check:audit`.
 - Run `npm run check:pack`.
 - Run the live upgrade/smoke sequence when changing browser behavior and no other session is using the bridge: `reload-extension --confirm`, `doctor --live-checks`, then `npm run runtime-smoke`; use top-level `nextCommand` / `nextAction` for skipped or failed smoke recovery; require `ok: true`, `coverage.ok: true`, and `verification.status: "passed"`.
