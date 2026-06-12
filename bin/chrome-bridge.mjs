@@ -11,6 +11,8 @@ import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
 import { buildStructuredPresetExtraction } from '../shared/structured-extract.mjs';
 import { buildDownloadDiscovery } from '../shared/download-discovery.mjs';
 import { ingestLighthouseReportFile } from '../shared/lighthouse-ingest.mjs';
+import { buildLighthousePlan } from '../shared/lighthouse-plan.mjs';
+import { buildNetworkExport } from '../shared/network-export.mjs';
 import { actionRecordForCandidate, buildActPreviewPlan } from '../shared/act-preview.mjs';
 import {
   createPreviewActionId,
@@ -3822,11 +3824,42 @@ async function main() {
     return;
   }
 
+  if (cmd === 'network-export') {
+    const trace = await command('traceEvents', {
+      ...targetPayload(args),
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 2_000) ?? 200,
+    }, 30_000);
+    printJson(await buildNetworkExport(trace, {
+      artifactDir: args['artifact-dir'],
+      out: args.out,
+      requestsOut: args['requests-out'],
+      harOut: args['har-out'],
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 2_000) ?? 200,
+      includeHeaders: Boolean(args['include-headers']),
+      includeBodies: Boolean(args['include-bodies']),
+      ...(args['confirm-sensitive'] ? { confirmSensitive: true } : {}),
+    }));
+    return;
+  }
+
   if (cmd === 'lighthouse-ingest') {
     printJson(await ingestLighthouseReportFile({
       reportPath: args.report,
       out: args.out,
       maxAudits: parseNumberRangeArg(args['max-audits'], '--max-audits', 1, 100) ?? 25,
+    }));
+    return;
+  }
+
+  if (cmd === 'lighthouse-plan') {
+    printJson(buildLighthousePlan({
+      url: args.url || first,
+      out: args.out,
+      summaryOut: args['summary-out'],
+      chromePath: args['chrome-path'],
+      chromeFlags: args['chrome-flags'],
+      emulatedFormFactor: args['emulated-form-factor'],
+      onlyCategories: args['only-categories'],
     }));
     return;
   }

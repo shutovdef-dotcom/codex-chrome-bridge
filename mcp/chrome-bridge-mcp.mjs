@@ -19,6 +19,8 @@ import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
 import { buildStructuredPresetExtraction } from '../shared/structured-extract.mjs';
 import { buildDownloadDiscovery } from '../shared/download-discovery.mjs';
 import { ingestLighthouseReportFile } from '../shared/lighthouse-ingest.mjs';
+import { buildLighthousePlan } from '../shared/lighthouse-plan.mjs';
+import { buildNetworkExport } from '../shared/network-export.mjs';
 import { summarizeDiagnosticsOutput } from '../shared/diagnostics-output.mjs';
 import { buildToolAdvisor } from '../shared/tool-advisor.mjs';
 import {
@@ -1763,6 +1765,31 @@ server.tool(
 );
 
 server.tool(
+  'chrome_bridge_network_export',
+  'Write redacted local network-export artifacts from recent trace events, returning summary metadata and artifact paths without dumping raw network logs to stdout.',
+  {
+    tabId: chromeIdSchema.optional(),
+    limit: z.number().min(1).max(2000).optional(),
+    allowExternal: z.boolean().optional(),
+    artifactDir: z.string().optional(),
+    out: z.string().optional(),
+    requestsOut: z.string().optional(),
+    harOut: z.string().optional(),
+    includeHeaders: z.boolean().optional(),
+    includeBodies: z.boolean().optional(),
+    confirmSensitive: z.boolean().optional(),
+  },
+  async (args) => {
+    const trace = await bridgeCommand('traceEvents', {
+      tabId: args.tabId,
+      allowExternal: args.allowExternal,
+      limit: args.limit ?? 200,
+    }, 30_000);
+    return textResult(await buildNetworkExport(trace, args));
+  },
+);
+
+server.tool(
   'chrome_bridge_trace_stop',
   'Stop console/network tracing for the selected tab and return recent events.',
   {
@@ -1882,6 +1909,21 @@ server.tool(
     includeTraceEvents: z.boolean().optional(),
   },
   async (args) => textResult(await debugBundle(args)),
+);
+
+server.tool(
+  'chrome_bridge_lighthouse_plan',
+  'Print the exact local Lighthouse command to run plus the follow-up chrome_bridge_lighthouse_ingest command, without running Lighthouse directly.',
+  {
+    url: z.string(),
+    out: z.string().optional(),
+    summaryOut: z.string().optional(),
+    chromePath: z.string().optional(),
+    chromeFlags: z.string().optional(),
+    emulatedFormFactor: z.enum(['desktop', 'mobile']).optional(),
+    onlyCategories: z.string().optional(),
+  },
+  async (args) => textResult(buildLighthousePlan(args)),
 );
 
 server.tool(

@@ -2,6 +2,8 @@
 
 Chrome MCP Bridge, formerly Codex Chrome Bridge, uses an unpacked Chrome extension from the `extension/` directory.
 
+For client-specific install shortcuts, see [INSTALL.md](INSTALL.md). For Chrome Web Store readiness and packaging, use `npm run extension:zip` and the privacy text in [PRIVACY-POLICY.md](PRIVACY-POLICY.md).
+
 ## Install
 
 1. Open `chrome://extensions/`.
@@ -21,6 +23,22 @@ node ./bin/chrome-bridge.mjs health
 ```
 
 The extension is ready when `extension.connected` is `true` and `extension.info.version` matches `package.json`.
+
+## Packaging
+
+Create a Chrome Web Store style zip from the exact checked-in extension tree with:
+
+```bash
+npm run extension:zip
+```
+
+This writes a deterministic archive under `dist/` and excludes repo-only files outside `extension/`. Verify it with:
+
+```bash
+npm run check:extension-package
+```
+
+The repository now includes store-readiness docs, but submission itself remains a manual maintainer decision.
 
 ## Reload After Edits
 
@@ -58,3 +76,5 @@ The extension currently requests:
 - `<all_urls>` host permissions
 
 These permissions are broad because the tool works with real Chrome tabs. Use this only with a local bridge server you control.
+
+See [PRIVACY-POLICY.md](PRIVACY-POLICY.md) for the plain-language privacy statement intended for distribution pages and store submission forms.

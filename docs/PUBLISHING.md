@@ -17,9 +17,12 @@ npm run check:cli-local-tools
 npm run check:mcp-runtime-smoke
 npm run check:mcp-local-tools
 npm run check:tab-group-persistence
+npm run check:client-docs
+npm run check:extension-package
 npm run check:privacy
 npm run check:audit
 npm run check:pack
+npm run extension:zip
 npm run runtime-smoke:plan
 npm run server
 node ./bin/chrome-bridge.mjs reload-extension --confirm
@@ -49,6 +52,12 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 
 `check:tab-group-persistence` runs the extension tab-group persistence and cleanup modules against fake Chrome APIs, proving managed group listeners, listener event callbacks for future managed groups, fresh bridge-created session groups, saved-group disablement, removal metadata, fake saved closed group chips prevention, and stale membership cleanup without touching Chrome.
 
+`check:client-docs` verifies that the install fast paths and client compatibility guides stay aligned for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, and Hermes Agent.
+
+`check:extension-package` builds the extension zip, compares its contents with the checked-in `extension/` tree, and verifies that README, install, extension, privacy-policy, registry-submission, and publishing docs stay in sync with the packaging workflow.
+
+`extension:zip` creates the release-ready Chrome extension archive under `dist/` without pulling in repo-only files outside `extension/`.
+
 `check:registry` also verifies that the GitHub Check workflow keeps the Node.js 20/22/24 matrix and runs `npm ci`, `npm run check`, `npm run check:audit`, and `npm run check:pack` without adding live `runtime-smoke` to CI.
 
 ## Repository Metadata
@@ -64,6 +73,8 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 ## Privacy Review
 
 `check:privacy` scans tracked and untracked repository files, excluding ignored dependencies, for local home paths, private-key headers, common provider tokens, and obvious secret assignments.
+
+For public distribution, also review [PRIVACY-POLICY.md](PRIVACY-POLICY.md) and [REGISTRY-SUBMISSIONS.md](REGISTRY-SUBMISSIONS.md).
 
 ## GitHub
 

@@ -1,0 +1,14 @@
+{
+  "name": "chrome-mcp-bridge",
+  "version": "0.4.1",
+  "private": true,
+  "description": "Local alias-package scaffold for codex-chrome-bridge. Remove private=true only when npm ownership and migration docs are confirmed.",
+  "license": "MIT",
+  "bin": {
+    "chrome-bridge": "./bin/chrome-bridge.mjs",
+    "chrome-bridge-mcp": "./bin/chrome-bridge-mcp.mjs"
+  },
+  "dependencies": {
+    "codex-chrome-bridge": "^0.4.1"
+  }
+}

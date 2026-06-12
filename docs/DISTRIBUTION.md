@@ -92,10 +92,11 @@ Keep these stable for now:
 
 Future alias plan:
 
-1. Check npm availability for `chrome-mcp-bridge`.
-2. If available, publish it as an alias/wrapper or coordinated package rename.
-3. Keep `codex-chrome-bridge` maintained with migration notes for at least one minor release.
-4. Only then consider repository rename or GitHub redirect.
+1. Checked on 2026-06-12: `npm view chrome-mcp-bridge` returned `E404` with `Unpublished on 2025-08-15T05:17:00.343Z`.
+2. Keep the local alias scaffold under `aliases/chrome-mcp-bridge/` until npm ownership and publish policy are confirmed.
+3. If publishing becomes possible, ship it as a thin alias/wrapper rather than an immediate breaking rename.
+4. Keep `codex-chrome-bridge` maintained with migration notes for at least one minor release.
+5. Only then consider repository rename or GitHub redirect.
 
 ## What Not To Promise
 

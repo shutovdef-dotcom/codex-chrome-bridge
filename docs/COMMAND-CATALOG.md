@@ -72,6 +72,8 @@ Version: 0.4.1
 | act-preview | read | read | 30000 ms | act-preview | chrome_bridge_act_preview | yes | Plan one likely next browser action from intent and observed page state without mutating the page. |
 | act-apply | interaction | interaction | 30000 ms | act-apply | chrome_bridge_act_apply | yes | Apply exactly one previously previewed action by id with confirmation, then return before/after evidence and a recommended next read. |
 | lighthouse-ingest | diagnostic | read | 5000 ms | lighthouse-ingest | chrome_bridge_lighthouse_ingest | no | Summarize a local Lighthouse JSON report into scores and failing audits. |
+| lighthouse-plan | diagnostic | read | 5000 ms | lighthouse-plan | chrome_bridge_lighthouse_plan | no | Print the exact local Lighthouse command and follow-up ingest command without running Lighthouse directly. |
+| network-export | debug | read | 30000 ms | network-export | chrome_bridge_network_export | yes | Write redacted local network-export artifacts from recent trace events without dumping raw network logs to stdout. |
 | command-catalog | diagnostic | read | 5000 ms | command-catalog | chrome_bridge_command_catalog | no | Print this shared command registry as JSON or Markdown. |
 | advise | diagnostic | read | 5000 ms | advise | chrome_bridge_tool_advisor | no | Recommend the safest next CLI and MCP tools for a task without contacting Chrome. |
 | mcp-config | diagnostic | read | 5000 ms | mcp-config | chrome_bridge_mcp_config | no | Print MCP client configuration snippets for Claude Code, Cursor, Codex, VS Code, Windsurf, Hermes, or generic stdio clients. |
@@ -132,6 +134,8 @@ chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-networ
 chrome-bridge trace-summary [--tab <id>] [--allow-external]
 chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]
 chrome-bridge diagnostics [--tab <id>] [--out <file>] [--allow-external]
+chrome-bridge network-export [--tab <id>] [--artifact-dir <dir>] [--out <file>] [--requests-out <file>] [--har-out <file>] [--limit <n>] [--include-headers --confirm-sensitive] [--include-bodies --confirm-sensitive] [--allow-external]
+chrome-bridge lighthouse-plan --url <http(s)://...> [--out <file>] [--summary-out <file>] [--chrome-path <file>] [--chrome-flags <text>] [--emulated-form-factor desktop|mobile] [--only-categories <csv>]
 chrome-bridge lighthouse-ingest --report <file> [--out <file>] [--max-audits 25]
 chrome-bridge trace-stop [--tab <id>] [--limit 100] [--allow-external]
 chrome-bridge history [--query <text>] --confirm [--limit 25] [--start-time <ms>] [--end-time <ms>]

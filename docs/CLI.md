@@ -67,6 +67,8 @@ The command metadata table below is generated from the shared registry by `npm r
 | `trace-summary` | `traceSummary` | read | 30000 ms | no | yes | Read trace session metadata without returning the trace event log. |
 | `trace-events` | `traceEvents` | read | 30000 ms | no | yes | Read recent bounded trace events. |
 | `diagnostics` | `diagnostics` | read | 30000 ms | no | yes | Read bounded page, trace, network-count, resource, and performance diagnostics without raw event logs. |
+| `network-export` | `network-export` | read | 30000 ms | no | yes | Write redacted local network-export artifacts from recent trace events without dumping raw network logs to stdout. |
+| `lighthouse-plan` | `lighthouse-plan` | read | 5000 ms | no | no | Print the exact local Lighthouse command and follow-up ingest command without running Lighthouse directly. |
 | `lighthouse-ingest` | `lighthouse-ingest` | read | 5000 ms | no | no | Summarize a local Lighthouse JSON report into scores and failing audits. |
 | `trace-stop` | `traceStop` | system | 30000 ms | no | yes | Stop tracing and return recent events. |
 | `history` | `historySearch` | private-read | 30000 ms | yes | yes | Search Chrome history with explicit confirmation. |
@@ -121,6 +123,7 @@ chrome-bridge mcp-config [--client all|claude-code|cursor|codex|vscode|windsurf|
 chrome-bridge mcp-write --client claude-code|cursor|codex|vscode|windsurf|hermes|generic [--root <dir>] [--out <file>] [--force]
 chrome-bridge codex-config
 chrome-bridge command-catalog [--markdown]
+chrome-bridge lighthouse-plan --url <http(s)://...> [--out <file>] [--summary-out <file>] [--chrome-path <file>] [--chrome-flags <text>] [--emulated-form-factor desktop|mobile] [--only-categories <csv>]
 chrome-bridge lighthouse-ingest --report <file> [--out <file>] [--max-audits 25]
 chrome-bridge last-artifact [--artifact-dir <dir>]
 chrome-bridge read-artifact --path <file> [--head <n>] [--grep <regex>] [--max-matches <n>]
@@ -254,6 +257,7 @@ chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-networ
 chrome-bridge trace-summary [--tab <id>] [--allow-external]
 chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]
 chrome-bridge diagnostics [--tab <id>] [--out <file>] [--allow-external]
+chrome-bridge network-export [--tab <id>] [--artifact-dir <dir>] [--out <file>] [--requests-out <file>] [--har-out <file>] [--limit <n>] [--include-headers --confirm-sensitive] [--include-bodies --confirm-sensitive] [--allow-external]
 chrome-bridge trace-stop [--tab <id>] [--limit 100] [--allow-external]
 ```
 <!-- END GENERATED CLI USAGE: trace -->

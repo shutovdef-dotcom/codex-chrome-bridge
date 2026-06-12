@@ -20,6 +20,7 @@ The MCP tool `chrome_bridge_mcp_config` returns the same snippets from inside cl
 For a safer install flow, `chrome_bridge_doctor`, `chrome_bridge_session_summary`, `chrome_bridge_tool_advisor`, and the `chrome-bridge://profiles/current` resource now echo the recommended profile and next setup steps after install.
 If you prefer checked-in template files, see `examples/mcp-clients/`.
 If you want the CLI to write a project-local config for you, use `mcp-write`. By default it only targets local workspace files and refuses to touch user-global config paths.
+If you want the shortest per-client setup path first, start with [INSTALL.md](INSTALL.md).
 
 ## Shared Requirements
 

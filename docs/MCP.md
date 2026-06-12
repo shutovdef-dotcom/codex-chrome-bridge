@@ -116,6 +116,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_find_elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | `chrome_bridge_extract` | `extractPage` | read | 30000 ms | no | yes | Extract structured tables, form structure, lists, key-value blocks, or artifact-backed CPA offer presets without current form values. |
 | `chrome_bridge_download_discovery` | `download-discovery` | read | 30000 ms | no | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
+| `chrome_bridge_lighthouse_plan` | `lighthouse-plan` | read | 5000 ms | no | no | Print the exact local Lighthouse command and follow-up ingest command without running Lighthouse directly. |
 | `chrome_bridge_snapshot` | `snapshot` | read | 30000 ms | no | yes | Read a bounded structured page snapshot with optional full-page rendered text coverage. |
 | `chrome_bridge_text` | `text` | read | 30000 ms | no | yes | Read bounded visible page text with optional full-page scroll-walk coverage. |
 | `chrome_bridge_html` | `html` | read | 30000 ms | no | yes | Read bounded page HTML for a selector or the whole document. |
@@ -136,6 +137,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_trace_summary` | `traceSummary` | read | 30000 ms | no | yes | Read trace session metadata without returning the trace event log. |
 | `chrome_bridge_trace_events` | `traceEvents` | read | 30000 ms | no | yes | Read recent bounded trace events. |
 | `chrome_bridge_diagnostics` | `diagnostics` | read | 30000 ms | no | yes | Read bounded page, trace, network-count, resource, and performance diagnostics without raw event logs. |
+| `chrome_bridge_network_export` | `network-export` | read | 30000 ms | no | yes | Write redacted local network-export artifacts from recent trace events without dumping raw network logs to stdout. |
 | `chrome_bridge_trace_stop` | `traceStop` | system | 30000 ms | no | yes | Stop tracing and return recent events. |
 | `chrome_bridge_history_search` | `historySearch` | private-read | 30000 ms | yes | yes | Search Chrome history with explicit confirmation. |
 | `chrome_bridge_bookmarks_search` | `bookmarksSearch` | private-read | 30000 ms | yes | yes | Search Chrome bookmarks with explicit confirmation. |

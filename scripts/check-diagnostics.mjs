@@ -113,6 +113,7 @@ async function withFakeBridge(fn) {
                 requestCount: 1,
                 responseCount: 1,
                 failedCount: 1,
+                thirdPartyRequestCount: 28,
                 statusCounts: { 500: 1 },
                 resourceTypes: { Fetch: 1 },
               },
@@ -121,15 +122,22 @@ async function withFakeBridge(fn) {
           performance: {
             navigation: {
               type: 'navigate',
-              domContentLoadedMs: 321,
-              loadEventMs: 654,
+              domContentLoadedMs: 3210,
+              loadEventMs: 4654,
               responseEndMs: 123,
               transferSize: 4096,
             },
-            resources: {
+            longTasks: {
               count: 2,
+              totalDurationMs: 480,
+              maxDurationMs: 290,
+            },
+            resources: {
+              count: 184,
               transferSize: 8192,
               decodedBodySize: 16384,
+              renderBlockingCandidateCount: 3,
+              thirdPartyRequestCount: 28,
               byType: {
                 script: { count: 1, transferSize: 4096, decodedBodySize: 8192 },
                 img: { count: 1, transferSize: 4096, decodedBodySize: 8192 },
@@ -201,9 +209,14 @@ async function checkCliDiagnostics(tmpDir) {
     check(!Object.prototype.hasOwnProperty.call(result.parsed?.trace || {}, 'events'), 'diagnostics CLI must not return raw trace events');
     check(result.parsed?.trace?.eventSummary?.console?.byLevel?.error === 1, 'diagnostics CLI must expose bounded console counts');
     check(result.parsed?.trace?.eventSummary?.network?.statusCounts?.['500'] === 1, 'diagnostics CLI must expose bounded network status counts');
-    check(result.parsed?.performance?.navigation?.domContentLoadedMs === 321, 'diagnostics CLI must expose navigation timing summary');
+    check(result.parsed?.performance?.navigation?.domContentLoadedMs === 3210, 'diagnostics CLI must expose navigation timing summary');
     check(result.parsed?.performance?.resources?.byType?.script?.count === 1, 'diagnostics CLI must expose resource type summary');
     check(result.parsed?.lighthouse?.commandTemplate?.includes('lighthouse'), 'diagnostics CLI must expose Lighthouse handoff');
+    check(Array.isArray(result.parsed?.hints), 'diagnostics CLI must expose heuristic hints');
+    check(result.parsed?.hints?.some((hint) => hint.id === 'slow-navigation' && hint.heuristic === true), 'diagnostics CLI must flag slow navigation heuristics');
+    check(result.parsed?.hints?.some((hint) => hint.id === 'failed-requests'), 'diagnostics CLI must flag failed request heuristics');
+    check(result.parsed?.hints?.some((hint) => hint.id === 'console-errors'), 'diagnostics CLI must flag console error heuristics');
+    check(result.parsed?.hints?.some((hint) => hint.id === 'run-lighthouse-next'), 'diagnostics CLI must recommend Lighthouse when heuristics fire');
     check(!result.stdout.includes(privateNeedle), 'diagnostics CLI stdout must not include raw resource URLs');
     check(!result.stdout.includes(secretConsoleText), 'diagnostics CLI stdout must not include raw console text');
 
