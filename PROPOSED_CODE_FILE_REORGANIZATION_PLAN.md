@@ -308,7 +308,7 @@ scripts/
 
 ### Phase 0: Add Reorganization Guardrails
 
-Before moving code, add a small checker such as `scripts/check-reorganization-boundaries.mjs` that verifies:
+Before moving code, add a small checker such as `scripts/checks/release/check-reorganization-boundaries.mjs` that verifies:
 
 - published binary paths still exist
 - extension manifest entrypoint paths still exist
@@ -361,7 +361,7 @@ Calling code changes:
 - Update `npm run check` path fragments.
 - Update docs that mention direct script paths if any.
 - Update `.github/workflows/check.yml` only if it references direct script paths rather than npm scripts.
-- Update `scripts/check-package-contents.mjs` required paths if it asserts script file locations.
+- Update `scripts/package/check-package-contents.mjs` required paths if it asserts script file locations.
 
 Verification:
 
@@ -394,7 +394,7 @@ Rationale:
 Calling code changes:
 
 - Minimal first pass: update no callers, only keep wrapper exports.
-- Update `scripts/check-command-registry.mjs` if it scans for exact strings inside `shared/command-registry.mjs`.
+- Update `scripts/checks/contracts/check-command-registry.mjs` if it scans for exact strings inside `shared/command-registry.mjs`.
 - Update docs only after the split is stable.
 
 Verification:
@@ -474,7 +474,7 @@ Rationale:
 Calling code changes:
 
 - No `chrome-bridge-mcp` binary path change.
-- Update source-scanning checks in `scripts/check-command-registry.mjs`, `check-mcp-local-tools.mjs`, and feature checkers if they look for `server.tool(...)` in the single file.
+- Update source-scanning checks in `scripts/checks/contracts/check-command-registry.mjs`, `check-mcp-local-tools.mjs`, and feature checkers if they look for `server.tool(...)` in the single file.
 - Prefer adding a test helper that loads all files under `mcp/server/` for source checks.
 
 Verification:
@@ -594,9 +594,9 @@ Split these first:
 - `mcp/chrome-bridge-mcp.mjs`
 - `shared/command-registry.mjs`
 - `extension/page-scripts.js`
-- `scripts/check-command-registry.mjs`
-- `scripts/check-cli-local-tools.mjs`
-- `scripts/check-mcp-local-tools.mjs`
+- `scripts/checks/contracts/check-command-registry.mjs`
+- `scripts/checks/cli/check-cli-local-tools.mjs`
+- `scripts/checks/mcp/check-mcp-local-tools.mjs`
 
 The three large checker files can be split after runtime modules move, because they currently encode many cross-surface invariants. A good target is `scripts/checks/helpers/` for fake bridge/MCP client helpers and per-domain checker modules.
 
@@ -627,14 +627,14 @@ Every implementation phase must account for these path-sensitive surfaces:
 - `package.json.files` if new top-level directories are added.
 - `.npmignore` if package contents are filtered there.
 - `.github/workflows/check.yml` if direct paths appear.
-- `scripts/check-package-contents.mjs` required package file assertions.
-- `scripts/check-command-registry.mjs` source-string assertions.
-- `scripts/check-docs-coverage.mjs` generated docs path assumptions.
+- `scripts/package/check-package-contents.mjs` required package file assertions.
+- `scripts/checks/contracts/check-command-registry.mjs` source-string assertions.
+- `scripts/docs/check-docs-coverage.mjs` generated docs path assumptions.
 - `docs/ARCHITECTURE.md`.
 - `README.md` verification command descriptions.
 - `docs/PUBLISHING.md` if script paths are mentioned.
 - `extension/manifest.json` if extension entrypoints move. The first phases should avoid this.
-- `scripts/build-extension-zip.mjs` if extension layout assumptions become stricter.
+- `scripts/package/build-extension-zip.mjs` if extension layout assumptions become stricter.
 - `aliases/chrome-mcp-bridge/bin/*.mjs` if alias wrappers hardcode binary paths.
 
 ## Verification Checklist For Any Move
@@ -679,10 +679,10 @@ node ./bin/chrome-bridge.mjs runtime-smoke --summary-only --out /tmp/chrome-brid
 
 The first actual implementation should be deliberately boring:
 
-1. Add `scripts/check-reorganization-boundaries.mjs`.
+1. Add `scripts/checks/release/check-reorganization-boundaries.mjs`.
 2. Move only packaging/docs/service scripts into subfolders.
 3. Update `package.json` script paths.
-4. Update `scripts/check-package-contents.mjs`.
+4. Update `scripts/package/check-package-contents.mjs`.
 5. Update README verification prose if needed.
 6. Run `npm run check`, `npm run check:audit`, and `npm run check:pack`.
 

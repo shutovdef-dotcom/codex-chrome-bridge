@@ -116,7 +116,7 @@ High-signal UBS buckets:
 High-noise UBS buckets:
 
 - `Secret, signature, or token compared with ==/!=`: 91. In this repo this mostly matches docs, generated safety text, and tests mentioning tokens/sensitive confirmations rather than token comparison code.
-- `Possible hardcoded secrets`: 1. The visible hits are test sentinel strings like `SECRET_CONSOLE_TEXT` / private fixture URLs in `scripts/check-diagnostics.mjs`, not committed credentials.
+- `Possible hardcoded secrets`: 1. The visible hits are test sentinel strings like `SECRET_CONSOLE_TEXT` / private fixture URLs in `scripts/checks/features/check-diagnostics.mjs`, not committed credentials.
 - `Switch cases may be missing break`: 43. The main action dispatch switch returns from each case.
 - Deep property access samples shown by UBS are assertion tests intentionally checking omitted fields with `Object.prototype.hasOwnProperty.call`.
 

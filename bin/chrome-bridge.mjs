@@ -1527,12 +1527,12 @@ async function selfTest() {
     safeRecord: path.join(rootDir, 'shared/safe-record.mjs'),
     sessionGroupTitle: path.join(rootDir, 'shared/session-group-title.mjs'),
     commandCatalogDoc: path.join(rootDir, 'docs/COMMAND-CATALOG.md'),
-    commandCatalogGenerator: path.join(rootDir, 'scripts/generate-command-catalog.mjs'),
-    bridgeContractChecker: path.join(rootDir, 'scripts/check-bridge-contract.mjs'),
-    docsCoverageChecker: path.join(rootDir, 'scripts/check-docs-coverage.mjs'),
-    packageContentsChecker: path.join(rootDir, 'scripts/check-package-contents.mjs'),
-    privacyScanner: path.join(rootDir, 'scripts/check-privacy-scan.mjs'),
-    roadmapNextSliceChecker: path.join(rootDir, 'scripts/check-roadmap-next-slice.mjs'),
+    commandCatalogGenerator: path.join(rootDir, 'scripts/docs/generate-command-catalog.mjs'),
+    bridgeContractChecker: path.join(rootDir, 'scripts/checks/contracts/check-bridge-contract.mjs'),
+    docsCoverageChecker: path.join(rootDir, 'scripts/docs/check-docs-coverage.mjs'),
+    packageContentsChecker: path.join(rootDir, 'scripts/package/check-package-contents.mjs'),
+    privacyScanner: path.join(rootDir, 'scripts/checks/release/check-privacy-scan.mjs'),
+    roadmapNextSliceChecker: path.join(rootDir, 'scripts/checks/features/check-roadmap-next-slice.mjs'),
     packageJson: path.join(rootDir, 'package.json'),
     packageLock: path.join(rootDir, 'package-lock.json'),
   };
@@ -1790,21 +1790,21 @@ async function selfTest() {
     {
       label: 'registry',
       item: 'docs coverage checker',
-      ok: packageJson.scripts?.['check:docs'] === 'node ./scripts/check-docs-coverage.mjs'
+      ok: packageJson.scripts?.['check:docs'] === 'node ./scripts/docs/check-docs-coverage.mjs'
         && packageJson.scripts?.check?.includes('npm run check:docs')
         && cli.includes('docsCoverageChecker'),
     },
     {
       label: 'registry',
       item: 'package contents checker',
-      ok: packageJson.scripts?.['check:pack'] === 'node ./scripts/check-package-contents.mjs'
+      ok: packageJson.scripts?.['check:pack'] === 'node ./scripts/package/check-package-contents.mjs'
         && packageJson.scripts?.check?.includes('check-package-contents.mjs')
         && cli.includes('packageContentsChecker'),
     },
     {
       label: 'registry',
       item: 'privacy scanner',
-      ok: packageJson.scripts?.['check:privacy'] === 'node ./scripts/check-privacy-scan.mjs'
+      ok: packageJson.scripts?.['check:privacy'] === 'node ./scripts/checks/release/check-privacy-scan.mjs'
         && packageJson.scripts?.check?.includes('npm run check:privacy')
         && cli.includes('privacyScanner'),
     },
