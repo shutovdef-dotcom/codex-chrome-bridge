@@ -83,6 +83,8 @@ Agents using this bridge should:
 - Treat form previews as potentially sensitive; `fill-form` reports field value states, not current or planned raw values.
 - Use `select-options` for available-option discovery only; it omits the current selected value/option from read-only output.
 
+Autonomy boundaries: high-level actions are limited to read-only `act-preview` and confirmed one-step `act-apply`; there is no self-approval of confirmations, no autonomous multi-step mutation loop, and no remote LLM execution inside the bridge. See [AUTONOMY-BOUNDARIES.md](AUTONOMY-BOUNDARIES.md).
+
 ## Frame And Shadow DOM Boundaries
 
 `observe`, `find-elements`, and `elementRef` actions target the main-frame light DOM. They report `frameDiagnostics`, `shadowDiagnostics`, and `capabilityWarnings` when iframe or shadow DOM boundaries are present, but they do not traverse shadow DOM or expose cross-origin iframe internals as direct `elementRef` targets.

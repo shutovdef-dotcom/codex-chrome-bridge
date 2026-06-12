@@ -52,6 +52,7 @@ Remaining gaps:
 - GitHub repository/package rename or alias package (`chrome-mcp-bridge`) is still not done; doing it safely needs release planning, npm ownership checks, redirects, and migration docs.
 - One-click install buttons or marketplace entries for VS Code/Cursor/Claude plugin-style distribution are not implemented.
 - We do not provide hosted cloud sessions, proxy pools, CAPTCHA solving, live-view sharing, or large-scale crawling. Keep these out of the default scope unless the product intentionally moves beyond local real-profile control.
+- Boundary docs now make the current autonomy and cloud stance explicit: [AUTONOMY-BOUNDARIES.md](AUTONOMY-BOUNDARIES.md) and [CLOUD-AND-SCALE.md](CLOUD-AND-SCALE.md).
 
 ## Fresh Scan: 2026-06-11
 
