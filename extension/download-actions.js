@@ -1,4 +1,5 @@
 import { execute } from './page-execution.js';
+import { resolveObservedElementTarget } from './page-scripts.js';
 import { requireConfirmed } from './safety-gates.js';
 import { tabInfo } from './tab-info.js';
 import { getTargetTab } from './workspace-tabs.js';
@@ -192,15 +193,16 @@ function armSingleDownloadWait(tabId, timeoutMs) {
 
 export async function download(payload) {
   requireConfirmed(payload, 'download');
-  if (!payload.selector) throw new Error('download requires selector');
+  if (!payload.selector && !payload.elementRef) throw new Error('download requires selector or elementRef');
 
   const timeoutMs = clampDownloadTimeout(Number(payload.downloadTimeoutMs));
   const tab = await getTargetTab(payload);
+  const target = await resolveElementTarget(tab.id, payload);
   const waitForDownload = armSingleDownloadWait(tab.id, timeoutMs);
 
   let clickResult;
   try {
-    clickResult = await clickSelectorForDownload(tab.id, payload.selector);
+    clickResult = await clickSelectorForDownload(tab.id, target.selector);
   } catch (error) {
     waitForDownload.cancel();
     await waitForDownload.promise.catch(() => {});
@@ -211,7 +213,21 @@ export async function download(payload) {
   const refreshedTab = await chrome.tabs.get(tab.id);
   return {
     ...localDownloadSummary(item, elapsedMs, refreshedTab),
-    selector: payload.selector,
-    clicked: clickResult?.clicked || payload.selector,
+    selector: target.selector,
+    elementRef: target.elementRef,
+    clicked: clickResult?.clicked || target.selector,
   };
+}
+
+async function resolveElementTarget(tabId, payload = {}) {
+  if (!payload.elementRef) {
+    return {
+      selector: payload.selector,
+      elementRef: null,
+    };
+  }
+  return execute(tabId, resolveObservedElementTarget, [{
+    selector: payload.selector,
+    elementRef: payload.elementRef,
+  }]);
 }

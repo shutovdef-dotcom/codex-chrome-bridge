@@ -19,31 +19,31 @@ Version: 0.4.1
 | goBack | navigation | interaction | 30000 ms | back | chrome_bridge_back | no | tabId, allowExternal, groupTitle, groupColor, timeoutMs | Navigate the selected tab backward. |
 | goForward | navigation | interaction | 30000 ms | forward | chrome_bridge_forward | no | tabId, allowExternal, groupTitle, groupColor, timeoutMs | Navigate the selected tab forward. |
 | reloadTab | navigation | interaction | 30000 ms | reload | chrome_bridge_reload_tab | no | tabId, allowExternal, groupTitle, groupColor, bypassCache, timeoutMs | Reload the selected tab. |
-| waitForSelector | read | read | 30000 ms | wait | chrome_bridge_wait_for_selector | no | tabId, allowExternal, groupTitle, groupColor, selector, timeoutMs, visible | Wait for a selector to appear in the selected tab. |
+| waitForSelector | read | read | 30000 ms | wait | chrome_bridge_wait_for_selector | no | tabId, allowExternal, groupTitle, groupColor, selector, elementRef, timeoutMs, visible | Wait for a selector to appear in the selected tab. |
 | observe | read | read | 30000 ms | observe | chrome_bridge_observe | no | tabId, allowExternal, groupTitle, groupColor, limit, maxTextChars, role, text, nearText, placeholder, href, actionKind, risk | Read ranked actionable elements with querySelector-verified selectors without mutating page state. |
 | findElements | read | read | 30000 ms | find-elements | chrome_bridge_find_elements | no | tabId, allowExternal, groupTitle, groupColor, limit, maxTextChars, role, text, nearText, placeholder, href, actionKind, risk | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | extractPage | read | read | 30000 ms | extract | chrome_bridge_extract | no | tabId, allowExternal, groupTitle, groupColor, kind, maxItems, maxTextChars | Extract structured tables, form structure, lists, key-value blocks, or artifact-backed CPA offer presets without current form values. |
 | snapshot | read | read | 30000 ms | snapshot | chrome_bridge_snapshot | no | tabId, allowExternal, groupTitle, groupColor, maxChars, fullPage, waitForText, waitForPattern, scrollStepPx, maxScrollSteps, scrollDelayMs | Read a bounded structured page snapshot with optional full-page rendered text coverage. |
 | text | read | read | 30000 ms | text | chrome_bridge_text | no | tabId, allowExternal, groupTitle, groupColor, maxChars, fullPage, waitForText, waitForPattern, scrollStepPx, maxScrollSteps, scrollDelayMs | Read bounded visible page text with optional full-page scroll-walk coverage. |
-| html | read | read | 30000 ms | html | chrome_bridge_html | no | tabId, allowExternal, groupTitle, groupColor, maxChars, selector, outer | Read bounded page HTML for a selector or the whole document. |
+| html | read | read | 30000 ms | html | chrome_bridge_html | no | tabId, allowExternal, groupTitle, groupColor, maxChars, selector, elementRef, outer | Read bounded page HTML for a selector or the whole document. |
 | diagnostics | debug | read | 30000 ms | diagnostics | chrome_bridge_diagnostics | no | tabId, allowExternal, groupTitle, groupColor | Read bounded page, trace, network-count, resource, and performance diagnostics without raw event logs. |
-| screenshot | artifact | read | 30000 ms | screenshot | chrome_bridge_screenshot | no | tabId, allowExternal, groupTitle, groupColor, fullPage, selector, maxPixels, fallback | Capture a PNG screenshot of the selected tab, full page, or selector. |
+| screenshot | artifact | read | 30000 ms | screenshot | chrome_bridge_screenshot | no | tabId, allowExternal, groupTitle, groupColor, fullPage, selector, elementRef, maxPixels, fallback | Capture a PNG screenshot of the selected tab, full page, or selector. |
 | printPdf | artifact | read | 60000 ms | pdf | chrome_bridge_pdf | no | tabId, allowExternal, groupTitle, groupColor, landscape, printBackground, preferCssPageSize, pageRanges, scale | Print the selected tab to a local PDF artifact. |
-| listSelectOptions | read | read | 30000 ms | select-options | chrome_bridge_select_options | no | tabId, allowExternal, groupTitle, groupColor, selector | Read available select options without returning current selection state. |
+| listSelectOptions | read | read | 30000 ms | select-options | chrome_bridge_select_options | no | tabId, allowExternal, groupTitle, groupColor, selector, elementRef | Read available select options without returning current selection state. |
 | scroll | interaction | interaction | 10000 ms | scroll | chrome_bridge_scroll | no | tabId, allowExternal, groupTitle, groupColor, x, y | Scroll the selected tab. |
 | setViewport | debug | interaction | 10000 ms | set-viewport | chrome_bridge_set_viewport | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, width, height, deviceScaleFactor, mobile | Apply confirmed viewport emulation to the selected tab until clear-emulation resets it. |
 | emulateNetwork | debug | interaction | 10000 ms | emulate-network | chrome_bridge_emulate_network | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, networkProfile, latencyMs, downloadKbps, uploadKbps | Apply confirmed bounded network emulation to the selected tab until clear-emulation resets it. |
 | clearEmulation | debug | interaction | 10000 ms | clear-emulation | chrome_bridge_clear_emulation | yes | tabId, allowExternal, groupTitle, groupColor, confirmed | Reset confirmed viewport and network emulation overrides for the selected tab. |
-| click | interaction | interaction | 30000 ms | click | chrome_bridge_click | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector | Click a selector in the selected tab. |
-| download | interaction | interaction | 60000 ms | download | chrome_bridge_download | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, downloadTimeoutMs | Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents. |
+| click | interaction | interaction | 30000 ms | click | chrome_bridge_click | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef | Click a selector in the selected tab. |
+| download | interaction | interaction | 60000 ms | download | chrome_bridge_download | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, downloadTimeoutMs | Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents. |
 | clickAt | interaction | interaction | 30000 ms | click-at | chrome_bridge_click_at | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, x, y, button, trusted | Click viewport coordinates, optionally through trusted debugger input. |
-| hover | interaction | interaction | 30000 ms | hover | chrome_bridge_hover | no | tabId, allowExternal, groupTitle, groupColor, selector, x, y, trusted | Hover an element or coordinates in the selected tab. |
-| type | interaction | interaction | 30000 ms | type | chrome_bridge_type | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, text, trusted | Type text into a selector, optionally through trusted debugger input. |
-| press | interaction | interaction | 30000 ms | press | chrome_bridge_press | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, key, code, ctrlKey, metaKey, altKey, shiftKey, trusted | Press a keyboard key, optionally through trusted debugger input. |
-| select | interaction | interaction | 30000 ms | select | chrome_bridge_select | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, value, label, index | Select an option in a select element. |
+| hover | interaction | interaction | 30000 ms | hover | chrome_bridge_hover | no | tabId, allowExternal, groupTitle, groupColor, selector, elementRef, x, y, trusted | Hover an element or coordinates in the selected tab. |
+| type | interaction | interaction | 30000 ms | type | chrome_bridge_type | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, text, trusted | Type text into a selector, optionally through trusted debugger input. |
+| press | interaction | interaction | 30000 ms | press | chrome_bridge_press | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, key, code, ctrlKey, metaKey, altKey, shiftKey, trusted | Press a keyboard key, optionally through trusted debugger input. |
+| select | interaction | interaction | 30000 ms | select | chrome_bridge_select | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, value, label, index | Select an option in a select element. |
 | fillForm | interaction | interaction | 30000 ms | fill-form | chrome_bridge_fill_form | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, fields, dryRun | Preview or apply field values without submitting or returning raw field values. |
 | handleDialog | interaction | interaction | 30000 ms | handle-dialog | chrome_bridge_handle_dialog | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, accept, promptText | Accept or dismiss the currently open JavaScript dialog. |
-| uploadFile | interaction | interaction | 60000 ms | upload-file | chrome_bridge_upload_file | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, file, files | Set local files on a file input through Chrome Debugger. |
+| uploadFile | interaction | interaction | 60000 ms | upload-file | chrome_bridge_upload_file | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, elementRef, file, files | Set local files on a file input through Chrome Debugger. |
 | traceStart | debug | system | 30000 ms | trace-start | chrome_bridge_trace_start | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, maxEvents, network, console, includeExtensionEvents | Start bounded console and network metadata tracing. |
 | traceSummary | debug | read | 30000 ms | trace-summary | chrome_bridge_trace_summary | no | tabId, allowExternal, groupTitle, groupColor | Read trace session metadata without returning the trace event log. |
 | traceEvents | debug | read | 30000 ms | trace-events | chrome_bridge_trace_events | no | tabId, allowExternal, groupTitle, groupColor, limit | Read recent bounded trace events. |
@@ -108,7 +108,7 @@ chrome-bridge close-group [--group-title <title>] [--group-color <color>] --conf
 chrome-bridge back [--tab <id>] [--allow-external]
 chrome-bridge forward [--tab <id>] [--allow-external]
 chrome-bridge reload [--tab <id>] [--bypass-cache] [--allow-external]
-chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
+chrome-bridge wait (--selector <css> | --ref <ref>) [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
 chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]
 chrome-bridge act-preview --intent <text> [--tab <id>] [--max-candidates 5] [--risk read-only|confirmed-interaction|private-read] [--selector-preference stable|any] [--allow-external]
 chrome-bridge act-apply --preview-id <id> --confirm [--text <text>] [--value <value> | --label <label> | --index <n>]
@@ -116,28 +116,28 @@ chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>]
 chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-offer|article|product-page|pricing-table --network <name> --out <file> [--artifact-dir <dir>]] [--max-items 50] [--tab <id>] [--allow-external]
 chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
-chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
+chrome-bridge html [--tab <id>] [--selector <css> | --ref <ref>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge grep-page --pattern <regex> [--tab <id>] [--artifact-dir <dir>] [--max-matches 20] [--viewport-only] [--allow-external]
 chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge download-discovery --out <file> [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
-chrome-bridge download --selector <css> --confirm [--download-timeout-ms <ms>] [--tab <id>] [--allow-external]
-chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
+chrome-bridge download (--selector <css> | --ref <ref>) --confirm [--download-timeout-ms <ms>] [--tab <id>] [--allow-external]
+chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css> | --ref <ref>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
 chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
 chrome-bridge set-viewport --width <px> --height <px> --confirm [--device-scale-factor <n>] [--mobile] [--tab <id>] [--allow-external]
 chrome-bridge emulate-network --profile offline|slow-3g|fast-3g|slow-4g|wifi|no-throttling|custom --confirm [--latency-ms <n>] [--download-kbps <n>] [--upload-kbps <n>] [--tab <id>] [--allow-external]
 chrome-bridge clear-emulation --confirm [--tab <id>] [--allow-external]
-chrome-bridge click --tab <id> --selector <css> --confirm [--allow-external]
+chrome-bridge click --tab <id> (--selector <css> | --ref <ref>) --confirm [--allow-external]
 chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]
-chrome-bridge hover [--selector <css>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
-chrome-bridge type --tab <id> --selector <css> --text <text> --confirm [--trusted] [--allow-external]
-chrome-bridge press --key <key> --confirm [--selector <css>] [--trusted] [--tab <id>] [--allow-external]
-chrome-bridge select --selector <css> --confirm [--value <value> | --label <label> | --index <n>] [--tab <id>] [--allow-external]
-chrome-bridge select-options --selector <css> [--tab <id>] [--allow-external]
+chrome-bridge hover [--selector <css> | --ref <ref>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
+chrome-bridge type --tab <id> (--selector <css> | --ref <ref>) --text <text> --confirm [--trusted] [--allow-external]
+chrome-bridge press --key <key> --confirm [--selector <css> | --ref <ref>] [--trusted] [--tab <id>] [--allow-external]
+chrome-bridge select (--selector <css> | --ref <ref>) --confirm [--value <value> | --label <label> | --index <n>] [--tab <id>] [--allow-external]
+chrome-bridge select-options (--selector <css> | --ref <ref>) [--tab <id>] [--allow-external]
 chrome-bridge fill-form --fields-json <json> [--dry-run] [--confirm] [--tab <id>] [--allow-external]
 chrome-bridge handle-dialog --confirm [--dismiss] [--prompt-text <text>] [--tab <id>] [--allow-external]
-chrome-bridge upload-file --selector <css> (--file <path> | --files-json <json>) --confirm [--tab <id>] [--allow-external]
+chrome-bridge upload-file (--selector <css> | --ref <ref>) (--file <path> | --files-json <json>) --confirm [--tab <id>] [--allow-external]
 chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-network] [--no-console] [--include-extension-events] [--allow-external]
 chrome-bridge trace-summary [--tab <id>] [--allow-external]
 chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]

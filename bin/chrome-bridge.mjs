@@ -455,6 +455,7 @@ function screenshotPayload(args) {
     ...targetPayload(args),
     fullPage: Boolean(args['full-page']),
     selector: args.selector,
+    elementRef: args.ref,
     maxPixels: parseNumberRangeArg(args['max-pixels'], '--max-pixels', 1, 1_000_000_000),
     fallback: screenshotFallbackArg(args.fallback),
   };
@@ -462,7 +463,20 @@ function screenshotPayload(args) {
 
 function screenshotTimeoutMs(args) {
   return parseNumberRangeArg(args['timeout-ms'], '--timeout-ms', 0, 300_000)
-    ?? (args['full-page'] || args.selector ? 60_000 : 30_000);
+    ?? (args['full-page'] || args.selector || args.ref ? 60_000 : 30_000);
+}
+
+function elementTargetPayload(args) {
+  return {
+    selector: args.selector,
+    elementRef: args.ref,
+  };
+}
+
+function requireElementTarget(args, commandName) {
+  if (!args.selector && !args.ref) {
+    throw new Error(`${commandName} requires --selector <css> or --ref <ref>`);
+  }
 }
 
 function truncateText(value, maxChars = 160) {
@@ -682,7 +696,7 @@ async function runNestedTempTabCommand(argv, tabId) {
   if (cmd === 'html') {
     const result = await command('html', {
       ...targetPayload(scopedArgs),
-      selector: scopedArgs.selector,
+      ...elementTargetPayload(scopedArgs),
       maxChars: parseNumberRangeArg(scopedArgs['max-chars'], '--max-chars', 1_000, 500_000) ?? 500_000,
       outer: !scopedArgs.inner,
     }, 30_000);
@@ -805,7 +819,7 @@ function hoverCoordinatePayload(args) {
   const x = parseFiniteNumberArgWithMessage(args.x, '--x', message);
   const y = parseFiniteNumberArgWithMessage(args.y, '--y', message);
 
-  if (args.trusted || !args.selector) {
+  if (args.trusted || (!args.selector && !args.ref)) {
     return {
       x: parseRequiredFiniteNumberArg(args.x, '--x', message),
       y: parseRequiredFiniteNumberArg(args.y, '--y', message),
@@ -1872,7 +1886,7 @@ async function selfTest() {
       item: 'press trusted input is opt-in',
       ok: pressBlock.includes('trusted: Boolean(args.trusted)')
         && pageInteractions.includes('if (payload.trusted === true)')
-        && usage().includes('press --key <key> --confirm [--selector <css>] [--trusted]'),
+        && usage().includes('press --key <key> --confirm [--selector <css> | --ref <ref>] [--trusted]'),
     },
     {
       label: 'observability',
@@ -3409,10 +3423,10 @@ async function main() {
   }
 
   if (cmd === 'wait') {
-    if (!args.selector) throw new Error('wait requires --selector <css>');
+    requireElementTarget(args, 'wait');
     printJson(await command('waitForSelector', {
       ...targetPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
       timeoutMs: parseNumberRangeArg(args['timeout-ms'], '--timeout-ms', 0, 300_000),
       visible: !args['hidden-ok'],
     }, 30_000));
@@ -3541,7 +3555,7 @@ async function main() {
   if (cmd === 'html') {
     const result = await command('html', {
       ...targetPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
       maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 500_000) ?? 500_000,
       outer: !args.inner,
     }, 30_000);
@@ -3694,10 +3708,10 @@ async function main() {
 
   if (cmd === 'click') {
     if (!args.confirm) throw new Error('click requires --confirm');
-    if (!args.selector) throw new Error('click requires --selector <css>');
+    requireElementTarget(args, 'click');
     printJson(await command('click', {
       ...targetPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
       ...confirmationPayload(args),
     }));
     return;
@@ -3705,10 +3719,10 @@ async function main() {
 
   if (cmd === 'download') {
     if (!args.confirm) throw new Error('download requires --confirm');
-    if (!args.selector) throw new Error('download requires --selector <css>');
+    requireElementTarget(args, 'download');
     printJson(await command('download', {
       ...targetPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
       downloadTimeoutMs: parseNumberRangeArg(args['download-timeout-ms'], '--download-timeout-ms', 1_000, 180_000),
       ...confirmationPayload(args),
     }, 60_000));
@@ -3734,7 +3748,7 @@ async function main() {
     const coordinates = hoverCoordinatePayload(args);
     printJson(await command('hover', {
       ...targetPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
       ...coordinates,
       trusted: Boolean(args.trusted),
     }, 30_000));
@@ -3743,12 +3757,13 @@ async function main() {
 
   if (cmd === 'type') {
     if (!args.confirm) throw new Error('type requires --confirm');
-    if (!args.selector || typeof args.text !== 'string') {
-      throw new Error('type requires --selector <css> --text <text>');
+    requireElementTarget(args, 'type');
+    if (typeof args.text !== 'string') {
+      throw new Error('type requires --text <text>');
     }
     printJson(await command('type', {
       ...targetPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
       text: args.text,
       trusted: Boolean(args.trusted),
       ...confirmationPayload(args),
@@ -3762,7 +3777,7 @@ async function main() {
     printJson(await command('press', {
       ...targetPayload(args),
       ...confirmationPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
       key: args.key,
       code: args.code,
       ctrlKey: Boolean(args.ctrl),
@@ -3776,14 +3791,14 @@ async function main() {
 
   if (cmd === 'select') {
     if (!args.confirm) throw new Error('select requires --confirm');
-    if (!args.selector) throw new Error('select requires --selector <css>');
+    requireElementTarget(args, 'select');
     if (args.value === undefined && args.label === undefined && args.index === undefined) {
       throw new Error('select requires value, label, or index');
     }
     printJson(await command('select', {
       ...targetPayload(args),
       ...confirmationPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
       value: args.value,
       label: args.label,
       index: parseNonNegativeIntegerArg(args.index, '--index'),
@@ -3792,10 +3807,10 @@ async function main() {
   }
 
   if (cmd === 'select-options') {
-    if (!args.selector) throw new Error('select-options requires --selector <css>');
+    requireElementTarget(args, 'select-options');
     printJson(await command('listSelectOptions', {
       ...targetPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
     }, 30_000));
     return;
   }
@@ -3826,12 +3841,12 @@ async function main() {
 
   if (cmd === 'upload-file') {
     if (!args.confirm) throw new Error('upload-file requires --confirm');
-    if (!args.selector) throw new Error('upload-file requires --selector <css>');
+    requireElementTarget(args, 'upload-file');
     if (!args.file && !args['files-json']) throw new Error('upload-file requires --file <path> or --files-json <json>');
     printJson(await command('uploadFile', {
       ...targetPayload(args),
       ...confirmationPayload(args),
-      selector: args.selector,
+      ...elementTargetPayload(args),
       file: args.file,
       files: parseJsonOption(args['files-json'], '--files-json'),
     }, 60_000));

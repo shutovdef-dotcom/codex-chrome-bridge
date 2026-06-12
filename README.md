@@ -48,6 +48,7 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - MCP guidance surfaces: built-in prompts and resources expose quickstart, safety, compatibility, profile, and workflow guidance without forcing agents to rediscover the right tool chain.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
 - Agent discovery: ranked read-only `observe` output for actionable elements and querySelector-verified selectors.
+- Ref-first actions: `observe` and `find-elements` return compact `elementRef` values such as `e3`; follow-up commands can use `--ref <ref>` instead of repeating a CSS selector.
 - High-level action planning: read-only `act-preview` turns natural-language intent like "click login" or "download report" into deterministic low-level CLI/MCP action proposals without mutating the page.
 - Bounded high-level apply: confirmed `act-apply` executes exactly one previously previewed action, rejects stale previews, and returns before/after evidence plus the next recommended read.
 - Structured extraction: read tables, form structure, lists, key-value blocks, and artifact-backed presets such as `cpa-offer`, `article`, `product-page`, and `pricing-table` without returning private form values.
@@ -121,6 +122,8 @@ node ./bin/chrome-bridge.mjs command-catalog --markdown
 node ./bin/chrome-bridge.mjs observe --limit 30
 node ./bin/chrome-bridge.mjs find-elements --text "Submit"
 node ./bin/chrome-bridge.mjs find-elements --near-text "Billing address" --action type
+node ./bin/chrome-bridge.mjs click --ref e3 --confirm
+node ./bin/chrome-bridge.mjs type --ref e5 --text "hello" --confirm
 node ./bin/chrome-bridge.mjs extract --kind forms
 node ./bin/chrome-bridge.mjs snapshot --max-chars 60000
 node ./bin/chrome-bridge.mjs screenshot --out /tmp/chrome-bridge.png

@@ -305,7 +305,7 @@ export function collectDiagnostics() {
 }
 
 export async function waitForSelectorInPage(options = {}) {
-  const selector = String(options.selector || '');
+  const selector = String(options.selector || options.defaultSelector || '');
   const timeoutMs = Number(options.timeoutMs || 10_000);
   const visible = options.visible !== false;
   const started = Date.now();
@@ -341,6 +341,96 @@ export async function waitForSelectorInPage(options = {}) {
   }
 
   throw new Error(`Timed out waiting for selector: ${selector}`);
+}
+
+export function resolveObservedElementTarget(options = {}) {
+  const cssEscapeInjected = (value) => {
+    if (globalThis.CSS?.escape) return CSS.escape(String(value));
+    return String(value).replace(/["\\]/g, '\\$&');
+  };
+  const selectorMatchesElementInjected = (candidateSelector, element) => {
+    try {
+      return document.querySelector(candidateSelector) === element;
+    } catch {
+      return false;
+    }
+  };
+  const stableSelectorForInjected = (element, selectorOptions = {}) => {
+    const tag = element.tagName.toLowerCase();
+    const candidateAttributes = [
+      element.id ? `#${cssEscapeInjected(element.id)}` : null,
+      element.getAttribute('data-testid') ? `[data-testid="${cssEscapeInjected(element.getAttribute('data-testid'))}"]` : null,
+      element.getAttribute('data-test') ? `[data-test="${cssEscapeInjected(element.getAttribute('data-test'))}"]` : null,
+      element.getAttribute('name') ? `${tag}[name="${cssEscapeInjected(element.getAttribute('name'))}"]` : null,
+      element.getAttribute('aria-label') ? `${tag}[aria-label="${cssEscapeInjected(element.getAttribute('aria-label'))}"]` : null,
+      selectorOptions.includeHref && tag === 'a' && element.getAttribute('href')
+        ? `a[href="${cssEscapeInjected(element.getAttribute('href'))}"]`
+        : null,
+    ].filter(Boolean);
+
+    for (const candidateSelector of candidateAttributes) {
+      if (selectorMatchesElementInjected(candidateSelector, element)) return candidateSelector;
+    }
+
+    const parts = [];
+    let current = element;
+    while (current?.nodeType === Node.ELEMENT_NODE && current !== document.documentElement) {
+      const currentTag = current.tagName.toLowerCase();
+      let part = currentTag;
+      const parent = current.parentElement;
+      if (parent) {
+        const sameTagSiblings = Array.from(parent.children)
+          .filter((sibling) => sibling.tagName === current.tagName);
+        if (sameTagSiblings.length > 1) {
+          part = `${part}:nth-of-type(${sameTagSiblings.indexOf(current) + 1})`;
+        }
+      }
+      parts.unshift(part);
+      const candidateSelector = parts.join(' > ');
+      if (selectorMatchesElementInjected(candidateSelector, element)) return candidateSelector;
+      current = parent;
+    }
+
+    return parts.join(' > ') || tag;
+  };
+  const selector = String(options.selector || options.defaultSelector || '').trim();
+  const elementRef = String(options.elementRef || '').trim();
+  if (selector) {
+    const element = document.querySelector(selector);
+    if (!element) throw new Error(`No element matches selector: ${selector}`);
+    return { selector, elementRef: elementRef || null };
+  }
+
+  const match = /^e(\d+)$/.exec(elementRef);
+  if (!match) throw new Error('Element target requires selector or elementRef like e0');
+  const refIndex = Number(match[1]);
+  const isVisibleInjected = (element) => {
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    return style.visibility !== 'hidden'
+      && style.display !== 'none'
+      && rect.width > 0
+      && rect.height > 0;
+  };
+  const candidates = Array.from(document.querySelectorAll([
+    'a[href]',
+    'button',
+    'input',
+    'textarea',
+    'select',
+    '[role="button"]',
+    '[role="link"]',
+    '[role="textbox"]',
+    '[role="checkbox"]',
+    '[role="radio"]',
+    '[tabindex]',
+  ].join(','))).filter(isVisibleInjected);
+  const element = candidates[refIndex];
+  if (!element) throw new Error(`No observed element matches elementRef: ${elementRef}`);
+  return {
+    selector: stableSelectorForInjected(element, { includeHref: true }),
+    elementRef,
+  };
 }
 
 export function elementClipForSelector(selector) {
@@ -732,6 +822,7 @@ export function collectObserve(options = {}) {
       const action = actionKind(element, role);
       return {
         index,
+        elementRef: `e${index}`,
         selector: stableSelectorForInjected(element, { includeHref: true }),
         tag: element.tagName.toLowerCase(),
         role,

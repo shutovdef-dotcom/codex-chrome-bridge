@@ -3,6 +3,7 @@ import {
   fillFormInPage,
   hoverInPage,
   pressKeyInPage,
+  resolveObservedElementTarget,
   selectOptionInPage,
 } from './page-scripts.js';
 import { execute } from './page-execution.js';
@@ -27,14 +28,15 @@ export async function scroll(payload) {
 
 export async function click(payload) {
   if (!payload.confirmed) throw new Error('click requires confirmed=true');
-  if (!payload.selector) throw new Error('click requires selector');
+  if (!payload.selector && !payload.elementRef) throw new Error('click requires selector or elementRef');
   const tab = await getTargetTab(payload);
+  const target = await resolveElementTarget(tab.id, payload);
   return execute(tab.id, ({ selector }) => {
     const element = document.querySelector(selector);
     if (!element) throw new Error(`No element matches selector: ${selector}`);
     element.click();
     return { clicked: selector, url: location.href, title: document.title };
-  }, [{ selector: payload.selector }]);
+  }, [{ selector: target.selector }]);
 }
 
 export async function clickAt(payload) {
@@ -85,19 +87,23 @@ export async function hover(payload) {
     });
   }
 
+  const target = payload.elementRef
+    ? await resolveElementTarget(tab.id, payload)
+    : { selector: payload.selector, elementRef: null };
   const result = await execute(tab.id, hoverInPage, [{
-    selector: payload.selector,
+    selector: target.selector,
     x,
     y,
   }]);
-  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), elementRef: target.elementRef, ...result };
 }
 
 export async function typeInto(payload) {
   if (!payload.confirmed) throw new Error('type requires confirmed=true');
-  if (!payload.selector) throw new Error('type requires selector');
+  if (!payload.selector && !payload.elementRef) throw new Error('type requires selector or elementRef');
   if (typeof payload.text !== 'string') throw new Error('type requires text');
   const tab = await getTargetTab(payload);
+  const target = await resolveElementTarget(tab.id, payload);
 
   if (payload.trusted) {
     await execute(tab.id, ({ selector }) => {
@@ -105,10 +111,10 @@ export async function typeInto(payload) {
       if (!element) throw new Error(`No element matches selector: ${selector}`);
       element.focus();
       return true;
-    }, [{ selector: payload.selector }]);
+    }, [{ selector: target.selector }]);
     return withDebugger(tab.id, async () => {
       await sendDebuggerCommand(tab.id, 'Input.insertText', { text: payload.text });
-      return { typed: payload.selector, length: payload.text.length, trusted: true, tab: tabInfo(await chrome.tabs.get(tab.id)) };
+      return { typed: target.selector, elementRef: target.elementRef, length: payload.text.length, trusted: true, tab: tabInfo(await chrome.tabs.get(tab.id)) };
     });
   }
 
@@ -120,7 +126,7 @@ export async function typeInto(payload) {
     element.dispatchEvent(new Event('input', { bubbles: true }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
     return { typed: selector, length: text.length, url: location.href, title: document.title };
-  }, [{ selector: payload.selector, text: payload.text }]);
+  }, [{ selector: target.selector, text: payload.text }]);
 }
 
 export async function pressKey(payload) {
@@ -129,13 +135,16 @@ export async function pressKey(payload) {
   const key = String(payload.key || '');
   if (!key) throw new Error('press requires key');
 
-  if (payload.selector) {
+  const target = payload.elementRef
+    ? await resolveElementTarget(tab.id, payload)
+    : { selector: payload.selector, elementRef: null };
+  if (target.selector) {
     await execute(tab.id, ({ selector }) => {
       const element = document.querySelector(selector);
       if (!element) throw new Error(`No element matches selector: ${selector}`);
       element.focus();
       return true;
-    }, [{ selector: payload.selector }]);
+    }, [{ selector: target.selector }]);
   }
 
   if (payload.trusted === true) {
@@ -163,15 +172,16 @@ export async function pressKey(payload) {
 
 export async function selectOption(payload) {
   requireConfirmed(payload, 'select');
-  if (!payload.selector) throw new Error('select requires selector');
+  if (!payload.selector && !payload.elementRef) throw new Error('select requires selector or elementRef');
   const tab = await getTargetTab(payload);
+  const target = await resolveElementTarget(tab.id, payload);
   const result = await execute(tab.id, selectOptionInPage, [{
-    selector: payload.selector,
+    selector: target.selector,
     value: payload.value,
     label: payload.label,
     index: payload.index === undefined ? undefined : Number(payload.index),
   }]);
-  return { tab: tabInfo(await chrome.tabs.get(tab.id)), ...result };
+  return { tab: tabInfo(await chrome.tabs.get(tab.id)), elementRef: target.elementRef, ...result };
 }
 
 export async function fillForm(payload) {
@@ -204,12 +214,13 @@ export async function handleDialog(payload) {
 
 export async function uploadFile(payload) {
   requireConfirmed(payload, 'uploadFile');
-  if (!payload.selector) throw new Error('uploadFile requires selector');
+  if (!payload.selector && !payload.elementRef) throw new Error('uploadFile requires selector or elementRef');
   const files = Array.isArray(payload.files)
     ? payload.files.map(String)
     : (payload.file ? [String(payload.file)] : []);
   if (!files.length) throw new Error('uploadFile requires file or files');
   const tab = await getTargetTab(payload);
+  const target = await resolveElementTarget(tab.id, payload);
   return withDebugger(tab.id, async () => {
     await sendDebuggerCommand(tab.id, 'DOM.enable');
     const documentResult = await sendDebuggerCommand(tab.id, 'DOM.getDocument', {
@@ -220,18 +231,32 @@ export async function uploadFile(payload) {
     if (!rootNodeId) throw new Error('Failed to read DOM root for uploadFile');
     const queryResult = await sendDebuggerCommand(tab.id, 'DOM.querySelector', {
       nodeId: rootNodeId,
-      selector: payload.selector,
+      selector: target.selector,
     });
-    if (!queryResult?.nodeId) throw new Error(`No element matches selector: ${payload.selector}`);
+    if (!queryResult?.nodeId) throw new Error(`No element matches selector: ${target.selector}`);
     await sendDebuggerCommand(tab.id, 'DOM.setFileInputFiles', {
       nodeId: queryResult.nodeId,
       files,
     });
     return {
       uploaded: true,
-      selector: payload.selector,
+      selector: target.selector,
+      elementRef: target.elementRef,
       fileCount: files.length,
       tab: tabInfo(await chrome.tabs.get(tab.id)),
     };
   });
+}
+
+async function resolveElementTarget(tabId, payload = {}) {
+  if (!payload.elementRef) {
+    return {
+      selector: payload.selector,
+      elementRef: null,
+    };
+  }
+  return execute(tabId, resolveObservedElementTarget, [{
+    selector: payload.selector,
+    elementRef: payload.elementRef,
+  }]);
 }

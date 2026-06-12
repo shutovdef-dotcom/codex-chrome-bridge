@@ -197,7 +197,7 @@ If the target page is the last focused Chrome tab, omit `--tab <id>` and run `ch
 
 <!-- BEGIN GENERATED CLI USAGE: page-reads -->
 ```bash
-chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
+chrome-bridge wait (--selector <css> | --ref <ref>) [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
 chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]
 chrome-bridge act-preview --intent <text> [--tab <id>] [--max-candidates 5] [--risk read-only|confirmed-interaction|private-read] [--selector-preference stable|any] [--allow-external]
 chrome-bridge act-apply --preview-id <id> --confirm [--text <text>] [--value <value> | --label <label> | --index <n>]
@@ -205,12 +205,12 @@ chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>]
 chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-offer|article|product-page|pricing-table --network <name> --out <file> [--artifact-dir <dir>]] [--max-items 50] [--tab <id>] [--allow-external]
 chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
-chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
+chrome-bridge html [--tab <id>] [--selector <css> | --ref <ref>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge grep-page --pattern <regex> [--tab <id>] [--artifact-dir <dir>] [--max-matches 20] [--viewport-only] [--allow-external]
 chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge download-discovery --out <file> [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
-chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
+chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css> | --ref <ref>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
 chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
 ```
@@ -232,17 +232,17 @@ Interactions require `--confirm`.
 
 <!-- BEGIN GENERATED CLI USAGE: interactions -->
 ```bash
-chrome-bridge click --tab <id> --selector <css> --confirm [--allow-external]
-chrome-bridge download --selector <css> --confirm [--download-timeout-ms <ms>] [--tab <id>] [--allow-external]
+chrome-bridge click --tab <id> (--selector <css> | --ref <ref>) --confirm [--allow-external]
+chrome-bridge download (--selector <css> | --ref <ref>) --confirm [--download-timeout-ms <ms>] [--tab <id>] [--allow-external]
 chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]
-chrome-bridge hover [--selector <css>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
-chrome-bridge type --tab <id> --selector <css> --text <text> --confirm [--trusted] [--allow-external]
-chrome-bridge press --key <key> --confirm [--selector <css>] [--trusted] [--tab <id>] [--allow-external]
-chrome-bridge select --selector <css> --confirm [--value <value> | --label <label> | --index <n>] [--tab <id>] [--allow-external]
-chrome-bridge select-options --selector <css> [--tab <id>] [--allow-external]
+chrome-bridge hover [--selector <css> | --ref <ref>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
+chrome-bridge type --tab <id> (--selector <css> | --ref <ref>) --text <text> --confirm [--trusted] [--allow-external]
+chrome-bridge press --key <key> --confirm [--selector <css> | --ref <ref>] [--trusted] [--tab <id>] [--allow-external]
+chrome-bridge select (--selector <css> | --ref <ref>) --confirm [--value <value> | --label <label> | --index <n>] [--tab <id>] [--allow-external]
+chrome-bridge select-options (--selector <css> | --ref <ref>) [--tab <id>] [--allow-external]
 chrome-bridge fill-form --fields-json <json> [--dry-run] [--confirm] [--tab <id>] [--allow-external]
 chrome-bridge handle-dialog --confirm [--dismiss] [--prompt-text <text>] [--tab <id>] [--allow-external]
-chrome-bridge upload-file --selector <css> (--file <path> | --files-json <json>) --confirm [--tab <id>] [--allow-external]
+chrome-bridge upload-file (--selector <css> | --ref <ref>) (--file <path> | --files-json <json>) --confirm [--tab <id>] [--allow-external]
 ```
 <!-- END GENERATED CLI USAGE: interactions -->
 

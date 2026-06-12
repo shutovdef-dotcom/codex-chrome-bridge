@@ -1,4 +1,4 @@
-import { elementClipForSelector } from './page-scripts.js';
+import { elementClipForSelector, resolveObservedElementTarget } from './page-scripts.js';
 import { execute } from './page-execution.js';
 import { sendDebuggerCommand, withDebugger } from './debugger-session.js';
 import { withUserFocusPreserved } from './focus-context.js';
@@ -52,13 +52,18 @@ function captureTargetMetrics({ payload = {}, clip = null, layoutMetrics = {} } 
 export async function screenshot(payload) {
   const tab = await getTargetTab(payload);
 
-  if (payload.fullPage || payload.selector) {
+  if (payload.fullPage || payload.selector || payload.elementRef) {
     const captureResult = await withDebugger(tab.id, async () => {
       await sendDebuggerCommand(tab.id, 'Page.enable');
       const layoutMetrics = await sendDebuggerCommand(tab.id, 'Page.getLayoutMetrics');
       let clip;
-      if (payload.selector) {
-        const rect = await execute(tab.id, elementClipForSelector, [payload.selector]);
+      let target;
+      if (payload.selector || payload.elementRef) {
+        target = await execute(tab.id, resolveObservedElementTarget, [{
+          selector: payload.selector,
+          elementRef: payload.elementRef,
+        }]);
+        const rect = await execute(tab.id, elementClipForSelector, [target.selector]);
         clip = {
           x: rect.x,
           y: rect.y,
@@ -105,6 +110,8 @@ export async function screenshot(payload) {
         dataUrl: `data:image/png;base64,${capture.data}`,
         sizeGuard,
         fullPage: Boolean(payload.fullPage) && !tooLarge,
+        selector: target?.selector,
+        elementRef: target?.elementRef,
       };
     });
 
@@ -112,7 +119,8 @@ export async function screenshot(payload) {
     return {
       tab: tabInfo(latest),
       dataUrl: captureResult.dataUrl,
-      selector: captureResult.sizeGuard.triggered ? undefined : payload.selector,
+      selector: captureResult.sizeGuard.triggered ? undefined : captureResult.selector,
+      elementRef: captureResult.sizeGuard.triggered ? undefined : captureResult.elementRef,
       fullPage: captureResult.fullPage,
       requestedFullPage: Boolean(payload.fullPage),
       sizeGuard: captureResult.sizeGuard,

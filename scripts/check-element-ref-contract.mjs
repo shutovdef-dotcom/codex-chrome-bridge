@@ -82,15 +82,15 @@ for (const action of refCapableActions) {
 check(functionBlock(pageScriptsText, 'collectObserve').includes('elementRef:'), 'observe output must include elementRef for actionable elements');
 check(pageScriptsText.includes('export function resolveObservedElementTarget'), 'page scripts must export observed element ref resolver');
 check(functionBlock(pageScriptsText, 'resolveObservedElementTarget').includes('elementRef'), 'observed element resolver must accept elementRef');
-check(functionBlock(pageReadActionsText, 'waitForSelector').includes('resolveObservedElementTarget'), 'waitForSelector must resolve selector-or-ref targets in page scripts');
+check(functionBlock(pageReadActionsText, 'waitForSelector').includes('resolveElementTarget'), 'waitForSelector must resolve selector-or-ref targets before page scripts');
 check(functionBlock(pageArtifactsText, 'screenshot').includes('resolveObservedElementTarget'), 'selector screenshot must resolve selector-or-ref targets');
 for (const helperName of ['click', 'hover', 'typeInto', 'pressKey', 'selectOption', 'uploadFile']) {
-  check(functionBlock(pageInteractionsText, helperName).includes('resolveObservedElementTarget'), `${helperName} must resolve selector-or-ref targets`);
+  check(functionBlock(pageInteractionsText, helperName).includes('resolveElementTarget'), `${helperName} must resolve selector-or-ref targets`);
 }
 
-for (const flag of ['--ref <ref>', "elementRef: z.string().optional()"]) {
-  check(cliText.includes(flag) || mcpText.includes(flag), `CLI/MCP surfaces must expose ${flag}`);
-}
+check(registryText.includes('--ref <ref>'), 'CLI usage registry must expose --ref <ref>');
+check(cliText.includes('elementRef: args.ref'), 'CLI must forward --ref as elementRef');
+check(mcpText.includes('elementRef: z.string().optional()'), 'MCP surfaces must expose elementRef schema fields');
 check(readmeText.includes('--ref <ref>'), 'README must document ref-first interaction');
 check(cliDocsText.includes('--ref <ref>'), 'CLI docs must document ref-first interaction');
 check(mcpDocsText.includes('elementRef'), 'MCP docs must document elementRef');

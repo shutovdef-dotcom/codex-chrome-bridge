@@ -67,6 +67,8 @@ When the next step is unclear, call `chrome_bridge_tool_advisor`; when the insta
 
 `chrome_bridge_act_apply` is the bounded apply layer for that preview flow. It requires a previously issued `previewId`, `confirmed: true`, rejects stale or replayed preview ids, executes exactly one low-level action, and returns before/after evidence plus the next recommended read.
 
+`chrome_bridge_observe` and `chrome_bridge_find_elements` return compact `elementRef` values such as `e3` for actionable elements. MCP interaction tools that target one element accept either a CSS `selector` or an `elementRef`, so agents can inspect first and then call tools such as `chrome_bridge_click`, `chrome_bridge_type`, `chrome_bridge_select`, `chrome_bridge_upload_file`, `chrome_bridge_download`, `chrome_bridge_html`, or `chrome_bridge_screenshot` without copying long CSS selectors.
+
 ## Tools
 
 For risk tiers, default timeouts, confirmation requirements, direct `/command` payload keys, CLI aliases, MCP tool names, local diagnostic/tooling commands, and live-bridge flags, see the generated [command catalog](COMMAND-CATALOG.md) or call `chrome_bridge_command_catalog`.

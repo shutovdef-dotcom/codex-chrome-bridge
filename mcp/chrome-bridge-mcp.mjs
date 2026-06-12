@@ -146,6 +146,12 @@ function requireSelectTarget(args = {}) {
   }
 }
 
+function requireElementTarget(args = {}, toolName = 'tool') {
+  if (!args.selector && !args.elementRef) {
+    throw new Error(`${toolName} requires selector or elementRef`);
+  }
+}
+
 function parseLocalCliJson(stdout) {
   if (!stdout) return null;
   try {
@@ -1231,15 +1237,19 @@ server.tool(
 
 server.tool(
   'chrome_bridge_wait_for_selector',
-  'Wait for a selector to appear in the selected tab.',
+  'Wait for a selector or observed elementRef to appear in the selected tab.',
   {
-    selector: z.string(),
+    selector: z.string().optional(),
+    elementRef: z.string().optional(),
     tabId: chromeIdSchema.optional(),
     timeoutMs: payloadTimeoutSchema.optional(),
     visible: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
   },
-  async (args) => textResult(await bridgeCommand('waitForSelector', args, 30_000)),
+  async (args) => {
+    requireElementTarget(args, 'chrome_bridge_wait_for_selector');
+    return textResult(await bridgeCommand('waitForSelector', args, 30_000));
+  },
 );
 
 server.tool(
@@ -1414,15 +1424,17 @@ server.tool(
 
 server.tool(
   'chrome_bridge_download',
-  'Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents.',
+  'Click one confirmed selector or observed elementRef, wait for exactly one browser download, and return local file metadata without file contents.',
   {
     tabId: chromeIdSchema.optional(),
     allowExternal: z.boolean().optional(),
-    selector: z.string(),
+    selector: z.string().optional(),
+    elementRef: z.string().optional(),
     confirmed: z.boolean(),
     downloadTimeoutMs: z.number().min(1000).max(180000).optional(),
   },
   async (args) => {
+    requireElementTarget(args, 'chrome_bridge_download');
     if (!args.confirmed) throw new Error('chrome_bridge_download requires confirmed=true');
     return textResult(await bridgeCommand('download', args, 60_000));
   },
@@ -1490,10 +1502,11 @@ server.tool(
 
 server.tool(
   'chrome_bridge_html',
-  'Read bounded HTML from the selected tab or selector.',
+  'Read bounded HTML from the selected tab, selector, or observed elementRef.',
   {
     tabId: chromeIdSchema.optional(),
     selector: z.string().optional(),
+    elementRef: z.string().optional(),
     maxChars: z.number().min(1000).max(500000).optional(),
     outer: z.boolean().optional(),
     allowExternal: z.boolean().optional(),
@@ -1503,6 +1516,7 @@ server.tool(
     const result = await bridgeCommand('html', {
       tabId: args.tabId,
       selector: args.selector,
+      elementRef: args.elementRef,
       maxChars: args.maxChars ?? 500_000,
       outer: args.outer,
       allowExternal: args.allowExternal,
@@ -1517,12 +1531,13 @@ server.tool(
 
 server.tool(
   'chrome_bridge_screenshot',
-  'Capture a PNG screenshot of the dedicated or selected Chrome tab and save it to a local path. Supports viewport, fullPage, selector screenshots, and size-aware viewport fallback.',
+  'Capture a PNG screenshot of the dedicated or selected Chrome tab and save it to a local path. Supports viewport, fullPage, selector or elementRef screenshots, and size-aware viewport fallback.',
   {
     out: z.string(),
     tabId: chromeIdSchema.optional(),
     fullPage: z.boolean().optional(),
     selector: z.string().optional(),
+    elementRef: z.string().optional(),
     maxPixels: z.number().int().min(1).max(1000000000).optional(),
     fallback: z.enum(['viewport', 'error']).optional(),
     timeoutMs: payloadTimeoutSchema.optional(),
@@ -1534,10 +1549,11 @@ server.tool(
       tabId: args.tabId,
       fullPage: args.fullPage,
       selector: args.selector,
+      elementRef: args.elementRef,
       maxPixels: args.maxPixels,
       fallback: args.fallback,
       allowExternal: args.allowExternal,
-    }, args.timeoutMs ?? (args.fullPage || args.selector ? 60_000 : 30_000));
+    }, args.timeoutMs ?? (args.fullPage || args.selector || args.elementRef ? 60_000 : 30_000));
     return textResult(await formatReadOutput({
       action: 'screenshot',
       result,
@@ -1646,6 +1662,7 @@ server.tool(
   'Hover an element or coordinates in the selected tab.',
   {
     selector: z.string().optional(),
+    elementRef: z.string().optional(),
     x: z.number().optional(),
     y: z.number().optional(),
     tabId: chromeIdSchema.optional(),
@@ -1657,28 +1674,36 @@ server.tool(
 
 server.tool(
   'chrome_bridge_click',
-  'Click a selector in the selected tab. Requires confirmed=true.',
+  'Click a selector or observed elementRef in the selected tab. Requires confirmed=true.',
   {
-    selector: z.string(),
+    selector: z.string().optional(),
+    elementRef: z.string().optional(),
     tabId: chromeIdSchema.optional(),
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
   },
-  async (args) => textResult(await bridgeCommand('click', args, 30_000)),
+  async (args) => {
+    requireElementTarget(args, 'chrome_bridge_click');
+    return textResult(await bridgeCommand('click', args, 30_000));
+  },
 );
 
 server.tool(
   'chrome_bridge_type',
-  'Type text into a selector in the selected tab. Requires confirmed=true; trusted=true uses Chrome Debugger insertText.',
+  'Type text into a selector or observed elementRef in the selected tab. Requires confirmed=true; trusted=true uses Chrome Debugger insertText.',
   {
-    selector: z.string(),
+    selector: z.string().optional(),
+    elementRef: z.string().optional(),
     text: z.string(),
     tabId: chromeIdSchema.optional(),
     trusted: z.boolean().optional(),
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
   },
-  async (args) => textResult(await bridgeCommand('type', args, 30_000)),
+  async (args) => {
+    requireElementTarget(args, 'chrome_bridge_type');
+    return textResult(await bridgeCommand('type', args, 30_000));
+  },
 );
 
 server.tool(
@@ -1688,6 +1713,7 @@ server.tool(
     key: z.string(),
     code: z.string().optional(),
     selector: z.string().optional(),
+    elementRef: z.string().optional(),
     tabId: chromeIdSchema.optional(),
     trusted: z.boolean().optional(),
     ctrlKey: z.boolean().optional(),
@@ -1704,7 +1730,8 @@ server.tool(
   'chrome_bridge_select',
   'Select an option in a select element. Requires confirmed=true.',
   {
-    selector: z.string(),
+    selector: z.string().optional(),
+    elementRef: z.string().optional(),
     value: z.string().optional(),
     label: z.string().optional(),
     index: selectIndexSchema.optional(),
@@ -1713,6 +1740,7 @@ server.tool(
     allowExternal: z.boolean().optional(),
   },
   async (args) => {
+    requireElementTarget(args, 'chrome_bridge_select');
     requireSelectTarget(args);
     return textResult(await bridgeCommand('select', args, 30_000));
   },
@@ -1722,11 +1750,15 @@ server.tool(
   'chrome_bridge_select_options',
   'Read options from a select element without changing page state.',
   {
-    selector: z.string(),
+    selector: z.string().optional(),
+    elementRef: z.string().optional(),
     tabId: chromeIdSchema.optional(),
     allowExternal: z.boolean().optional(),
   },
-  async (args) => textResult(await bridgeCommand('listSelectOptions', args, 30_000)),
+  async (args) => {
+    requireElementTarget(args, 'chrome_bridge_select_options');
+    return textResult(await bridgeCommand('listSelectOptions', args, 30_000));
+  },
 );
 
 server.tool(
@@ -1762,14 +1794,18 @@ server.tool(
   'chrome_bridge_upload_file',
   'Set local file paths on a file input element via Chrome Debugger. Requires confirmed=true.',
   {
-    selector: z.string(),
+    selector: z.string().optional(),
+    elementRef: z.string().optional(),
     file: z.string().optional(),
     files: z.array(z.string()).optional(),
     tabId: chromeIdSchema.optional(),
     confirmed: z.boolean(),
     allowExternal: z.boolean().optional(),
   },
-  async (args) => textResult(await bridgeCommand('uploadFile', args, 60_000)),
+  async (args) => {
+    requireElementTarget(args, 'chrome_bridge_upload_file');
+    return textResult(await bridgeCommand('uploadFile', args, 60_000));
+  },
 );
 
 server.tool(

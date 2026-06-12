@@ -196,7 +196,7 @@ async function checkSurface() {
   const packageJson = JSON.parse(packageText);
   check(packageJson.scripts?.['check:size-aware-screenshot'] === 'node ./scripts/check-size-aware-screenshot.mjs', 'package.json must expose check:size-aware-screenshot');
   check(packageJson.scripts?.check?.includes('npm run check:size-aware-screenshot'), 'npm run check must include check:size-aware-screenshot');
-  check(registry.includes("screenshot: [...base, 'fullPage', 'selector', 'maxPixels', 'fallback']"), 'screenshot payload schema must allow maxPixels and fallback');
+  check(registry.includes("screenshot: [...base, 'fullPage', 'selector', 'elementRef', 'maxPixels', 'fallback']"), 'screenshot payload schema must allow selector/ref targeting, maxPixels, and fallback');
   check(registry.includes('--max-pixels <n>') && registry.includes('--fallback viewport'), 'CLI usage registry must document size-aware screenshot flags');
   check(cli.includes("args['max-pixels']") && cli.includes("args['timeout-ms']"), 'CLI must parse size-aware screenshot flags');
   check(mcp.includes('maxPixels: z.number().int().min(1)') && mcp.includes("fallback: z.enum(['viewport', 'error']).optional()"), 'MCP screenshot schema must expose size-aware fields');
