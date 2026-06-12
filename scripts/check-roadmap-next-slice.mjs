@@ -17,6 +17,7 @@ import {
 import {
   LIGHTHOUSE_INGEST_OUTPUT_CONTRACT_VERSION,
   ingestLighthouseReport,
+  ingestLighthouseReportFile,
 } from '../shared/lighthouse-ingest.mjs';
 import { validateCommandPayload } from '../shared/command-registry.mjs';
 
@@ -261,6 +262,14 @@ async function checkPureStructuredPresets(tmpDir) {
   check(product.data?.sku === 'ACME-ANALYTICS-PRO', 'product-page preset must extract SKU');
   check(product.data?.availability === 'In stock', 'product-page preset must extract availability');
   check(product.data?.downloadLinks?.some((link) => link.href.endsWith('/files/acme-brochure.pdf')), 'product-page preset must expose relevant download links');
+  check(product.data?.downloadLinks?.some((link) => link.href.endsWith('/files/acme-brochure.pdf') && link.download === true), 'product-page preset must preserve bare download attribute links');
+
+  const dataDownloadProduct = extractStructuredPreset({
+    preset: 'product-page',
+    ...common,
+    html: '<a href="/files/manual.pdf" data-download>Manual PDF</a>',
+  });
+  check(dataDownloadProduct.data?.downloadLinks?.some((link) => link.download === false), 'product-page preset must not treat data-download as a download attribute');
 
   const pricing = extractStructuredPreset({ preset: 'pricing-table', ...common });
   check(pricing.schema?.name === 'pricing-table', 'pricing-table preset must expose schema name');
@@ -278,9 +287,16 @@ async function checkPureDownloadDiscovery() {
   check(discovery.outputContract === DOWNLOAD_DISCOVERY_OUTPUT_CONTRACT_VERSION, 'download discovery must expose contract version');
   check(discovery.downloadCandidates?.length >= 3, 'download discovery must find downloadable links');
   check(discovery.downloadCandidates?.some((item) => item.fileType === 'pdf'), 'download discovery must classify PDF links');
+  check(discovery.downloadCandidates?.some((item) => item.fileType === 'pdf' && item.kind === 'download-attribute'), 'download discovery must classify bare download attributes');
   check(discovery.downloadCandidates?.some((item) => item.fileType === 'csv'), 'download discovery must classify CSV links');
   check(discovery.exportActionCandidates?.some((item) => /export current view/i.test(item.label)), 'download discovery must find export action buttons');
   check(!JSON.stringify(discovery).includes('<html>'), 'download discovery output must not inline raw HTML');
+
+  const dataDownloadDiscovery = discoverDownloads({
+    html: '<a href="/files/manual.pdf" data-download>Manual PDF</a>',
+    sourceUrl: 'https://example.test/product',
+  });
+  check(dataDownloadDiscovery.downloadCandidates?.some((item) => item.kind === 'file-link'), 'download discovery must not treat data-download as a download attribute');
 }
 
 async function checkPureLighthouseIngest() {
@@ -294,6 +310,18 @@ async function checkPureLighthouseIngest() {
   check(summary.scores?.accessibility === 97, 'Lighthouse ingest must convert accessibility score to percent');
   check(summary.failingAudits?.some((audit) => audit.id === 'largest-contentful-paint'), 'Lighthouse ingest must include failing audits');
   check(!JSON.stringify(summary).includes('details'), 'Lighthouse ingest summary must omit bulky raw audit details');
+}
+
+async function checkInvalidLighthouseJson(tmpDir) {
+  const reportPath = path.join(tmpDir, 'invalid-lighthouse.json');
+  await fs.writeFile(reportPath, '{not valid json}\n');
+  let message = '';
+  try {
+    await ingestLighthouseReportFile({ reportPath });
+  } catch (error) {
+    message = String(error?.message || error);
+  }
+  check(message.startsWith('Invalid Lighthouse JSON report:'), 'Lighthouse ingest must wrap invalid JSON parse errors');
 }
 
 async function checkCliStructuredPreset(tmpDir) {
@@ -418,6 +446,7 @@ try {
   await checkPureStructuredPresets(tmpDir);
   await checkPureDownloadDiscovery();
   await checkPureLighthouseIngest();
+  await checkInvalidLighthouseJson(tmpDir);
   await checkCliStructuredPreset(tmpDir);
   await checkCliDownloadDiscovery(tmpDir);
   await checkCliLighthouseIngest(tmpDir);

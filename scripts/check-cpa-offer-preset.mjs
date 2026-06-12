@@ -280,7 +280,7 @@ async function checkSurface() {
   check(packageJson.scripts?.check?.includes('npm run check:cpa-offer-preset'), 'npm run check must include check:cpa-offer-preset');
   check(registry.includes('--preset cpa-offer'), 'CLI usage registry must document --preset cpa-offer');
   check(cli.includes("args.preset === 'cpa-offer'"), 'CLI must route extract --preset cpa-offer');
-  check(mcp.includes("preset: z.enum(['cpa-offer']).optional()"), 'MCP extract schema must expose cpa-offer preset');
+  check(mcp.includes("'cpa-offer'") && mcp.includes('preset: z.enum'), 'MCP extract schema must expose cpa-offer preset');
 }
 
 const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-cpa-offer-check-'));

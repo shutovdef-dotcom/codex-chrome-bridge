@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { parseBridgePort, startBridgeServer } from '../server/bridge-server.mjs';
 import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
+import { buildStructuredPresetExtraction } from '../shared/structured-extract.mjs';
+import { buildDownloadDiscovery } from '../shared/download-discovery.mjs';
+import { ingestLighthouseReportFile } from '../shared/lighthouse-ingest.mjs';
 import {
   bridgeFetchTimeoutSignal,
   isAbortError,
@@ -806,6 +809,9 @@ async function selfTest() {
     registry: path.join(rootDir, 'shared/command-registry.mjs'),
     outputEnvelope: path.join(rootDir, 'shared/output-envelope.mjs'),
     runTabs: path.join(rootDir, 'shared/run-tabs.mjs'),
+    structuredExtract: path.join(rootDir, 'shared/structured-extract.mjs'),
+    downloadDiscovery: path.join(rootDir, 'shared/download-discovery.mjs'),
+    lighthouseIngest: path.join(rootDir, 'shared/lighthouse-ingest.mjs'),
     fetchTimeout: path.join(rootDir, 'shared/fetch-timeout.mjs'),
     safeRecord: path.join(rootDir, 'shared/safe-record.mjs'),
     commandCatalogDoc: path.join(rootDir, 'docs/COMMAND-CATALOG.md'),
@@ -814,6 +820,7 @@ async function selfTest() {
     docsCoverageChecker: path.join(rootDir, 'scripts/check-docs-coverage.mjs'),
     packageContentsChecker: path.join(rootDir, 'scripts/check-package-contents.mjs'),
     privacyScanner: path.join(rootDir, 'scripts/check-privacy-scan.mjs'),
+    roadmapNextSliceChecker: path.join(rootDir, 'scripts/check-roadmap-next-slice.mjs'),
     packageJson: path.join(rootDir, 'package.json'),
     packageLock: path.join(rootDir, 'package-lock.json'),
   };
@@ -849,6 +856,9 @@ async function selfTest() {
     mcp,
     registry,
     runTabs,
+    structuredExtract,
+    downloadDiscovery,
+    lighthouseIngest,
     fetchTimeout,
     safeRecord,
     commandCatalogDoc,
@@ -886,6 +896,9 @@ async function selfTest() {
     fs.readFile(paths.mcp, 'utf8'),
     fs.readFile(paths.registry, 'utf8'),
     fs.readFile(paths.runTabs, 'utf8'),
+    fs.readFile(paths.structuredExtract, 'utf8'),
+    fs.readFile(paths.downloadDiscovery, 'utf8'),
+    fs.readFile(paths.lighthouseIngest, 'utf8'),
     fs.readFile(paths.fetchTimeout, 'utf8'),
     fs.readFile(paths.safeRecord, 'utf8'),
     fs.readFile(paths.commandCatalogDoc, 'utf8'),
@@ -929,6 +942,9 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.registry]),
     tryExec(process.execPath, ['--check', paths.outputEnvelope]),
     tryExec(process.execPath, ['--check', paths.runTabs]),
+    tryExec(process.execPath, ['--check', paths.structuredExtract]),
+    tryExec(process.execPath, ['--check', paths.downloadDiscovery]),
+    tryExec(process.execPath, ['--check', paths.lighthouseIngest]),
     tryExec(process.execPath, ['--check', paths.fetchTimeout]),
     tryExec(process.execPath, ['--check', paths.safeRecord]),
     tryExec(process.execPath, ['--check', paths.commandCatalogGenerator]),
@@ -936,6 +952,7 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.docsCoverageChecker]),
     tryExec(process.execPath, ['--check', paths.packageContentsChecker]),
     tryExec(process.execPath, ['--check', paths.privacyScanner]),
+    tryExec(process.execPath, ['--check', paths.roadmapNextSliceChecker]),
   ]);
 
   const permissionChecks = EXPECTED_MANIFEST_PERMISSIONS.map((permission) => ({
@@ -1102,6 +1119,30 @@ async function selfTest() {
         && runTabs.includes('stripUnsafeObjectKeys(meta'),
     },
     {
+      label: 'shared helper',
+      item: 'structured extraction presets',
+      ok: structuredExtract.includes('STRUCTURED_EXTRACTION_PRESETS')
+        && structuredExtract.includes("'article'")
+        && structuredExtract.includes("'product-page'")
+        && structuredExtract.includes("'pricing-table'")
+        && cli.includes('buildStructuredPresetExtraction')
+        && mcp.includes('buildStructuredPresetExtraction'),
+    },
+    {
+      label: 'shared helper',
+      item: 'download discovery',
+      ok: downloadDiscovery.includes('DOWNLOAD_DISCOVERY_OUTPUT_CONTRACT_VERSION')
+        && cli.includes("cmd === 'download-discovery'")
+        && mcp.includes("'chrome_bridge_download_discovery'"),
+    },
+    {
+      label: 'shared helper',
+      item: 'lighthouse ingest',
+      ok: lighthouseIngest.includes('LIGHTHOUSE_INGEST_OUTPUT_CONTRACT_VERSION')
+        && cli.includes("cmd === 'lighthouse-ingest'")
+        && mcp.includes("'chrome_bridge_lighthouse_ingest'"),
+    },
+    {
       label: 'registry',
       item: 'CLI usage signatures',
       ok: registry.includes('CLI_USAGE_LINES')
@@ -1232,6 +1273,9 @@ async function selfTest() {
         paths.registry,
         paths.outputEnvelope,
         paths.runTabs,
+        paths.structuredExtract,
+        paths.downloadDiscovery,
+        paths.lighthouseIngest,
         paths.fetchTimeout,
         paths.safeRecord,
         paths.commandCatalogGenerator,
@@ -1239,6 +1283,7 @@ async function selfTest() {
         paths.docsCoverageChecker,
         paths.packageContentsChecker,
         paths.privacyScanner,
+        paths.roadmapNextSliceChecker,
       ][index],
       ok: result.ok,
       error: result.ok ? undefined : result.error || result.stderr,
@@ -2696,6 +2741,27 @@ tool_timeout_sec = 60
       }));
       return;
     }
+    if (['article', 'product-page', 'pricing-table'].includes(args.preset)) {
+      printJson(await buildStructuredPresetExtraction({
+        bridgeCommand: command,
+        target: targetPayload(args),
+        options: {
+          preset: args.preset,
+          out: args.out,
+          artifactDir: args['artifact-dir'],
+          rawOut: args['raw-out'],
+          rawHtmlOut: args['raw-html-out'],
+          selector: args.selector,
+          maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 200_000) ?? 200_000,
+          maxHtmlChars: parseNumberRangeArg(args['max-html-chars'], '--max-html-chars', 1_000, 500_000) ?? 500_000,
+          ...fullPageReadPayload({ ...args, 'full-page': true }),
+        },
+      }));
+      return;
+    }
+    if (args.preset) {
+      throw new Error(`Unsupported extract preset: ${args.preset}`);
+    }
 
     printJson(await command('extractPage', {
       ...targetPayload(args),
@@ -2703,6 +2769,21 @@ tool_timeout_sec = 60
       maxItems: parseNumberRangeArg(args['max-items'], '--max-items', 1, 500),
       maxTextChars: parseNumberRangeArg(args['max-text-chars'], '--max-text-chars', 50, 2_000),
     }, 30_000));
+    return;
+  }
+
+  if (cmd === 'download-discovery') {
+    printJson(await buildDownloadDiscovery({
+      bridgeCommand: command,
+      target: targetPayload(args),
+      options: {
+        out: args.out,
+        artifactDir: args['artifact-dir'],
+        rawHtmlOut: args['raw-html-out'],
+        selector: args.selector,
+        maxHtmlChars: parseNumberRangeArg(args['max-html-chars'], '--max-html-chars', 1_000, 500_000) ?? 500_000,
+      },
+    }));
     return;
   }
 
@@ -3003,6 +3084,15 @@ tool_timeout_sec = 60
     const artifactPath = typeof args.out === 'string' ? path.resolve(args.out) : null;
     if (artifactPath) await writeJsonFile(artifactPath, result);
     printJson(summarizeDiagnosticsOutput(result, { artifactPath }));
+    return;
+  }
+
+  if (cmd === 'lighthouse-ingest') {
+    printJson(await ingestLighthouseReportFile({
+      reportPath: args.report,
+      out: args.out,
+      maxAudits: parseNumberRangeArg(args['max-audits'], '--max-audits', 1, 100) ?? 25,
+    }));
     return;
   }
 

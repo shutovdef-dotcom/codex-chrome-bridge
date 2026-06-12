@@ -68,6 +68,24 @@ Rescan notes:
 - The two remaining `Request-derived object merge may allow prototype pollution` hits are pattern-level matches around safe metadata merges; runtime behavior is now covered by `stripUnsafeObjectKeys`, long-poll/websocket health tests, and run-tab metadata tests.
 - The critical count increased because the repository now includes additional docs/checker code for the UBS plan, and UBS still treats safety text and assertion fixtures as `Secret, signature, or token compared with ==/!=` / hardcoded-secret patterns. `npm run check:privacy` remains clean.
 
+Next-slice UBS rescan:
+
+```json
+{
+  "critical": 96,
+  "warning": 259,
+  "info": 4485,
+  "files": 59
+}
+```
+
+Next-slice rescan notes:
+
+- Command: `/opt/homebrew/bin/bash /opt/homebrew/bin/ubs --format=json --ci --only=js --report-json /tmp/codex-chrome-bridge-ubs-next-slice-final.json .`
+- Exit code remained `1` because the project still has broad UBS pattern findings.
+- Manual triage of the new structured extraction, download discovery, and Lighthouse ingestion slice found two actionable edge cases: bare `<a download>` links were not classified as download-attribute links, and invalid Lighthouse JSON used to surface raw `JSON.parse` errors. Both are now covered by `npm run check:roadmap-next-slice`.
+- The remaining critical count is still the known broad-pattern bucket rather than a newly confirmed reachable runtime bug in this slice.
+
 High-signal UBS buckets:
 
 - `fetch() without AbortSignal cancellation`: 5.

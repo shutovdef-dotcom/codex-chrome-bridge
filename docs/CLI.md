@@ -47,6 +47,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `grep-page` | `grep-page` | read | 30000 ms | no | yes | Read page text into an artifact and print regex-matching snippets only. |
 | `links` | `links` | read | 30000 ms | no | yes | Read selector HTML into an artifact and print extracted links only. |
 | `tables` | `tables` | read | 30000 ms | no | yes | Read selector HTML into an artifact and print extracted tables only. |
+| `download-discovery` | `download-discovery` | read | 30000 ms | no | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
 | `screenshot` | `screenshot` | read | 30000 ms | no | yes | Capture a PNG screenshot of the selected tab, full page, or selector. |
 | `pdf` | `printPdf` | read | 60000 ms | no | yes | Print the selected tab to a local PDF artifact. |
 | `scroll` | `scroll` | interaction | 10000 ms | no | yes | Scroll the selected tab. |
@@ -64,6 +65,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `trace-summary` | `traceSummary` | read | 30000 ms | no | yes | Read trace session metadata without returning the trace event log. |
 | `trace-events` | `traceEvents` | read | 30000 ms | no | yes | Read recent bounded trace events. |
 | `diagnostics` | `diagnostics` | read | 30000 ms | no | yes | Read bounded page, trace, network-count, resource, and performance diagnostics without raw event logs. |
+| `lighthouse-ingest` | `lighthouse-ingest` | read | 5000 ms | no | no | Summarize a local Lighthouse JSON report into scores and failing audits. |
 | `trace-stop` | `traceStop` | system | 30000 ms | no | yes | Stop tracing and return recent events. |
 | `history` | `historySearch` | private-read | 30000 ms | yes | yes | Search Chrome history with explicit confirmation. |
 | `bookmarks` | `bookmarksSearch` | private-read | 30000 ms | yes | yes | Search Chrome bookmarks with explicit confirmation. |
@@ -111,6 +113,7 @@ chrome-bridge doctor [--live-checks] [--copy-path] [--open-extensions]
 chrome-bridge extension-path
 chrome-bridge codex-config
 chrome-bridge command-catalog [--markdown]
+chrome-bridge lighthouse-ingest --report <file> [--out <file>] [--max-audits 25]
 chrome-bridge last-artifact [--artifact-dir <dir>]
 chrome-bridge read-artifact --path <file> [--head <n>] [--grep <regex>] [--max-matches <n>]
 chrome-bridge reload-extension --confirm
@@ -180,13 +183,14 @@ If the target page is the last focused Chrome tab, omit `--tab <id>` and run `ch
 chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
 chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]
 chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>] [--placeholder <text>] [--href <text>] [--action <kind>] [--risk <risk>] [--limit 80] [--tab <id>] [--allow-external]
-chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-offer --network <name> --out <file> [--artifact-dir <dir>]] [--max-items 50] [--tab <id>] [--allow-external]
+chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-offer|article|product-page|pricing-table --network <name> --out <file> [--artifact-dir <dir>]] [--max-items 50] [--tab <id>] [--allow-external]
 chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge grep-page --pattern <regex> [--tab <id>] [--artifact-dir <dir>] [--max-matches 20] [--viewport-only] [--allow-external]
 chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
+chrome-bridge download-discovery --out <file> [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
 chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]

@@ -41,11 +41,11 @@ Codex Chrome Bridge is for logged-in, human-owned Chrome workflows:
 - CLI and MCP: usable from a terminal or any MCP-capable client.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
 - Agent discovery: ranked read-only `observe` output for actionable elements and querySelector-verified selectors.
-- Structured extraction: read tables, form structure, lists, and key-value blocks as JSON without returning current form values.
-- Export helpers: save screenshots and print the current tab to PDF locally.
+- Structured extraction: read tables, form structure, lists, key-value blocks, and artifact-backed presets such as `cpa-offer`, `article`, `product-page`, and `pricing-table` without returning private form values.
+- Export helpers: save screenshots, print the current tab to PDF locally, and discover likely download/offline-export affordances without clicking them.
 - Controlled interactions: clicks, typing, keyboard, select boxes, hover, and scroll.
 - Workflow helpers: privacy-preserving select option discovery and form fill previews, dialog handling, and file input uploads.
-- Debugging tools: bounded diagnostics, page performance/resource summaries, and console/network trace through Chrome Debugger/CDP.
+- Debugging tools: bounded diagnostics, page performance/resource summaries, local Lighthouse report ingestion, and console/network trace through Chrome Debugger/CDP.
 - Browser data tools: guarded history, bookmarks, cookies, page storage, and extension-context fetch.
 - Human-in-the-loop: local prompt tab for user choices, manual confirmations, and CAPTCHA coordination.
 - Policy-aware diagnostics: session summaries and redacted debug bundles include workspace policy state; debug bundles omit page artifacts and full trace events unless explicitly requested.
@@ -129,6 +129,9 @@ node ./bin/chrome-bridge.mjs links --selector "main"
 node ./bin/chrome-bridge.mjs tables --selector "main"
 node ./bin/chrome-bridge.mjs read-artifact --path /tmp/page.txt --head 40 --grep "payout"
 node ./bin/chrome-bridge.mjs extract --preset cpa-offer --network leads_su --out /tmp/offer.json
+node ./bin/chrome-bridge.mjs extract --preset article --out /tmp/article.json --artifact-dir /tmp/chrome-bridge-artifacts
+node ./bin/chrome-bridge.mjs download-discovery --out /tmp/downloads.json --artifact-dir /tmp/chrome-bridge-artifacts
+node ./bin/chrome-bridge.mjs lighthouse-ingest --report /tmp/lighthouse.json --out /tmp/lighthouse-summary.json
 node ./bin/chrome-bridge.mjs diagnostics --out /tmp/chrome-bridge-diagnostics.json
 node ./bin/chrome-bridge.mjs screenshot --out /tmp/page.png --full-page --max-pixels 50000000 --fallback viewport
 ```
@@ -173,8 +176,11 @@ node ./bin/chrome-bridge.mjs adopt-tab --confirm
 node ./bin/chrome-bridge.mjs observe --limit 30
 node ./bin/chrome-bridge.mjs find-elements --near-text "Billing address" --action type
 node ./bin/chrome-bridge.mjs extract --kind forms
+node ./bin/chrome-bridge.mjs extract --preset article --out /tmp/chrome-bridge-article.json --artifact-dir /tmp/chrome-bridge-artifacts
+node ./bin/chrome-bridge.mjs download-discovery --out /tmp/chrome-bridge-downloads.json --artifact-dir /tmp/chrome-bridge-artifacts
 
 # Export or debug locally when needed.
+node ./bin/chrome-bridge.mjs lighthouse-ingest --report /tmp/lighthouse.json --out /tmp/chrome-bridge-lighthouse-summary.json
 node ./bin/chrome-bridge.mjs pdf --out /tmp/chrome-bridge.pdf
 node ./bin/chrome-bridge.mjs diagnostics --out /tmp/chrome-bridge-diagnostics.json
 node ./bin/chrome-bridge.mjs debug-bundle --out /tmp/chrome-bridge-debug
@@ -205,6 +211,8 @@ Useful MCP tools:
 - `chrome_bridge_observe`
 - `chrome_bridge_find_elements`
 - `chrome_bridge_extract`
+- `chrome_bridge_download_discovery`
+- `chrome_bridge_lighthouse_ingest`
 - `chrome_bridge_snapshot`
 - `chrome_bridge_screenshot`
 - `chrome_bridge_pdf`
@@ -281,6 +289,7 @@ npm run check:mcp-runtime-smoke
 npm run check:mcp-local-tools
 npm run check:tab-group-persistence
 npm run check:ubs-fixes
+npm run check:roadmap-next-slice
 npm run check:privacy
 npm run check:audit
 npm run check:pack
@@ -290,7 +299,7 @@ node ./bin/chrome-bridge.mjs doctor --live-checks
 node ./bin/chrome-bridge.mjs runtime-smoke --summary-only --out /tmp/chrome-bridge-runtime-smoke.json
 ```
 
-`docs:commands` regenerates the checked-in command catalog, managed CLI usage blocks, managed CLI metadata table, and managed MCP tool reference table from the shared registry. `check:registry` verifies command registry invariants, direct payload validation samples, complete CLI/MCP catalog coverage, debugger-backed action serialization, package/manifest/registry parity, and generated command catalog drift. `check:docs` verifies the CLI reference mirrors every registry-owned usage signature, the CLI generated blocks stay grouped correctly, the CLI/MCP reference keeps generated tool metadata blocks in sync, and every registry-defined MCP tool is documented. `check:bridge-contract` starts an isolated local test server, does not touch Chrome, and verifies bridge boundary/error behavior including malformed JSON, oversized JSON handling, timeout handling, stale extension fail-closed behavior, and shutdown cleanup. `check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL and verifies stale-extension/stale-bridge skip metadata, structured JSON output, CLI-exit preservation, and `finalVerificationComplete: false` against fake `/health` servers, failing if the plan starts depending on live Chrome or bridge state. `check:roadmap` verifies the merged Phase 0-4 roadmap against registry, source, docs, and the offline runtime-smoke coverage plan without touching Chrome; its `deferredLiveVerification` output records the pending live gate, final CLI commands, final MCP calls, success criteria, and required live coverage items. `check:cli-local-tools` exercises CLI setup diagnostics and command-catalog output against a dead bridge URL, proving they stay offline by default; it also verifies CLI group scope payload forwarding for scoped group commands against a fake `/command` bridge. `check:mcp-runtime-smoke` starts the MCP server over stdio against fake bridge URLs and verifies the MCP runtime-smoke tool preserves structured coverage-plan, stale-extension/stale-bridge metadata, structured JSON output, summary output, local full-report artifacts, and CLI-exit preservation without touching Chrome. `check:mcp-local-tools` starts the MCP server over stdio and verifies local diagnostics like `chrome_bridge_doctor` stay offline by default; it also verifies MCP group scope payload forwarding for scoped group tools against a fake `/command` bridge. `check:tab-group-persistence` runs the extension tab-group persistence and cleanup modules against fake Chrome APIs, proving managed group listeners, listener event callbacks for future managed groups, freshly created bridge session groups, fake saved closed group chips prevention, and stale membership cleanup without touching Chrome. `check:ubs-fixes` covers the UBS follow-up hardening plan: abortable fetch boundaries, safe metadata stripping, rejection-safe offscreen listeners, prompt DOM guards, and corrupted run-state recovery. `check:privacy` scans repository files for local home paths, private-key headers, common provider tokens, and obvious secret assignments. `check:pack` parses the dry-run npm tarball, verifies required runtime, extension, shared registry, generated docs, and verification files are included, and runs a packaged registry check in a simulated package layout. `runtime-smoke:plan` is offline and safe while the live bridge is busy. Live verification requires `reload-extension --confirm`, `doctor --live-checks`, and `runtime-smoke --summary-only --out <file>` after the bridge is free. `runtime-smoke` requires Chrome, the unpacked extension, and the bridge server. It only uses a local fixture page.
+`docs:commands` regenerates the checked-in command catalog, managed CLI usage blocks, managed CLI metadata table, and managed MCP tool reference table from the shared registry. `check:registry` verifies command registry invariants, direct payload validation samples, complete CLI/MCP catalog coverage, debugger-backed action serialization, package/manifest/registry parity, and generated command catalog drift. `check:docs` verifies the CLI reference mirrors every registry-owned usage signature, the CLI generated blocks stay grouped correctly, the CLI/MCP reference keeps generated tool metadata blocks in sync, and every registry-defined MCP tool is documented. `check:bridge-contract` starts an isolated local test server, does not touch Chrome, and verifies bridge boundary/error behavior including malformed JSON, oversized JSON handling, timeout handling, stale extension fail-closed behavior, and shutdown cleanup. `check:runtime-smoke-plan` runs the offline smoke plan against a dead bridge URL and verifies stale-extension/stale-bridge skip metadata, structured JSON output, CLI-exit preservation, and `finalVerificationComplete: false` against fake `/health` servers, failing if the plan starts depending on live Chrome or bridge state. `check:roadmap` verifies the merged Phase 0-4 roadmap against registry, source, docs, and the offline runtime-smoke coverage plan without touching Chrome; its `deferredLiveVerification` output records the pending live gate, final CLI commands, final MCP calls, success criteria, and required live coverage items. `check:cli-local-tools` exercises CLI setup diagnostics and command-catalog output against a dead bridge URL, proving they stay offline by default; it also verifies CLI group scope payload forwarding for scoped group commands against a fake `/command` bridge. `check:mcp-runtime-smoke` starts the MCP server over stdio against fake bridge URLs and verifies the MCP runtime-smoke tool preserves structured coverage-plan, stale-extension/stale-bridge metadata, structured JSON output, summary output, local full-report artifacts, and CLI-exit preservation without touching Chrome. `check:mcp-local-tools` starts the MCP server over stdio and verifies local diagnostics like `chrome_bridge_doctor` stay offline by default; it also verifies MCP group scope payload forwarding for scoped group tools against a fake `/command` bridge. `check:tab-group-persistence` runs the extension tab-group persistence and cleanup modules against fake Chrome APIs, proving managed group listeners, listener event callbacks for future managed groups, freshly created bridge session groups, fake saved closed group chips prevention, and stale membership cleanup without touching Chrome. `check:ubs-fixes` covers the UBS follow-up hardening plan: abortable fetch boundaries, safe metadata stripping, rejection-safe offscreen listeners, prompt DOM guards, and corrupted run-state recovery. `check:roadmap-next-slice` covers the artifact-backed structured presets, read-only download discovery, local Lighthouse ingestion, CLI/MCP exposure, and package contents for the current roadmap slice. `check:privacy` scans repository files for local home paths, private-key headers, common provider tokens, and obvious secret assignments. `check:pack` parses the dry-run npm tarball, verifies required runtime, extension, shared registry, generated docs, and verification files are included, and runs a packaged registry check in a simulated package layout. `runtime-smoke:plan` is offline and safe while the live bridge is busy. Live verification requires `reload-extension --confirm`, `doctor --live-checks`, and `runtime-smoke --summary-only --out <file>` after the bridge is free. `runtime-smoke` requires Chrome, the unpacked extension, and the bridge server. It only uses a local fixture page.
 
 ## Contributing
 

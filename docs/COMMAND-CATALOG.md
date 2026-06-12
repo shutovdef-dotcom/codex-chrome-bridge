@@ -68,6 +68,8 @@ Version: 0.4.1
 | grep-page | read | read | 30000 ms | grep-page | - | yes | Read page text into an artifact and print regex-matching snippets only. |
 | links | read | read | 30000 ms | links | - | yes | Read selector HTML into an artifact and print extracted links only. |
 | tables | read | read | 30000 ms | tables | - | yes | Read selector HTML into an artifact and print extracted tables only. |
+| download-discovery | read | read | 30000 ms | download-discovery | chrome_bridge_download_discovery | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
+| lighthouse-ingest | diagnostic | read | 5000 ms | lighthouse-ingest | chrome_bridge_lighthouse_ingest | no | Summarize a local Lighthouse JSON report into scores and failing audits. |
 | command-catalog | diagnostic | read | 5000 ms | command-catalog | chrome_bridge_command_catalog | no | Print this shared command registry as JSON or Markdown. |
 | self-test | verification | read | 10000 ms | self-test | chrome_bridge_self_test | no | Run static project parity checks without touching Chrome. |
 | runtime-smoke | verification | interaction | 180000 ms | runtime-smoke | chrome_bridge_runtime_smoke | yes | Run the real-browser fixture smoke test against the live bridge. |
@@ -98,13 +100,14 @@ chrome-bridge reload [--tab <id>] [--bypass-cache] [--allow-external]
 chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
 chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]
 chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>] [--placeholder <text>] [--href <text>] [--action <kind>] [--risk <risk>] [--limit 80] [--tab <id>] [--allow-external]
-chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-offer --network <name> --out <file> [--artifact-dir <dir>]] [--max-items 50] [--tab <id>] [--allow-external]
+chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-offer|article|product-page|pricing-table --network <name> --out <file> [--artifact-dir <dir>]] [--max-items 50] [--tab <id>] [--allow-external]
 chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge html [--tab <id>] [--selector <css>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge grep-page --pattern <regex> [--tab <id>] [--artifact-dir <dir>] [--max-matches 20] [--viewport-only] [--allow-external]
 chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
+chrome-bridge download-discovery --out <file> [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
 chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
@@ -122,6 +125,7 @@ chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-networ
 chrome-bridge trace-summary [--tab <id>] [--allow-external]
 chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]
 chrome-bridge diagnostics [--tab <id>] [--out <file>] [--allow-external]
+chrome-bridge lighthouse-ingest --report <file> [--out <file>] [--max-audits 25]
 chrome-bridge trace-stop [--tab <id>] [--limit 100] [--allow-external]
 chrome-bridge history [--query <text>] --confirm [--limit 25] [--start-time <ms>] [--end-time <ms>]
 chrome-bridge bookmarks [--query <text>] --confirm [--limit 50]

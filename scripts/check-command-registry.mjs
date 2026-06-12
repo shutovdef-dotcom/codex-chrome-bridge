@@ -248,10 +248,13 @@ check(packageContentsCheckerText.includes('REQUIRED_PACKAGE_FILES'), 'package co
 for (const requiredPackageFile of [
   'shared/command-registry.mjs',
   'shared/diagnostics-output.mjs',
+  'shared/download-discovery.mjs',
   'shared/fetch-timeout.mjs',
+  'shared/lighthouse-ingest.mjs',
   'shared/output-envelope.mjs',
   'shared/run-tabs.mjs',
   'shared/safe-record.mjs',
+  'shared/structured-extract.mjs',
   'extension/extension-errors.js',
   'extension/page-scripts.js',
   'extension/navigation-actions.js',
@@ -273,6 +276,7 @@ for (const requiredPackageFile of [
   'scripts/check-privacy-scan.mjs',
   'scripts/check-diagnostics.mjs',
   'scripts/check-ubs-fixes.mjs',
+  'scripts/check-roadmap-next-slice.mjs',
   'scripts/install-launch-agent.mjs',
   'scripts/uninstall-launch-agent.mjs',
 ]) {
@@ -632,6 +636,7 @@ check(packageJson.scripts?.['check:mcp-local-tools'] === 'node ./scripts/check-m
 check(packageJson.scripts?.['check:tab-group-persistence'] === 'node ./scripts/check-tab-group-persistence.mjs', 'package scripts must expose tab-group persistence behavior check');
 check(packageJson.scripts?.['check:diagnostics'] === 'node ./scripts/check-diagnostics.mjs', 'package scripts must expose diagnostics contract check');
 check(packageJson.scripts?.['check:ubs-fixes'] === 'node ./scripts/check-ubs-fixes.mjs', 'package scripts must expose UBS fix plan contract check');
+check(packageJson.scripts?.['check:roadmap-next-slice'] === 'node ./scripts/check-roadmap-next-slice.mjs', 'package scripts must expose next roadmap slice contract check');
 check(packageJson.scripts?.check?.includes('npm run check:runtime-smoke-plan'), 'npm run check must include runtime smoke plan contract check');
 check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include roadmap coverage contract check');
 check(packageJson.scripts?.check?.includes('npm run check:cli-local-tools'), 'npm run check must include CLI local tools contract check');

@@ -24,10 +24,15 @@ node ./bin/chrome-bridge.mjs links --selector main
 node ./bin/chrome-bridge.mjs tables --selector main
 node ./bin/chrome-bridge.mjs last-artifact
 node ./bin/chrome-bridge.mjs read-artifact --path /tmp/page.txt --head 40 --grep "needle"
+node ./bin/chrome-bridge.mjs extract --preset article --out /tmp/article.json --artifact-dir /tmp/chrome-bridge-artifacts
+node ./bin/chrome-bridge.mjs extract --preset product-page --out /tmp/product.json --artifact-dir /tmp/chrome-bridge-artifacts
+node ./bin/chrome-bridge.mjs extract --preset pricing-table --out /tmp/pricing.json --artifact-dir /tmp/chrome-bridge-artifacts
+node ./bin/chrome-bridge.mjs download-discovery --out /tmp/downloads.json --artifact-dir /tmp/chrome-bridge-artifacts
+node ./bin/chrome-bridge.mjs lighthouse-ingest --report /tmp/lighthouse.json --out /tmp/lighthouse-summary.json
 node ./bin/chrome-bridge.mjs diagnostics --out /tmp/chrome-bridge-diagnostics.json
 ```
 
-Use `diagnostics --out <file>` before `trace-events` or `debug-bundle` when possible. It keeps stdout to bounded page, performance, resource, and trace counts while preserving a local artifact for follow-up.
+Use `diagnostics --out <file>` before `trace-events` or `debug-bundle` when possible. Use structured presets and `download-discovery --out <file>` before broad `html`/`text` reads when the task has a known shape. They keep stdout to bounded metadata while preserving local artifacts for follow-up.
 
 For live verification:
 

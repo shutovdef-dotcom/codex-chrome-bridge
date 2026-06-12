@@ -61,6 +61,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_observe` | `observe` | read | 30000 ms | no | yes | Read ranked actionable elements with querySelector-verified selectors without mutating page state. |
 | `chrome_bridge_find_elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | `chrome_bridge_extract` | `extractPage` | read | 30000 ms | no | yes | Extract structured tables, form structure, lists, key-value blocks, or artifact-backed CPA offer presets without current form values. |
+| `chrome_bridge_download_discovery` | `download-discovery` | read | 30000 ms | no | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
 | `chrome_bridge_snapshot` | `snapshot` | read | 30000 ms | no | yes | Read a bounded structured page snapshot with optional full-page rendered text coverage. |
 | `chrome_bridge_text` | `text` | read | 30000 ms | no | yes | Read bounded visible page text with optional full-page scroll-walk coverage. |
 | `chrome_bridge_html` | `html` | read | 30000 ms | no | yes | Read bounded page HTML for a selector or the whole document. |
@@ -90,6 +91,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_ask_user` | `askUser` | system | 305000 ms | no | yes | Open a local prompt tab and wait for a user answer. |
 | `chrome_bridge_session_summary` | `session-summary` | read | 30000 ms | no | yes | Summarize bridge health, workspace policy, scoped group state, and recommendations. |
 | `chrome_bridge_debug_bundle` | `debug-bundle` | read | 60000 ms | no | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
+| `chrome_bridge_lighthouse_ingest` | `lighthouse-ingest` | read | 5000 ms | no | no | Summarize a local Lighthouse JSON report into scores and failing audits. |
 | `chrome_bridge_command_catalog` | `command-catalog` | read | 5000 ms | no | no | Print this shared command registry as JSON or Markdown. |
 <!-- END GENERATED MCP TOOLS -->
 

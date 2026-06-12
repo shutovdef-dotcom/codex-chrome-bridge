@@ -15,6 +15,9 @@ import {
   commandDefaultTimeoutMs,
 } from '../shared/command-registry.mjs';
 import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
+import { buildStructuredPresetExtraction } from '../shared/structured-extract.mjs';
+import { buildDownloadDiscovery } from '../shared/download-discovery.mjs';
+import { ingestLighthouseReportFile } from '../shared/lighthouse-ingest.mjs';
 import { summarizeDiagnosticsOutput } from '../shared/diagnostics-output.mjs';
 import {
   bridgeFetchTimeoutSignal,
@@ -705,11 +708,11 @@ server.tool(
 
 server.tool(
   'chrome_bridge_extract',
-  'Extract structured JSON from the selected tab: tables, forms, lists, key-value blocks, or the artifact-backed cpa-offer preset.',
+  'Extract structured JSON from the selected tab: tables, forms, lists, key-value blocks, or artifact-backed cpa-offer/article/product-page/pricing-table presets.',
   {
     tabId: chromeIdSchema.optional(),
     kind: z.enum(['all', 'tables', 'forms', 'lists', 'keyValues']).optional(),
-    preset: z.enum(['cpa-offer']).optional(),
+    preset: z.enum(['cpa-offer', 'article', 'product-page', 'pricing-table']).optional(),
     network: z.string().optional(),
     out: z.string().optional(),
     artifactDir: z.string().optional(),
@@ -748,6 +751,30 @@ server.tool(
         },
       }));
     }
+    if (['article', 'product-page', 'pricing-table'].includes(args.preset)) {
+      return textResult(await buildStructuredPresetExtraction({
+        bridgeCommand,
+        target: {
+          tabId: args.tabId,
+          allowExternal: args.allowExternal,
+        },
+        options: {
+          preset: args.preset,
+          out: args.out,
+          artifactDir: args.artifactDir,
+          rawOut: args.rawOut,
+          rawHtmlOut: args.rawHtmlOut,
+          selector: args.selector,
+          maxChars: args.maxChars ?? 200_000,
+          maxHtmlChars: args.maxHtmlChars ?? 500_000,
+          waitForText: args.waitForText,
+          waitForPattern: args.waitForPattern,
+          scrollStepPx: args.scrollStepPx,
+          maxScrollSteps: args.maxScrollSteps,
+          scrollDelayMs: args.scrollDelayMs,
+        },
+      }));
+    }
 
     return textResult(await bridgeCommand('extractPage', {
       tabId: args.tabId,
@@ -757,6 +784,34 @@ server.tool(
       allowExternal: args.allowExternal,
     }, 30_000));
   },
+);
+
+server.tool(
+  'chrome_bridge_download_discovery',
+  'Discover download and offline-export candidates from page HTML without clicking, downloading, or fetching candidate URLs.',
+  {
+    out: z.string(),
+    tabId: chromeIdSchema.optional(),
+    allowExternal: z.boolean().optional(),
+    selector: z.string().optional(),
+    artifactDir: z.string().optional(),
+    rawHtmlOut: z.string().optional(),
+    maxHtmlChars: z.number().min(1000).max(500000).optional(),
+  },
+  async (args) => textResult(await buildDownloadDiscovery({
+    bridgeCommand,
+    target: {
+      tabId: args.tabId,
+      allowExternal: args.allowExternal,
+    },
+    options: {
+      out: args.out,
+      artifactDir: args.artifactDir,
+      rawHtmlOut: args.rawHtmlOut,
+      selector: args.selector,
+      maxHtmlChars: args.maxHtmlChars ?? 500_000,
+    },
+  })),
 );
 
 server.tool(
@@ -1232,6 +1287,21 @@ server.tool(
     includeTraceEvents: z.boolean().optional(),
   },
   async (args) => textResult(await debugBundle(args)),
+);
+
+server.tool(
+  'chrome_bridge_lighthouse_ingest',
+  'Ingest a local Lighthouse JSON report and return scores plus failing audits without inlining the raw report.',
+  {
+    report: z.string(),
+    out: z.string().optional(),
+    maxAudits: z.number().int().min(1).max(100).optional(),
+  },
+  async (args) => textResult(await ingestLighthouseReportFile({
+    reportPath: args.report,
+    out: args.out,
+    maxAudits: args.maxAudits ?? 25,
+  })),
 );
 
 server.tool(

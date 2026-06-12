@@ -1,6 +1,6 @@
 # Competitive Analysis And Roadmap
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 This document captures the current competitive landscape for Codex Chrome Bridge, the product gaps that matter, and the phased implementation plan we can execute inside this repository.
 
@@ -291,6 +291,9 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - add filtered `find-elements`, including nearby-text matching
 - Phase 2 observability:
   - add structured `extract`
+  - add artifact-backed structured extraction presets for `article`, `product-page`, and `pricing-table` alongside the existing `cpa-offer` workflow
+  - add read-only download/offline-export discovery that reports candidate links/actions without clicking or fetching them
+  - add local Lighthouse JSON ingestion that exposes category scores, failing-audit summaries, and artifact paths without dumping raw audit payloads
   - add safe `session-summary` and redacted-by-default `debug-bundle`
   - include workspace policy state and strict-policy recommendations in summaries
   - omit page artifacts and full trace events from debug bundles unless explicitly requested, while keeping trace summaries available by default
@@ -323,12 +326,19 @@ This repository iteration implements the merged Phase 0-4 roadmap:
 
 ## Next Recommended Slice
 
-After this change set lands cleanly, the highest-value next implementation is:
+The previous recommended slice has now landed:
 
-1. Add schema-backed structured extraction presets beyond `cpa-offer` only when they preserve metadata-first stdout and local artifact storage.
-2. Add download/offline-export discovery before attempting any heavier cloud-browser or crawler-style work.
-3. Add optional Lighthouse result ingestion after the handoff path is stable, keeping raw reports local and exposing only scores, failing audits, and artifact paths by default.
-4. Revisit remaining UBS noise only when a concrete finding maps to reachable runtime behavior, not just broad pattern matches.
+1. Schema-backed structured extraction presets beyond `cpa-offer` now preserve metadata-first stdout and local artifact storage.
+2. Download/offline-export discovery is available as a read-only candidate detector before any heavier crawler-style work.
+3. Lighthouse result ingestion is local-only and keeps raw reports out of stdout by default.
+4. Remaining UBS noise stays evidence-gated: only findings that map to reachable runtime behavior should become code changes.
+
+After this change set, the highest-value next implementation is:
+
+1. Exercise the new presets on representative real pages and add only fixture-backed schema tuning where repeatable gaps appear.
+2. Add a small examples gallery for `article`, `product-page`, `pricing-table`, `download-discovery`, and `lighthouse-ingest` so agents can pick the right cheap-first command without rediscovering usage.
+3. Consider one more high-value preset only after real usage shows a stable schema need.
+4. Keep UBS triage evidence-first; do not broad-clean pattern noise unless it becomes a confirmed runtime path.
 
 That sequence keeps the product close to its strongest differentiator: safe local control of the user's real Chrome profile with small, agent-friendly outputs.
 
