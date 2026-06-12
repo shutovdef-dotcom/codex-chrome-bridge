@@ -44,6 +44,7 @@ Audit outcomes from this scan:
 - Added `mcp-config` and `chrome_bridge_mcp_config` to generate snippets for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients.
 - Added `CHROME_BRIDGE_MCP_TOOL_PROFILE=full|core|read`; the `core` profile exposes 39 high-value tools and omits sensitive private-browser tools, giving IDE clients a compact default.
 - Added MCP prompts and compact resources for quickstart, safety, compatibility, active profile, and read-first/debug workflows.
+- Added profile-aware onboarding so `doctor`, `mcp-config`, `session-summary`, and the deterministic tool advisor can steer clients toward `full`, `core`, or `read` without trial-and-error.
 - Added [MCP Client Compatibility](COMPATIBILITY.md) as an SEO/distribution page and updated AI-discovery metadata.
 
 Remaining gaps:
@@ -366,6 +367,7 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - close the UBS bug-scan follow-up plan with abortable CLI/MCP/extension fetch boundaries, safe metadata stripping, rejection-safe offscreen listeners, prompt DOM hardening, corrupted run-state recovery, and dedicated `check:ubs-fixes` coverage
   - add universal MCP client setup generation through `mcp-config` and `chrome_bridge_mcp_config`, covering Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients
   - add `CHROME_BRIDGE_MCP_TOOL_PROFILE=full|core|read` so IDE clients can use a compact profile while full-capability clients keep the complete tool surface
+  - add profile-aware onboarding and summary guidance so local diagnostics, setup snippets, prompts/resources, and the deterministic advisor agree on the safest next MCP profile and follow-up command
   - refresh public positioning from Codex-only language to Chrome MCP Bridge while preserving package, repository, binary, default group lifecycle, and legacy `codex-config` compatibility
 
 ## Next Recommended Slice
@@ -383,7 +385,7 @@ After this change set, the highest-value next implementation is:
 
 1. Decide whether to create a non-breaking alias package/repository name such as `chrome-mcp-bridge` while preserving `codex-chrome-bridge` redirects and migration docs.
 2. Add one-click install surfaces where supported by major clients, starting with VS Code and Cursor, then consider a Claude Code plugin wrapper if it can stay thin and local-first.
-3. Consider MCP prompts/resources only if they reduce tool-search friction without duplicating CLI docs or bloating context.
+3. Extend setup ergonomics from profile hints into installable artifacts such as checked-in example config files, copy-paste helpers, or thin wrappers per major client.
 4. Continue collecting real-page evidence and add fixtures only for repeated gaps.
 5. Keep UBS triage evidence-first; do not broad-clean pattern noise unless it becomes a confirmed runtime path.
 

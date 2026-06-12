@@ -263,8 +263,12 @@ await withMcpClient(async (client) => {
     check(doctorParsed.health?.skipped === true, 'MCP doctor default call must skip bridge health checks');
     check(doctorParsed.health?.ok === null, 'MCP doctor default call must not contact bridge health');
     check(doctorParsed.checks?.extensionConnected === null, 'MCP doctor default call must not infer extension connection');
+    check(doctorParsed.mcpProfiles?.cursor === 'core', 'MCP doctor must recommend the core MCP profile for Cursor');
+    check(doctorParsed.mcpProfiles?.generic === 'read', 'MCP doctor must recommend the read MCP profile for generic clients');
     check(Array.isArray(doctorParsed.nextActions), 'MCP doctor must return setup nextActions');
     check(doctorParsed.nextActions.some((action) => action.includes('runtime-smoke --coverage-plan')), 'MCP doctor offline nextActions must recommend the coverage plan');
+    check(doctorParsed.nextActions.some((action) => action.includes('advise --task')), 'MCP doctor offline nextActions must recommend the advisor flow');
+    check(doctorParsed.nextActions.some((action) => action.includes('mcp-config --client')), 'MCP doctor offline nextActions must recommend client snippets');
   }
 
   const catalogParsed = parseToolJson(await client.callTool({
@@ -308,6 +312,8 @@ await withMcpClient(async (client) => {
   check(mcpConfigText?.includes('## Cursor'), 'MCP mcp-config tool must include Cursor setup');
   check(mcpConfigText?.includes('## Hermes Agent'), 'MCP mcp-config tool must include Hermes setup');
   check(mcpConfigText?.includes('mcp/chrome-bridge-mcp.mjs'), 'MCP mcp-config tool must point at the local MCP server file');
+  check(mcpConfigText?.includes('Recommended profile: `core`.'), 'MCP mcp-config tool must annotate compact-client recommendations');
+  check(mcpConfigText?.includes('chrome-bridge://profiles/current'), 'MCP mcp-config tool must mention the current-profile resource');
 
   const mcpCursorConfig = await client.callTool({
     name: 'chrome_bridge_mcp_config',
@@ -316,6 +322,7 @@ await withMcpClient(async (client) => {
   const mcpCursorConfigText = mcpCursorConfig?.content?.find((item) => item?.type === 'text')?.text;
   check(mcpCursorConfigText?.includes('"mcpServers"'), 'MCP mcp-config cursor tool must return mcpServers JSON');
   check(mcpCursorConfigText?.includes('"CHROME_BRIDGE_MCP_TOOL_PROFILE": "core"'), 'MCP mcp-config cursor tool must recommend the compact MCP tool profile');
+  check(mcpCursorConfigText?.includes('Recommended profile: `core`.'), 'MCP mcp-config cursor tool must explain the recommended profile');
   check(!mcpCursorConfigText?.includes('## Hermes Agent'), 'MCP mcp-config cursor tool must not return every client section');
 
   const codexConfig = await client.callTool({
@@ -380,6 +387,8 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
         && recommendation.includes(staleBridgeVersion)
     ));
     check(sessionSummaryStaleBridgeRecommendation, 'MCP session-summary must recommend restarting stale bridge server');
+    check(summaryParsed.mcpProfile?.profile === 'full', 'MCP session-summary must include the active MCP profile summary');
+    check(summaryParsed.nextActions?.some((action) => action.includes('chrome_bridge_doctor')), 'MCP session-summary must include a concrete stale-bridge next action');
   }, {
     CHROME_BRIDGE_URL: bridgeUrl,
   });

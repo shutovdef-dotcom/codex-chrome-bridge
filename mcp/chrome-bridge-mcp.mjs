@@ -269,6 +269,8 @@ async function sessionSummary() {
     health,
     workspace,
     group,
+    mcpProfile: currentMcpProfileSummary(),
+    nextActions: summaryNextActions(health, group, workspace),
     recommendations: summaryRecommendations(health, group, workspace),
   };
 }
@@ -294,6 +296,39 @@ function summaryRecommendations(health, group, workspace) {
     recommendations.push('Strict workspace policy is active; outside tabs are blocked even with allowExternal.');
   }
   return recommendations;
+}
+
+function summaryNextActions(health, group, workspace) {
+  const actions = [];
+  const bridgeVersion = health?.bridge?.version;
+  const extensionVersion = health?.extension?.info?.version;
+  const extensionConnected = Boolean(health?.extension?.connected);
+  const policyMode = workspace?.policy?.mode || workspace?.workspace?.policyMode;
+  const hasScopedTabs = Boolean((workspace?.counts?.tabs > 0) || (Array.isArray(group?.tabs) && group.tabs.length));
+
+  if (bridgeVersion && bridgeVersion !== BRIDGE_VERSION) {
+    actions.push('Restart the local Chrome Bridge server, then rerun chrome_bridge_doctor with liveChecks=true.');
+    return actions;
+  }
+  if (extensionVersion && extensionVersion !== BRIDGE_VERSION) {
+    actions.push('Run chrome_bridge_reload_extension with confirmed=true, then rerun chrome_bridge_doctor with liveChecks=true.');
+    return actions;
+  }
+  if (!extensionConnected) {
+    actions.push('Load or reload the unpacked Chrome MCP Bridge extension in chrome://extensions/.');
+    actions.push('After that, run chrome_bridge_health and confirm extension.connected is true.');
+    return actions;
+  }
+  if (!hasScopedTabs) {
+    actions.push('Run chrome_bridge_ensure_tab or chrome_bridge_adopt_tab with confirmed=true before browser work.');
+  } else {
+    actions.push('Start with chrome_bridge_observe or chrome_bridge_snapshot before any interaction.');
+  }
+  if (policyMode === 'strict') {
+    actions.push('Strict workspace policy is active, so keep work inside the scoped group or change the workspace policy first.');
+  }
+  actions.push('If the next tool is unclear, call chrome_bridge_tool_advisor with the current task.');
+  return actions;
 }
 
 async function writeDataUrlFile(filePath, dataUrl, expectedPrefix) {

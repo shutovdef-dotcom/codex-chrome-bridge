@@ -15,6 +15,7 @@ node ./bin/chrome-bridge.mjs mcp-config --client hermes
 ```
 
 The MCP tool `chrome_bridge_mcp_config` returns the same snippets from inside clients that already have the server installed.
+For a safer install flow, `chrome_bridge_doctor`, `chrome_bridge_session_summary`, `chrome_bridge_tool_advisor`, and the `chrome-bridge://profiles/current` resource now echo the recommended profile and next setup steps after install.
 
 ## Shared Requirements
 
@@ -42,6 +43,7 @@ The default MCP server profile is `full`, which exposes every registered tool. S
 | `read` | Conservative read-mostly clients | Exposes read/discovery/export/diagnostic tools and omits most mutation/private-data tools. |
 
 Use `core` first in clients that warn about large MCP tool lists. Switch to `full` when you specifically need private browser-data tools such as cookies, storage values, history, bookmarks, or extension-context requests.
+For generic stdio hosts that mostly inspect pages or export artifacts, start with `read` and only upgrade to `full` when a concrete workflow needs broader browser control.
 
 ## Claude Code
 
@@ -147,12 +149,19 @@ mcp_servers:
 
 ## Generic Stdio MCP Clients
 
-Use this command/args pair anywhere a client asks for a local stdio MCP server:
+Use this command/args pair anywhere a client asks for a local stdio MCP server. The generated generic snippet now prefers the conservative `read` profile by default:
 
 ```json
 {
-  "command": "node",
-  "args": ["/absolute/path/to/codex-chrome-bridge/mcp/chrome-bridge-mcp.mjs"]
+  "mcpServers": {
+    "chrome-bridge": {
+      "command": "node",
+      "args": ["/absolute/path/to/codex-chrome-bridge/mcp/chrome-bridge-mcp.mjs"],
+      "env": {
+        "CHROME_BRIDGE_MCP_TOOL_PROFILE": "read"
+      }
+    }
+  }
 }
 ```
 
@@ -160,5 +169,6 @@ Use this command/args pair anywhere a client asks for a local stdio MCP server:
 
 - If no tools appear, run the exact `command` plus `args` in a terminal and fix any Node.js/path errors first.
 - If the client warns about too many tools, set `CHROME_BRIDGE_MCP_TOOL_PROFILE=core`.
+- If the right profile or next command is unclear, run `node ./bin/chrome-bridge.mjs advise --task "<goal>"` or call `chrome_bridge_tool_advisor`.
 - If browser tools fail but local tools work, run `chrome-bridge health` and confirm the extension is connected.
 - If a live smoke run is skipped, follow the returned `nextCommand` / `nextAction` recovery hints.

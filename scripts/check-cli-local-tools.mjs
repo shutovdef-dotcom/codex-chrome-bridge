@@ -233,8 +233,12 @@ if (doctorJson) {
   check(doctorJson.liveChecks === false, 'CLI doctor must keep liveChecks=false by default');
   check(doctorJson.health?.skipped === true, 'CLI doctor default call must skip bridge health');
   check(doctorJson.health?.ok === null, 'CLI doctor default call must not contact bridge health');
+  check(doctorJson.mcpProfiles?.cursor === 'core', 'CLI doctor must recommend the core MCP profile for Cursor');
+  check(doctorJson.mcpProfiles?.generic === 'read', 'CLI doctor must recommend the read MCP profile for generic clients');
   check(Array.isArray(doctorJson.nextActions), 'CLI doctor must return setup nextActions');
   check(doctorJson.nextActions.some((action) => action.includes('runtime-smoke --coverage-plan')), 'CLI doctor offline nextActions must recommend coverage-plan');
+  check(doctorJson.nextActions.some((action) => action.includes('advise --task')), 'CLI doctor offline nextActions must recommend the advisor flow');
+  check(doctorJson.nextActions.some((action) => action.includes('mcp-config --client')), 'CLI doctor offline nextActions must recommend client config snippets');
 }
 
 let liveDoctorBridgeCurrent = null;
@@ -297,6 +301,7 @@ await withFakeStaleSummaryBridge(async ({ bridgeUrl, staleBridgeVersion }) => {
       && recommendation.includes(staleBridgeVersion)
   ));
   check(sessionSummaryStaleBridgeRecommendation, 'CLI session-summary must recommend restarting stale bridge server');
+  check(summaryJson.nextActions?.some((action) => action.includes('doctor --live-checks')), 'CLI session-summary must include a concrete stale-bridge next action');
 });
 
 let groupScopePayloadChecks = 0;
@@ -1045,11 +1050,14 @@ check(mcpConfigResult.stdout.includes('## VS Code'), 'CLI mcp-config must includ
 check(mcpConfigResult.stdout.includes('## Windsurf / Cascade'), 'CLI mcp-config must include Windsurf setup');
 check(mcpConfigResult.stdout.includes('## Hermes Agent'), 'CLI mcp-config must include Hermes setup');
 check(mcpConfigResult.stdout.includes('mcp/chrome-bridge-mcp.mjs'), 'CLI mcp-config must point at the local MCP server file');
+check(mcpConfigResult.stdout.includes('Recommended profile: `core`.'), 'CLI mcp-config must annotate compact-client recommendations');
+check(mcpConfigResult.stdout.includes('chrome-bridge://profiles/current'), 'CLI mcp-config must mention the current-profile resource');
 
 const cursorMcpConfigResult = await runCli(['mcp-config', '--client', 'cursor']);
 check(cursorMcpConfigResult.ok, 'CLI mcp-config --client cursor must succeed offline');
 check(cursorMcpConfigResult.stdout.includes('"mcpServers"'), 'CLI cursor mcp-config must return mcpServers JSON');
 check(cursorMcpConfigResult.stdout.includes('"CHROME_BRIDGE_MCP_TOOL_PROFILE": "core"'), 'CLI cursor mcp-config must recommend the compact MCP tool profile');
+check(cursorMcpConfigResult.stdout.includes('Recommended profile: `core`.'), 'CLI mcp-config --client cursor must explain the recommended profile');
 check(!cursorMcpConfigResult.stdout.includes('## Hermes Agent'), 'CLI mcp-config --client cursor must not print every client section');
 
 const codexConfigResult = await runCli(['codex-config']);

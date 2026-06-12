@@ -709,13 +709,41 @@ function normalizeMcpClient(value) {
   return aliases[normalized] || normalized;
 }
 
+function recommendedMcpProfile(client) {
+  switch (client) {
+    case 'cursor':
+    case 'windsurf':
+      return 'core';
+    case 'generic':
+      return 'read';
+    case 'all':
+      return 'full';
+    default:
+      return 'full';
+  }
+}
+
+function mcpProfileGuidanceText(profile) {
+  if (profile === 'core') {
+    return 'Use `CHROME_BRIDGE_MCP_TOOL_PROFILE=core` first. It keeps high-value browser tools available while omitting sensitive private-browser tools such as cookies, storage values, and extension-context requests.';
+  }
+  if (profile === 'read') {
+    return 'Use `CHROME_BRIDGE_MCP_TOOL_PROFILE=read` when the client should inspect and export before any mutation. It keeps the surface conservative and read-mostly.';
+  }
+  return 'Use `CHROME_BRIDGE_MCP_TOOL_PROFILE=full` when the client can handle the full tool surface or explicitly needs private browser-data tools.';
+}
+
 function mcpConfigSections(client) {
   const jsonConfig = JSON.stringify(mcpServersJsonConfig(), null, 2);
   const coreJsonConfig = JSON.stringify(mcpServersJsonConfig({ toolProfile: 'core' }), null, 2);
+  const readJsonConfig = JSON.stringify(mcpServersJsonConfig({ toolProfile: 'read' }), null, 2);
   const stdioEntry = JSON.stringify(stdioJsonServerConfig());
   const sections = {
     'claude-code': [
       '## Claude Code',
+      '',
+      'Recommended profile: `full`.',
+      mcpProfileGuidanceText('full'),
       '',
       'Project `.mcp.json` or user config:',
       '',
@@ -732,6 +760,9 @@ function mcpConfigSections(client) {
     cursor: [
       '## Cursor',
       '',
+      'Recommended profile: `core`.',
+      mcpProfileGuidanceText('core'),
+      '',
       'Use `.cursor/mcp.json` in a project or `~/.cursor/mcp.json` globally. The `core` tool profile keeps the active tool list below common IDE-agent limits:',
       '',
       '```json',
@@ -740,6 +771,9 @@ function mcpConfigSections(client) {
     ].join('\n'),
     codex: [
       '## Codex',
+      '',
+      'Recommended profile: `full`.',
+      mcpProfileGuidanceText('full'),
       '',
       'Use `.codex/config.toml` or `~/.codex/config.toml`:',
       '',
@@ -750,6 +784,9 @@ function mcpConfigSections(client) {
     vscode: [
       '## VS Code',
       '',
+      'Recommended profile: `full` first, then `core` only if your VS Code agent warns about tool count.',
+      mcpProfileGuidanceText('full'),
+      '',
       'Use `.vscode/mcp.json` in a workspace or the user MCP config:',
       '',
       '```json',
@@ -758,6 +795,9 @@ function mcpConfigSections(client) {
     ].join('\n'),
     windsurf: [
       '## Windsurf / Cascade',
+      '',
+      'Recommended profile: `core`.',
+      mcpProfileGuidanceText('core'),
       '',
       'Use Windsurf Settings / Cascade or raw `~/.codeium/windsurf/mcp_config.json`. The `core` tool profile keeps the active tool list compact for IDE agents:',
       '',
@@ -768,6 +808,9 @@ function mcpConfigSections(client) {
     hermes: [
       '## Hermes Agent',
       '',
+      'Recommended profile: `full`.',
+      mcpProfileGuidanceText('full'),
+      '',
       'Add this under `mcp_servers` in `~/.hermes/config.yaml`:',
       '',
       '```yaml',
@@ -777,10 +820,13 @@ function mcpConfigSections(client) {
     generic: [
       '## Generic stdio MCP client',
       '',
+      'Recommended profile: `read` or `full`, depending on whether the host should stay read-mostly or needs the full browser surface.',
+      mcpProfileGuidanceText('read'),
+      '',
       'Use this command/args pair wherever the client accepts local stdio servers:',
       '',
       '```json',
-      JSON.stringify(stdioJsonServerConfig(), null, 2),
+      readJsonConfig,
       '```',
     ].join('\n'),
   };
@@ -793,11 +839,17 @@ function mcpConfigSections(client) {
 
 function mcpConfigText(args = {}) {
   const client = normalizeMcpClient(args.client);
+  const recommendedProfile = recommendedMcpProfile(client);
   return [
     '# Chrome MCP Bridge client configuration',
     '',
     'These snippets start the local stdio MCP server with the current Node executable.',
     'Install and load the Chrome extension, then run the bridge server before using live browser tools.',
+    client === 'all'
+      ? 'Default recommendations: `full` for Claude Code, Codex, VS Code, and Hermes; `core` for Cursor and Windsurf; `read` as the conservative generic fallback.'
+      : `Recommended profile for this client: \`${recommendedProfile}\`.`,
+    'If a client needs private browser-data tools such as cookies, storage values, or credentialed requests, switch it to `CHROME_BRIDGE_MCP_TOOL_PROFILE=full`.',
+    'For local workflow guidance after install, use `chrome_bridge_read_first`, `chrome_bridge_existing_tab`, `chrome_bridge_debug_page`, `chrome_bridge_tool_advisor`, and the `chrome-bridge://profiles/current` resource.',
     '',
     ...mcpConfigSections(client),
     '',
@@ -913,6 +965,15 @@ async function doctor(args) {
   const extensionVersion = health?.extension?.info?.version || null;
   const extensionCurrent = includeLiveChecks ? extensionVersion === EXPECTED_EXTENSION_VERSION : null;
   const appleEventsJsEnabled = includeLiveChecks ? appleEvents.ok : null;
+  const profileRecommendations = {
+    claudeCode: 'full',
+    cursor: 'core',
+    codex: 'full',
+    vscode: 'full',
+    windsurf: 'core',
+    hermes: 'full',
+    generic: 'read',
+  };
 
   return {
     bridgeUrl: DEFAULT_ENDPOINT,
@@ -930,10 +991,13 @@ async function doctor(args) {
       appleEventsJsEnabled,
       appleEventsError: appleEvents.ok ? null : appleEvents.error,
     },
+    mcpProfiles: profileRecommendations,
     actions,
     nextActions: !includeLiveChecks ? [
       'Run chrome-bridge self-test for offline project verification.',
       'Run chrome-bridge runtime-smoke --coverage-plan for the offline live-smoke checklist.',
+      'Run chrome-bridge advise --task "configure Cursor MCP setup" or another install goal for the safest next setup commands.',
+      'Run chrome-bridge mcp-config --client claude-code|cursor|codex|vscode|windsurf|hermes|generic for a ready-to-paste client snippet.',
       'Pass --live-checks only when no other Codex session is actively using the bridge.',
       'Run chrome-bridge health and runtime-smoke later for final live verification.',
     ] : bridgeCurrent === false ? [
@@ -1690,6 +1754,7 @@ async function sessionSummary() {
     health,
     workspace,
     group,
+    nextActions: summaryNextActions(health, group, workspace),
     recommendations: summaryRecommendations(health, group, workspace),
   };
 }
@@ -1715,6 +1780,39 @@ function summaryRecommendations(health, group, workspace) {
     recommendations.push('Strict workspace policy is active; outside tabs are blocked even with allowExternal.');
   }
   return recommendations;
+}
+
+function summaryNextActions(health, group, workspace) {
+  const actions = [];
+  const bridgeVersion = health?.bridge?.version;
+  const extensionVersion = health?.extension?.info?.version;
+  const extensionConnected = Boolean(health?.extension?.connected);
+  const policyMode = workspace?.policy?.mode || workspace?.workspace?.policyMode;
+  const hasScopedTabs = Boolean((workspace?.counts?.tabs > 0) || (Array.isArray(group?.tabs) && group.tabs.length));
+
+  if (bridgeVersion && bridgeVersion !== EXPECTED_EXTENSION_VERSION) {
+    actions.push('Restart the local Chrome Bridge server, then run chrome-bridge doctor --live-checks.');
+    return actions;
+  }
+  if (extensionVersion && extensionVersion !== EXPECTED_EXTENSION_VERSION) {
+    actions.push('Run chrome-bridge reload-extension --confirm, then rerun chrome-bridge doctor --live-checks.');
+    return actions;
+  }
+  if (!extensionConnected) {
+    actions.push('Load or reload the unpacked Chrome MCP Bridge extension in chrome://extensions/.');
+    actions.push('After that, run chrome-bridge health and confirm extension.connected is true.');
+    return actions;
+  }
+  if (!hasScopedTabs) {
+    actions.push('Run chrome-bridge ensure-tab or chrome-bridge adopt-tab --confirm before browser work.');
+  } else {
+    actions.push('Start with chrome-bridge observe or chrome-bridge snapshot before any interaction.');
+  }
+  if (policyMode === 'strict') {
+    actions.push('Strict workspace policy is active, so keep browser work inside the scoped group or change the workspace policy first.');
+  }
+  actions.push('If you need the safest next command for a goal, run chrome-bridge advise --task "<goal>".');
+  return actions;
 }
 
 async function writeJsonFile(filePath, value) {
