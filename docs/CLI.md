@@ -114,7 +114,7 @@ chrome-bridge last-artifact [--artifact-dir <dir>]
 chrome-bridge read-artifact --path <file> [--head <n>] [--grep <regex>] [--max-matches <n>]
 chrome-bridge reload-extension --confirm
 chrome-bridge self-test
-chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]
+chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan] [--summary-only] [--out <file>]
 ```
 <!-- END GENERATED CLI USAGE: server-diagnostics -->
 

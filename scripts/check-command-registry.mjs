@@ -615,7 +615,7 @@ check(cliText.includes('function tomlString(value)'), 'CLI codex-config must esc
 check(cliText.includes('command = ${tomlString(process.execPath)}'), 'CLI codex-config must use the current Node executable');
 check(!cliText.includes('/opt/homebrew/bin/node'), 'CLI codex-config must not hardcode a Homebrew Node path');
 check(cliText.includes("if (!args.confirm) throw new Error('reload-extension requires --confirm')"), 'CLI reload-extension must require --confirm');
-check(CLI_USAGE_LINES.includes('chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]'), 'runtime-smoke CLI usage must expose offline coverage-plan mode');
+check(CLI_USAGE_LINES.includes('chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan] [--summary-only] [--out <file>]'), 'runtime-smoke CLI usage must expose offline coverage-plan mode and summary output');
 check(packageJson.scripts?.['runtime-smoke:plan'] === 'node ./bin/chrome-bridge.mjs runtime-smoke --coverage-plan', 'package scripts must expose offline runtime smoke coverage plan');
 check(packageJson.scripts?.['check:runtime-smoke-plan'] === 'node ./scripts/check-runtime-smoke-plan.mjs', 'package scripts must expose runtime smoke plan contract check');
 check(packageJson.scripts?.['check:roadmap'] === 'node ./scripts/check-roadmap-coverage.mjs', 'package scripts must expose roadmap coverage contract check');

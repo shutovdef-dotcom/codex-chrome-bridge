@@ -742,7 +742,7 @@ export const CLI_USAGE_LINES = Object.freeze([
   'chrome-bridge command-catalog [--markdown]',
   'chrome-bridge reload-extension --confirm',
   'chrome-bridge self-test',
-  'chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan]',
+  'chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan] [--summary-only] [--out <file>]',
   'chrome-bridge doctor [--live-checks] [--copy-path] [--open-extensions]',
   'chrome-bridge extension-path',
   'chrome-bridge codex-config',

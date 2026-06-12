@@ -198,6 +198,8 @@ async function localRuntimeSmoke(args = {}) {
     ];
     if (args.keepTab) cliArgs.push('--keep-tab');
     if (args.coveragePlan) cliArgs.push('--coverage-plan');
+    if (args.summaryOnly) cliArgs.push('--summary-only');
+    if (args.out) cliArgs.push('--out', args.out);
     const result = await execFileAsync(process.execPath, cliArgs, { timeout: 180_000 });
     return parseLocalCliJson(result.stdout) || {};
   } catch (error) {
@@ -425,6 +427,8 @@ server.tool(
   {
     keepTab: z.boolean().optional(),
     coveragePlan: z.boolean().optional(),
+    summaryOnly: z.boolean().optional(),
+    out: z.string().optional(),
   },
   async (args) => textResult(await localRuntimeSmoke(args)),
 );

@@ -65,10 +65,10 @@ Live check, only when the bridge is free:
 ```bash
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" reload-extension --confirm
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" doctor --live-checks
-node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" runtime-smoke
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" runtime-smoke --summary-only --out /tmp/chrome-bridge-runtime-smoke.json
 ```
 
-Run the live reload, `doctor --live-checks`, and `runtime-smoke` sequence only when the bridge is free. If live smoke is skipped or failed, use top-level `nextCommand` / `nextAction` for the immediate recovery step; nested `verification.nextCommand` / `verification.nextAction` carries the same recovery context. Treat verification as complete only when live `runtime-smoke` reports `ok: true`, `coverage.ok: true`, `verification.status: "passed"`, and `finalVerificationComplete: true`.
+Run the live reload, `doctor --live-checks`, and `runtime-smoke` sequence only when the bridge is free. Prefer `runtime-smoke --summary-only --out <file>` in agent sessions: stdout stays small, while the full step report remains in the local JSON artifact. If live smoke is skipped or failed, use top-level `nextCommand` / `nextAction` for the immediate recovery step; nested `verification.nextCommand` / `verification.nextAction` carries the same recovery context. Treat verification as complete only when live `runtime-smoke` reports `ok: true`, `coverage.ok: true`, `verification.status: "passed"`, and `finalVerificationComplete: true`.
 
 ## Read-Only Workflow
 

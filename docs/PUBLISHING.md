@@ -24,14 +24,14 @@ npm run runtime-smoke:plan
 npm run server
 node ./bin/chrome-bridge.mjs reload-extension --confirm
 node ./bin/chrome-bridge.mjs doctor --live-checks
-node ./bin/chrome-bridge.mjs runtime-smoke
+node ./bin/chrome-bridge.mjs runtime-smoke --summary-only --out /tmp/chrome-bridge-runtime-smoke.json
 ```
 
 Run the live `reload-extension --confirm`, `doctor --live-checks`, and `runtime-smoke` checks only when no other Codex session is actively using the bridge.
 
 `npm run runtime-smoke:plan` wraps `runtime-smoke --coverage-plan`. It is offline and can be run while another session is using the bridge. It prints the required coverage checklist without calling `/health`, opening Chrome tabs, or reloading the extension, and its top-level `nextCommand` / `nextAction`, `verification.nextCommand`, `verification.nextAction`, `verification.finalCommands`, and `verification.finalMcpCalls` fields record the live CLI/MCP sequence: `reload-extension --confirm`, `doctor --live-checks`, then `runtime-smoke`.
 
-The plan output reports `verification.status: "not-run"` and `verification.liveVerificationRequired: true`; skipped or failed live outputs preserve contextual `verification.nextCommand` / `verification.nextAction` recovery hints. Plan and skipped outputs keep `finalVerificationComplete: false`. Final verification is complete only after the normal live `runtime-smoke` reports top-level `ok: true`, `coverage.ok: true`, current bridge/extension versions, `verification.status: "passed"`, and `finalVerificationComplete: true`.
+The plan output reports `verification.status: "not-run"` and `verification.liveVerificationRequired: true`; skipped or failed live outputs preserve contextual `verification.nextCommand` / `verification.nextAction` recovery hints. Plan and skipped outputs keep `finalVerificationComplete: false`. Final verification is complete only after the normal live `runtime-smoke` reports top-level `ok: true`, `coverage.ok: true`, current bridge/extension versions, `verification.status: "passed"`, and `finalVerificationComplete: true`. For agent-driven verification, use `runtime-smoke --summary-only --out <file>` so stdout stays bounded and the full step report is written locally.
 
 `runtime-smoke` opens temporary local fixture tabs and covers existing-tab adoption, scoped reads, strict workspace policy, session-summary recommendations, debug-bundle default redaction/omission behavior, querySelector/nth-of-type selector fallback, screenshots, PDF export, dialog handling, file input upload, interactions, tracing, browser-data safety gates, cleanup, and tab cleanup mitigation metadata. Its JSON output includes a counted `coverage` summary, and top-level `ok` is true only when every required coverage item passed.
 

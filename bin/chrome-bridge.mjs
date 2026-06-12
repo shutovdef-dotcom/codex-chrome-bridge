@@ -1629,6 +1629,63 @@ function runtimeSmokeLiveVerification({ status, bridgeVersion = null, extensionV
   };
 }
 
+function runtimeSmokeCoverageSummary(coverage = {}) {
+  return {
+    ok: coverage.ok ?? false,
+    requiredCount: coverage.requiredCount ?? RUNTIME_SMOKE_REQUIRED_COVERAGE.length,
+    coveredCount: coverage.coveredCount ?? 0,
+    missingCount: coverage.missingCount ?? RUNTIME_SMOKE_REQUIRED_COVERAGE.length,
+    missing: Array.isArray(coverage.missing) ? coverage.missing : [],
+  };
+}
+
+function runtimeSmokeVerificationSummary(verification = {}) {
+  return {
+    status: verification.status || null,
+    liveVerificationRequired: verification.liveVerificationRequired ?? null,
+    nextCommand: verification.nextCommand || null,
+    nextAction: verification.nextAction || null,
+    successCriteria: verification.successCriteria || null,
+    observed: verification.observed || null,
+  };
+}
+
+function runtimeSmokeFailureSummary(failures = []) {
+  return failures.map((failure) => ({
+    name: failure.name || null,
+    error: failure.error || null,
+  }));
+}
+
+function summarizeRuntimeSmokeResult(result = {}, artifactPath = null) {
+  return {
+    ok: result.ok === true,
+    summaryOnly: true,
+    artifactPath,
+    startedAt: result.startedAt || null,
+    finishedAt: result.finishedAt || null,
+    expectedVersion: result.expectedVersion || EXPECTED_EXTENSION_VERSION,
+    bridgeVersion: result.bridgeVersion || null,
+    extensionVersion: result.extensionVersion || null,
+    finalVerificationComplete: Boolean(result.finalVerificationComplete),
+    skipped: Boolean(result.skipped),
+    reason: result.reason || null,
+    tabId: result.tabId ?? null,
+    keptTab: Boolean(result.keptTab),
+    counts: result.counts || {
+      steps: Array.isArray(result.steps) ? result.steps.length : 0,
+      failures: Array.isArray(result.failures) ? result.failures.length : 0,
+    },
+    coverage: runtimeSmokeCoverageSummary(result.coverage),
+    fatalError: result.fatalError || null,
+    nextCommand: result.nextCommand || null,
+    nextAction: result.nextAction || null,
+    verification: runtimeSmokeVerificationSummary(result.verification),
+    failures: runtimeSmokeFailureSummary(result.failures || []),
+    stepsOmitted: Array.isArray(result.steps) ? result.steps.length : 0,
+  };
+}
+
 async function debugBundle(args = {}) {
   if (!args.out) throw new Error('debug-bundle requires --out <dir>');
   const outputDir = path.resolve(args.out);
@@ -2360,7 +2417,11 @@ tool_timeout_sec = 60
 
   if (cmd === 'runtime-smoke') {
     const result = await runtimeSmoke(args);
-    printJson(result);
+    const artifactPath = typeof args.out === 'string' ? path.resolve(args.out) : null;
+    if (artifactPath) {
+      await writeJsonFile(artifactPath, result);
+    }
+    printJson(args['summary-only'] ? summarizeRuntimeSmokeResult(result, artifactPath) : result);
     if (!result.ok) process.exitCode = 1;
     return;
   }
