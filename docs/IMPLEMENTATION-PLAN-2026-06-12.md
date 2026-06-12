@@ -15,8 +15,13 @@ The current planning baseline is:
    - Distribution and client compatibility.
    - MCP agent UX.
    - Browser and DevTools-style capabilities.
-3. Expand the high-level `act` / `agent` question before implementing it.
-4. Treat cloud and scale as a research-only future track for now.
+3. Create a public `chrome-mcp-bridge` npm alias if the name is available, while keeping `codex-chrome-bridge` compatible.
+4. Prepare Chrome Web Store readiness: reproducible extension package, privacy docs, store copy, and submission checklist.
+5. Implement a confirmed single-download/export manager for scoped tabs, not unattended bulk downloading.
+6. Keep Lighthouse handoff-only for this cycle: generate exact local commands and ingest reports, but do not add an integrated runner yet.
+7. Implement high-level `act-preview` plus confirmed one-step `act-apply`; keep full autonomous `agent-run` out of scope.
+8. Add macOS, Linux, and Windows persistent-install guidance together, starting docs-first where local verification is limited.
+9. Treat cloud and scale as a research-only future track for now.
 
 ## Sources Reviewed
 
@@ -453,6 +458,11 @@ Gap:
 
 Implementation plan:
 
+Decision:
+
+- Add a confirmed single-download/export workflow for scoped tabs.
+- Do not add unattended bulk download, recursive download, or "download everything on this page" behavior in this cycle.
+
 Add a new confirmed workflow:
 
 - CLI: `chrome-bridge download`
@@ -479,12 +489,14 @@ Safety rules:
 - Never upload downloaded files.
 - Redact URLs and filenames in default debug output if needed.
 - Include size and timeout limits.
+- Refuse multi-download behavior unless a later release adds a separate explicit bulk mode with stronger confirmations.
 
 Acceptance criteria:
 
 - User can export a report from a scoped tab with explicit confirmation.
 - Agent receives download metadata and local artifact path.
 - No raw downloaded content is dumped to stdout/MCP.
+- A single command cannot silently download multiple files.
 
 Suggested verification:
 
@@ -492,7 +504,7 @@ Suggested verification:
 - New `npm run check:download-manager`
 - Live runtime-smoke slice.
 
-### C2. Lighthouse Runner Or Guided Handoff
+### C2. Lighthouse Guided Handoff
 
 Current state:
 
@@ -504,31 +516,27 @@ Gap:
 
 Decision:
 
-There are two viable approaches:
+- Keep Lighthouse handoff-only for this cycle.
+- Add `lighthouse-plan` that prints the exact local command to run and the follow-up `lighthouse-ingest` command.
+- Avoid adding a Lighthouse runtime dependency or spawning `npx lighthouse` from the bridge for now.
 
-1. Lightweight handoff first:
-   - Keep `lighthouse-ingest`.
-   - Add `lighthouse-plan` that prints the exact local command to run.
-   - Avoid adding a heavy dependency.
-2. Integrated runner:
-   - Add an optional local Lighthouse dependency or spawn `npx lighthouse`.
-   - Capture JSON to a local artifact.
-   - Ingest summary automatically.
+Implementation plan:
 
-Recommended sequence:
-
-1. Implement lightweight handoff and docs.
-2. Add integrated runner only after deciding dependency policy.
+1. Keep `lighthouse-ingest` as the local report summarizer.
+2. Add `lighthouse-plan` with URL, output path, Chrome/profile notes, and follow-up ingest command.
+3. Add docs explaining why the bridge does not run Lighthouse directly yet.
+4. Revisit an integrated runner only after handoff usage proves too cumbersome.
 
 Acceptance criteria:
 
 - Agents can produce performance recommendations from Lighthouse output without raw report bloat.
-- If an integrated runner exists, it is opt-in, bounded, and writes artifacts locally.
+- Lighthouse handoff works without adding a heavy dependency to the package.
+- The generated command is copy-pasteable and writes artifacts locally.
 
 Suggested verification:
 
 - Existing Lighthouse fixture tests.
-- New `npm run check:lighthouse-plan` or `npm run check:lighthouse-runner`.
+- New `npm run check:lighthouse-plan`.
 - Live run only on a safe public URL or local fixture.
 
 ### C3. HAR-Like Network Export
@@ -669,7 +677,7 @@ There are four different levels that often get mixed together:
 
 ### Recommended Direction
 
-Implement `act-preview` first.
+Implement `act-preview` and confirmed one-step `act-apply`.
 
 `act-preview` should:
 
@@ -681,9 +689,12 @@ Implement `act-preview` first.
 - never mutate page state
 - never call a remote LLM inside the bridge
 
-Possible later step:
+`act-apply` should:
 
 - `act-apply` executes one specific previewed action by ID, with explicit confirmation.
+- reject stale previews
+- execute exactly one deterministic low-level bridge action
+- return before/after evidence and the recommended next read
 
 Avoid for now:
 
@@ -731,9 +742,9 @@ Suggested verification:
 - New `npm run check:act-preview`
 - No live bridge needed for deterministic unit fixtures.
 
-### D2. Optional `act-apply`
+### D2. Confirmed `act-apply`
 
-Only implement after `act-preview` is stable.
+Implement after `act-preview` in the same overall roadmap, but keep it as a separate PR and verification gate.
 
 Rules:
 
@@ -747,6 +758,7 @@ Acceptance criteria:
 
 - Agents cannot ask the bridge to invent a fresh high-level action at apply time.
 - Apply is auditable.
+- Apply executes one action only and then recommends a read step instead of continuing autonomously.
 
 ### D3. Full `agent-run`
 
@@ -978,12 +990,13 @@ Exit criteria:
 
 - Safe local download/export workflow works without stdout bloat.
 
-### PR 7: Lighthouse Handoff, Then Optional Runner
+### PR 7: Lighthouse Handoff
 
 Scope:
 
-- Add `lighthouse-plan` first.
-- Decide whether to add optional integrated runner later.
+- Add `lighthouse-plan`.
+- Generate the exact local Lighthouse command and follow-up `lighthouse-ingest` command.
+- Document that integrated Lighthouse running is out of scope for this cycle.
 
 Verification:
 
@@ -1046,13 +1059,14 @@ Exit criteria:
 
 - Agent can ask for action candidates and receive exact safe commands.
 
-### PR 11: Optional `act-apply`
+### PR 11: Confirmed `act-apply`
 
 Scope:
 
 - Execute one previewed action by ID.
 - Require confirmation.
 - Reject stale previews.
+- Stop after one action and recommend a read step.
 
 Verification:
 
@@ -1069,8 +1083,9 @@ Exit criteria:
 Scope:
 
 - Keep macOS LaunchAgent.
-- Add Linux systemd user service docs/script.
-- Add Windows Task Scheduler or startup script docs.
+- Add Linux systemd user service docs and script.
+- Add Windows Task Scheduler or startup script docs and script.
+- Prefer docs-first validation where the current development machine cannot execute the target platform.
 
 Verification:
 
@@ -1097,11 +1112,12 @@ Exit criteria:
 
 - Product boundary is explicit and does not drift into hosted-browser promises.
 
-### PR 14: Alias Package Decision And Release
+### PR 14: Alias Package Prep And Release
 
 Scope:
 
-- If approved, create or prepare `chrome-mcp-bridge` alias package.
+- Check `chrome-mcp-bridge` npm name availability.
+- Create or prepare the `chrome-mcp-bridge` alias package if available.
 - Update publishing docs and migration notes.
 
 Verification:
@@ -1125,11 +1141,11 @@ Recommended order:
 4. Tool advisor.
 5. Distribution docs and package polish.
 6. Download manager.
-7. Lighthouse handoff/runner.
+7. Lighthouse handoff.
 8. Network export.
 9. Diagnostics hinting.
 10. `act-preview`.
-11. Optional `act-apply`.
+11. Confirmed `act-apply`.
 12. Cross-platform installers.
 13. Cloud/scale research.
 14. Alias package/release.
@@ -1143,8 +1159,8 @@ Parallelizable work:
 Do not start before prerequisites:
 
 - Do not implement `act-apply` before `act-preview`.
-- Do not publish alias package before deciding naming migration.
-- Do not add a Lighthouse runner before deciding dependency policy.
+- Do not publish alias package before the `chrome-mcp-bridge` name is checked and migration docs exist.
+- Do not add a Lighthouse runner in this cycle; keep Lighthouse handoff-only.
 - Do not add network body export without sensitive confirmation and redaction design.
 
 ## Default Verification Matrix
@@ -1183,136 +1199,78 @@ Run after security-sensitive changes:
 
 Treat UBS output as evidence, not a blind rewrite queue. Fix confirmed reachable issues first.
 
-## Decision Questions
+## Resolved Decisions
 
-### Q1. Alias package and repository naming
+### DQ1. Alias package and repository naming
 
-Do we want `chrome-mcp-bridge` to become a public npm alias soon, while keeping `codex-chrome-bridge` as the stable compatibility package?
+Resolved:
 
-Why this matters:
+- Create or prepare a public `chrome-mcp-bridge` npm alias if the name is available.
+- Keep `codex-chrome-bridge` as the stable compatibility package.
+- Do not rename the repository until the alias package has proven useful and migration docs are ready.
 
-- It improves search and positioning.
-- It creates release-process overhead.
-- It may require ownership checks, migration docs, and extra package maintenance.
+### DQ2. Chrome Web Store submission
 
-Recommended default:
+Resolved:
 
-- Yes to an npm alias package if the name is available.
-- No repository rename until the alias has proven useful.
+- Prepare for Chrome Web Store distribution.
+- Add reproducible extension packaging, privacy docs, store copy, screenshot/demo guidance, and a submission checklist.
+- Keep unpacked developer install supported.
 
-### Q2. Chrome Web Store submission
+### DQ3. Download manager risk boundary
 
-Do we want to prepare and submit the extension to the Chrome Web Store, or stay with unpacked developer install for now?
+Resolved:
 
-Why this matters:
+- Implement the safer confirmed download manager.
+- Allow one explicit scoped-tab export/download action after confirmation.
+- Return local file path and metadata only.
+- Do not implement unattended bulk downloads in this cycle.
 
-- Store distribution reduces friction.
-- It requires privacy-policy wording, screenshots, review, and versioned extension packages.
-- Store review may reject or question broad permissions unless the safety model is extremely clear.
+### DQ4. Lighthouse dependency policy
 
-Recommended default:
+Resolved:
 
-- Build reproducible extension packaging and privacy docs now.
-- Decide store submission after the package artifact is clean.
+- Keep Lighthouse handoff-only for this cycle.
+- Add `lighthouse-plan` and continue using `lighthouse-ingest`.
+- Do not add an integrated Lighthouse runner or heavy Lighthouse dependency yet.
 
-### Q3. Download manager risk boundary
+### DQ5. High-level `act` and `agent`
 
-Should Chrome MCP Bridge be allowed to click a confirmed export/download button and capture the resulting local file path?
+Resolved:
 
-Why this matters:
+- Implement `act-preview`.
+- Implement confirmed one-step `act-apply` after `act-preview`.
+- Do not implement full autonomous `agent-run` in this cycle.
 
-- It closes a visible competitor gap.
-- It introduces local file handling and event-listener complexity.
-- It must not become a general unattended downloader.
+### DQ6. Cloud and scale
 
-Recommended default:
+Resolved:
 
-- Yes, but only for scoped tabs, explicit confirmation, bounded timeout, and metadata-only output.
+- Keep cloud/browser-farm functionality research-only.
+- Do not add API keys, paid-provider integrations, or remote browser execution in this cycle.
 
-### Q4. Lighthouse dependency policy
+### DQ7. Cross-platform daemon support
 
-Should the project add an integrated Lighthouse runner, or only generate handoff commands and ingest reports?
+Resolved:
 
-Why this matters:
-
-- Integrated runner is smoother.
-- It may add dependency weight, install friction, and version drift.
-- Handoff keeps the bridge lighter and safer.
-
-Recommended default:
-
-- Implement `lighthouse-plan` first.
-- Add integrated runner later only if the workflow feels too clumsy.
-
-### Q5. High-level `act` and `agent`
-
-How much autonomy should the bridge provide inside the user's real logged-in Chrome?
-
-The options are:
-
-1. `act-preview` only: the bridge proposes actions, but never executes them.
-2. `act-preview` plus confirmed `act-apply`: the bridge executes exactly one previewed action after confirmation.
-3. Full `agent-run`: the bridge loops through multi-step browser actions.
-
-Why this matters:
-
-- `act-preview` is safe and useful.
-- `act-apply` is ergonomic but must be auditable.
-- `agent-run` can be powerful, but it is risky in real accounts and much harder to verify.
-
-Recommended default:
-
-- Build `act-preview`.
-- Revisit confirmed `act-apply` after real use.
-- Keep full `agent-run` research-only.
-
-### Q6. Cloud and scale
-
-Should the project keep cloud/browser-farm functionality as research-only, with no API keys and no implementation?
-
-Why this matters:
-
-- Hosted cloud browsers solve different problems.
-- Adding remote providers changes privacy, cost, trust, and support expectations.
-- The local-first story is currently the strongest differentiator.
-
-Recommended default:
-
-- Research and document only.
-- Do not implement cloud providers in this cycle.
-
-### Q7. Cross-platform daemon support
-
-Which persistent install path matters most after macOS LaunchAgent?
-
-Options:
-
-- Linux systemd user service.
-- Windows Task Scheduler/startup script.
-- Both, docs-first.
-
-Why this matters:
-
-- Cross-platform daemon support improves adoption.
-- Testing Windows/Linux from macOS can be limited.
-- Docs-first may be safer than scripts-first.
-
-Recommended default:
-
-- Add docs-first Linux and Windows instructions, then scripts after user feedback.
+- Cover macOS, Linux, and Windows together.
+- Keep macOS LaunchAgent support.
+- Add Linux systemd user service guidance/script.
+- Add Windows Task Scheduler or startup script guidance/script.
+- Prefer docs-first validation where the current development machine cannot execute the target platform.
 
 ## Recommended Next Slice
 
-Start with PR 1 through PR 4:
+Start with PR 2 through PR 5 now that PR 1 planning is landed:
 
-1. Land this plan.
-2. Add MCP prompts/resources.
-3. Add profile-aware discovery/onboarding.
-4. Add the deterministic tool advisor.
+1. Add MCP prompts/resources.
+2. Add profile-aware discovery/onboarding.
+3. Add the deterministic tool advisor.
+4. Add distribution polish for client install paths, extension packaging, registry submission prep, and Chrome Web Store readiness.
 
 Reason:
 
 - These changes improve every client immediately.
 - They reduce token burn.
-- They do not touch risky browser mutation paths.
-- They create the UX foundation needed before adding downloads, network export, or high-level action planning.
+- They do not touch risky browser mutation paths yet.
+- They create the UX and distribution foundation needed before adding the confirmed download manager, network export, `act-preview`, and confirmed `act-apply`.
