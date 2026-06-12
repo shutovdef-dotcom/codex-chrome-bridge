@@ -652,6 +652,51 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   }, {
     CHROME_BRIDGE_URL: bridgeUrl,
   });
+
+  await withMcpClient(async (client) => {
+    const sessionTitle = 'Kurerok Research';
+    const sessionGroupTitle = 'Codex Bridge - Kurerok Research';
+    const beforeSessionDefault = receivedCommands.length;
+    const sessionDefaultParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_ensure_tab',
+      arguments: { url: 'https://example.com/session' },
+    }), 'MCP session title group default fake command bridge');
+    const sessionDefaultPayload = receivedCommands[beforeSessionDefault]?.payload || sessionDefaultParsed?.payload;
+    check(receivedCommands[beforeSessionDefault]?.action === 'ensureTab', 'MCP session title default must dispatch ensureTab');
+    check(sessionDefaultPayload?.groupTitle === sessionGroupTitle, 'MCP must derive default groupTitle from CHROME_BRIDGE_SESSION_TITLE');
+    groupScopePayloadChecks += 1;
+
+    const beforeSessionOverride = receivedCommands.length;
+    const sessionOverrideParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_open',
+      arguments: { url: 'https://example.com/override', newTab: true, groupTitle },
+    }), 'MCP explicit group title override fake command bridge');
+    const sessionOverridePayload = receivedCommands[beforeSessionOverride]?.payload || sessionOverrideParsed?.payload;
+    check(receivedCommands[beforeSessionOverride]?.action === 'open', 'MCP explicit group title override must dispatch open');
+    check(sessionOverridePayload?.groupTitle === groupTitle, 'MCP explicit groupTitle must override session-derived group title');
+    groupScopePayloadChecks += 1;
+  }, {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    CHROME_BRIDGE_SESSION_TITLE: 'Kurerok Research',
+  });
+
+  await withMcpClient(async (client) => {
+    const beforeThreadDefault = receivedCommands.length;
+    const threadDefaultParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_group',
+      arguments: {},
+    }), 'MCP thread id group fallback fake command bridge');
+    const threadDefaultPayload = receivedCommands[beforeThreadDefault]?.payload || threadDefaultParsed?.payload;
+    check(receivedCommands[beforeThreadDefault]?.action === 'group', 'MCP thread id fallback must dispatch group');
+    check(threadDefaultPayload?.groupTitle === 'Codex Bridge - 019ea301', 'MCP must derive fallback groupTitle from short CODEX_THREAD_ID');
+    groupScopePayloadChecks += 1;
+  }, {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    CHROME_BRIDGE_SESSION_TITLE: '',
+    CODEX_SESSION_TITLE: '',
+    CODEX_THREAD_TITLE: '',
+    CODEX_THREAD_ID: '019ea301-5db2-7890-9d21-b1b928e6f521',
+  });
 });
 
 if (failures.length) {

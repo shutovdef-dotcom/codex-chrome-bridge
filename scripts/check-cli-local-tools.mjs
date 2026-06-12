@@ -977,7 +977,49 @@ await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayload
     check(commandPayload?.groupColor === groupColor, `CLI ${testCase.args[0]} must forward groupColor`);
     groupScopePayloadChecks += 1;
   }
-});
+
+  const sessionTitle = 'Kurerok Research';
+  const sessionGroupTitle = 'Codex Bridge - Kurerok Research';
+  const beforeSessionDefault = receivedCommands.length;
+  const sessionDefaultResult = await runCli(['ensure-tab', 'https://example.com/session'], {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    CHROME_BRIDGE_SESSION_TITLE: sessionTitle,
+  });
+  check(sessionDefaultResult.ok, 'CLI ensure-tab must succeed with CHROME_BRIDGE_SESSION_TITLE');
+  const sessionDefaultParsed = parseJsonOutput(sessionDefaultResult, 'CLI session title group default fake command bridge');
+  const sessionDefaultPayload = receivedCommands[beforeSessionDefault]?.payload || sessionDefaultParsed?.payload;
+  check(receivedCommands[beforeSessionDefault]?.action === 'ensureTab', 'CLI session title default must dispatch ensureTab');
+  check(sessionDefaultPayload?.groupTitle === sessionGroupTitle, 'CLI must derive default groupTitle from CHROME_BRIDGE_SESSION_TITLE');
+  groupScopePayloadChecks += 1;
+
+  const beforeSessionOverride = receivedCommands.length;
+  const sessionOverrideResult = await runCli(['open', 'https://example.com/override', '--new', '--group-title', groupTitle], {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    CHROME_BRIDGE_SESSION_TITLE: sessionTitle,
+  });
+  check(sessionOverrideResult.ok, 'CLI explicit group title must succeed with session title env');
+  const sessionOverrideParsed = parseJsonOutput(sessionOverrideResult, 'CLI explicit group title override fake command bridge');
+  const sessionOverridePayload = receivedCommands[beforeSessionOverride]?.payload || sessionOverrideParsed?.payload;
+  check(receivedCommands[beforeSessionOverride]?.action === 'open', 'CLI explicit group title override must dispatch open');
+  check(sessionOverridePayload?.groupTitle === groupTitle, 'CLI explicit --group-title must override session-derived group title');
+  groupScopePayloadChecks += 1;
+
+  const threadId = '019ea301-5db2-7890-9d21-b1b928e6f521';
+  const beforeThreadDefault = receivedCommands.length;
+  const threadDefaultResult = await runCli(['group'], {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    CHROME_BRIDGE_SESSION_TITLE: '',
+    CODEX_SESSION_TITLE: '',
+    CODEX_THREAD_TITLE: '',
+    CODEX_THREAD_ID: threadId,
+  });
+  check(threadDefaultResult.ok, 'CLI group must succeed with CODEX_THREAD_ID fallback');
+  const threadDefaultParsed = parseJsonOutput(threadDefaultResult, 'CLI thread id group fallback fake command bridge');
+  const threadDefaultPayload = receivedCommands[beforeThreadDefault]?.payload || threadDefaultParsed?.payload;
+  check(receivedCommands[beforeThreadDefault]?.action === 'group', 'CLI thread id fallback must dispatch group');
+  check(threadDefaultPayload?.groupTitle === 'Codex Bridge - 019ea301', 'CLI must derive fallback groupTitle from short CODEX_THREAD_ID');
+  groupScopePayloadChecks += 1;
+  });
 
 const extensionPathResult = await runCli(['extension-path']);
 check(extensionPathResult.ok, 'CLI extension-path must succeed offline');
