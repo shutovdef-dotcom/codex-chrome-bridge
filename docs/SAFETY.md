@@ -83,6 +83,12 @@ Agents using this bridge should:
 - Treat form previews as potentially sensitive; `fill-form` reports field value states, not current or planned raw values.
 - Use `select-options` for available-option discovery only; it omits the current selected value/option from read-only output.
 
+## Frame And Shadow DOM Boundaries
+
+`observe`, `find-elements`, and `elementRef` actions target the main-frame light DOM. They report `frameDiagnostics`, `shadowDiagnostics`, and `capabilityWarnings` when iframe or shadow DOM boundaries are present, but they do not traverse shadow DOM or expose cross-origin iframe internals as direct `elementRef` targets.
+
+Treat controls inside a cross-origin iframe as a separate browser boundary. Prefer opening or adopting the frame target as its own tab when the site supports that workflow, then read first again before any confirmed action.
+
 ## Network Boundary
 
 The bridge server binds to `127.0.0.1` by default. Do not expose it on a public interface without adding authentication and doing a security review.

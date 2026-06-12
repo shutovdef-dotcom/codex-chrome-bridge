@@ -218,6 +218,8 @@ chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
 
 `observe` is read-only. It returns ranked actionable elements with querySelector-verified selectors, labels, roles, suggested action kinds, and risk hints so agents can choose targets before using confirmed interaction commands. Short selectors use stable attributes when available; otherwise Chrome Bridge falls back to an `nth-of-type` path that resolves back to the observed element.
 
+`observe` and `find-elements` target the main-frame light DOM. Their output includes `frameDiagnostics`, `shadowDiagnostics`, and `capabilityWarnings` so agents can detect iframe or shadow DOM boundaries instead of assuming every visible control is directly targetable by `elementRef`.
+
 `act-preview` builds on `observe`: give it an intent like "click login", "open pricing", "search for \"wireless mouse\"", or "download report", and it will return ranked deterministic action candidates, risk flags, exact low-level CLI/MCP proposals, and an "ask user first" hint when the action still needs user input or looks risky. It never mutates the page.
 
 `act-apply` is the bounded follow-up. It requires a previously issued `preview-id`, `--confirm`, and the same page state the preview saw. If the tab navigated, the preview expired, or the preview was already used, the command fails closed instead of improvising. On success it executes exactly one low-level action and returns before/after evidence plus the next recommended read.

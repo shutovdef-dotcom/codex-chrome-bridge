@@ -47,7 +47,7 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - Compact IDE profile: Cursor/Windsurf snippets set `CHROME_BRIDGE_MCP_TOOL_PROFILE=core`, exposing 40 high-value tools instead of the full surface for better IDE-agent ergonomics.
 - MCP guidance surfaces: built-in prompts and resources expose quickstart, safety, compatibility, profile, and workflow guidance without forcing agents to rediscover the right tool chain.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
-- Agent discovery: ranked read-only `observe` output for actionable elements and querySelector-verified selectors.
+- Agent discovery: ranked read-only `observe` output for actionable elements, querySelector-verified selectors, and `frameDiagnostics` / `shadowDiagnostics` capability metadata.
 - Ref-first actions: `observe` and `find-elements` return compact `elementRef` values such as `e3`; follow-up commands can use `--ref <ref>` instead of repeating a CSS selector.
 - High-level action planning: read-only `act-preview` turns natural-language intent like "click login" or "download report" into deterministic low-level CLI/MCP action proposals without mutating the page.
 - Bounded high-level apply: confirmed `act-apply` executes exactly one previously previewed action, rejects stale previews, and returns before/after evidence plus the next recommended read.
@@ -208,6 +208,8 @@ node ./bin/chrome-bridge.mjs debug-bundle --out /tmp/chrome-bridge-debug
 ```
 
 If the target tab is not the last focused tab, run `node ./bin/chrome-bridge.mjs tabs --all --confirm` first, choose the tab ID explicitly, then run `node ./bin/chrome-bridge.mjs adopt-tab --tab <id> --confirm`.
+
+`observe` and `find-elements` intentionally target the main-frame light DOM. Their output includes `frameDiagnostics`, `shadowDiagnostics`, and `capabilityWarnings` so agents can see when iframe or shadow DOM content may be present but not directly represented by `elementRef` targets.
 
 ## MCP Setup
 
