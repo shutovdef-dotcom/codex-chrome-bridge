@@ -66,6 +66,7 @@ Version: 0.4.1
 | status | diagnostic | read | 30000 ms | status | - | yes | Print cheap-first bridge status and token-budget recommendations. |
 | session-summary | diagnostic | read | 30000 ms | session-summary | chrome_bridge_session_summary | yes | Summarize bridge health, workspace policy, scoped group state, and recommendations. |
 | debug-bundle | debug | read | 60000 ms | debug-bundle | chrome_bridge_debug_bundle | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
+| recording-summary | artifact | read | 5000 ms | recording-summary | chrome_bridge_recording_summary | no | Summarize an opt-in local action recording JSONL file and produce a human-reviewed replay-lite checklist. |
 | with-temp-tab | navigation | interaction | 120000 ms | with-temp-tab | - | yes | Open a run-owned temporary scoped tab, run a bounded read command, and clean up the tab automatically. |
 | cleanup-run-tabs | navigation | interaction | 30000 ms | cleanup-run-tabs | - | yes | Close tabs recorded as owned by a run id and remove them from local run state. |
 | last-artifact | artifact | read | 5000 ms | last-artifact | - | no | Print metadata for the latest artifact recorded by metadata-first read outputs. |
@@ -155,6 +156,7 @@ chrome-bridge storage [--tab <id>] --confirm [--include-values --confirm-sensiti
 chrome-bridge request <url> --confirm [--method GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000] [--request-timeout-ms 60000]
 chrome-bridge ask --question <text> [--choices-json <json>] [--no-text] [--timeout-ms 300000] [--keep-tab]
 chrome-bridge session-summary
+chrome-bridge recording-summary --recording <file> [--limit 500] [--out <file>]
 chrome-bridge debug-bundle --out <dir> [--tab <id>] [--allow-external] [--include-snapshot] [--include-observe] [--include-screenshot] [--include-trace-events]
 chrome-bridge with-temp-tab <url> [--run-id <id>] [--active] [--keep-tab] [--group-title <title>] [--group-color <color>] -- <text|snapshot|html|screenshot> [read flags]
 chrome-bridge cleanup-run-tabs --run-id <id>

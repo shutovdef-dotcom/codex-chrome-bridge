@@ -24,6 +24,7 @@ import { buildLighthousePlan } from '../shared/lighthouse-plan.mjs';
 import { buildNetworkExport } from '../shared/network-export.mjs';
 import { summarizeDiagnosticsOutput } from '../shared/diagnostics-output.mjs';
 import { buildToolAdvisor } from '../shared/tool-advisor.mjs';
+import { appendActionRecording, summarizeActionRecording } from '../shared/action-recording.mjs';
 import {
   bridgeFetchTimeoutSignal,
   isAbortError,
@@ -110,12 +111,20 @@ async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
 async function bridgeCommand(action, payload = {}, timeoutMs) {
   const effectiveTimeoutMs = timeoutMs ?? commandDefaultTimeoutMs(action);
   const scopedPayload = withSessionGroupTitle(action, payload);
-  const json = await bridgeFetch('/command', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs }),
-  }, effectiveTimeoutMs);
-  return json.result;
+  try {
+    const json = await bridgeFetch('/command', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs }),
+    }, effectiveTimeoutMs);
+    await appendActionRecording({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs, ok: true, result: json.result })
+      .catch(() => {});
+    return json.result;
+  } catch (error) {
+    await appendActionRecording({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs, ok: false, error })
+      .catch(() => {});
+    throw error;
+  }
 }
 
 function textResult(value) {
@@ -2023,6 +2032,19 @@ server.tool(
   'Return a safe local session summary: bridge health, extension state, scoped group status, and version mismatch signals.',
   {},
   async () => textResult(await sessionSummary()),
+);
+
+server.tool(
+  'chrome_bridge_recording_summary',
+  'Summarize an opt-in local action recording JSONL file and return a human-reviewed replay-lite checklist without executing recorded actions.',
+  {
+    recording: z.string(),
+    limit: z.number().min(1).max(10000).optional(),
+  },
+  async (args) => textResult(await summarizeActionRecording({
+    path: args.recording,
+    limit: args.limit ?? 500,
+  })),
 );
 
 server.tool(

@@ -56,6 +56,7 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - Controlled interactions: clicks, typing, keyboard, select boxes, hover, drag/drop, and scroll.
 - Workflow helpers: privacy-preserving select option discovery and form fill previews, dialog handling, and file input uploads.
 - Debugging tools: bounded diagnostics, page performance/resource summaries, handoff-only Lighthouse planning, local Lighthouse report ingestion, console/network trace through Chrome Debugger/CDP, and confirmed per-tab viewport/network emulation with explicit reset.
+- Replay-lite recording: set `CHROME_BRIDGE_RECORDING_PATH=/tmp/chrome-bridge-actions.jsonl` to append redacted command metadata, then run `recording-summary` for a human-reviewed checklist that never auto-executes actions.
 - Browser data tools: guarded history, bookmarks, cookies, page storage, and extension-context fetch.
 - Human-in-the-loop: local prompt tab for user choices, manual confirmations, and CAPTCHA coordination.
 - Policy-aware diagnostics: session summaries and redacted debug bundles include workspace policy state; debug bundles omit page artifacts and full trace events unless explicitly requested.
@@ -211,6 +212,8 @@ node ./bin/chrome-bridge.mjs debug-bundle --out /tmp/chrome-bridge-debug
 If the target tab is not the last focused tab, run `node ./bin/chrome-bridge.mjs tabs --all --confirm` first, choose the tab ID explicitly, then run `node ./bin/chrome-bridge.mjs adopt-tab --tab <id> --confirm`.
 
 `observe` and `find-elements` intentionally target the main-frame light DOM. Their output includes `frameDiagnostics`, `shadowDiagnostics`, and `capabilityWarnings` so agents can see when iframe or shadow DOM content may be present but not directly represented by `elementRef` targets.
+
+For replay-lite diagnostics, set `CHROME_BRIDGE_RECORDING_PATH=/tmp/chrome-bridge-actions.jsonl` before running CLI or MCP commands. The recording stores redacted command metadata only; `node ./bin/chrome-bridge.mjs recording-summary --recording /tmp/chrome-bridge-actions.jsonl` produces a human-reviewed checklist and does not replay actions automatically.
 
 ## MCP Setup
 

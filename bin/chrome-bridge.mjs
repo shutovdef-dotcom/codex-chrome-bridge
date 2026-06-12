@@ -23,6 +23,7 @@ import {
   writePreviewAction,
 } from '../shared/act-preview-state.mjs';
 import { buildToolAdvisor } from '../shared/tool-advisor.mjs';
+import { appendActionRecording, summarizeActionRecording } from '../shared/action-recording.mjs';
 import {
   bridgeFetchTimeoutSignal,
   isAbortError,
@@ -330,12 +331,20 @@ async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
 async function command(action, payload = {}, timeoutMs) {
   const effectiveTimeoutMs = timeoutMs ?? commandDefaultTimeoutMs(action);
   const scopedPayload = suppressSessionGroupTitle ? payload : withSessionGroupTitle(action, payload);
-  const json = await bridgeFetch('/command', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs }),
-  }, effectiveTimeoutMs);
-  return json.result;
+  try {
+    const json = await bridgeFetch('/command', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs }),
+    }, effectiveTimeoutMs);
+    await appendActionRecording({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs, ok: true, result: json.result })
+      .catch(() => {});
+    return json.result;
+  } catch (error) {
+    await appendActionRecording({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs, ok: false, error })
+      .catch(() => {});
+    throw error;
+  }
 }
 
 function printJson(value) {
@@ -4039,6 +4048,30 @@ async function main() {
 
   if (cmd === 'session-summary') {
     printJson(await sessionSummary());
+    return;
+  }
+
+  if (cmd === 'recording-summary') {
+    const recordingPath = args.recording || first;
+    if (!recordingPath) throw new Error('recording-summary requires --recording <file>');
+    const summary = await summarizeActionRecording({
+      path: recordingPath,
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 10_000) ?? 500,
+    });
+    if (args.out) await writeJsonFile(path.resolve(args.out), summary);
+    printJson(args.out ? {
+      ok: true,
+      contract: summary.contract,
+      recordingPath: summary.recordingPath,
+      artifactPath: path.resolve(args.out),
+      count: summary.count,
+      byAction: summary.byAction,
+      replayLite: {
+        autoExecute: false,
+        requiresHumanReview: true,
+        stepCount: summary.replayLite.steps.length,
+      },
+    } : summary);
     return;
   }
 

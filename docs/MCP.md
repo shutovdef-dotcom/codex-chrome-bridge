@@ -71,6 +71,8 @@ When the next step is unclear, call `chrome_bridge_tool_advisor`; when the insta
 
 These discovery tools target the main-frame light DOM. Their output includes `frameDiagnostics`, `shadowDiagnostics`, and `capabilityWarnings` so MCP agents can notice iframe or shadow DOM boundaries before choosing a target.
 
+Set `CHROME_BRIDGE_RECORDING_PATH=/tmp/chrome-bridge-actions.jsonl` before starting the MCP server to append redacted command metadata. Use `chrome_bridge_recording_summary` to read that JSONL file as a replay-lite checklist; it is intentionally human-reviewed and never auto-executes recorded browser actions.
+
 ## Tools
 
 For risk tiers, default timeouts, confirmation requirements, direct `/command` payload keys, CLI aliases, MCP tool names, local diagnostic/tooling commands, and live-bridge flags, see the generated [command catalog](COMMAND-CATALOG.md) or call `chrome_bridge_command_catalog`.
@@ -147,6 +149,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_trace_events` | `traceEvents` | read | 30000 ms | no | yes | Read recent bounded trace events. |
 | `chrome_bridge_diagnostics` | `diagnostics` | read | 30000 ms | no | yes | Read bounded page, trace, network-count, resource, and performance diagnostics without raw event logs. |
 | `chrome_bridge_network_export` | `network-export` | read | 30000 ms | no | yes | Write redacted local network-export artifacts from recent trace events without dumping raw network logs to stdout. |
+| `chrome_bridge_recording_summary` | `recording-summary` | read | 5000 ms | no | no | Summarize an opt-in local action recording JSONL file and produce a human-reviewed replay-lite checklist. |
 | `chrome_bridge_trace_stop` | `traceStop` | system | 30000 ms | no | yes | Stop tracing and return recent events. |
 | `chrome_bridge_history_search` | `historySearch` | private-read | 30000 ms | yes | yes | Search Chrome history with explicit confirmation. |
 | `chrome_bridge_bookmarks_search` | `bookmarksSearch` | private-read | 30000 ms | yes | yes | Search Chrome bookmarks with explicit confirmation. |

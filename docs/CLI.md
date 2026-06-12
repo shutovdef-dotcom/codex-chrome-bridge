@@ -83,6 +83,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `request` | `fetchUrl` | private-read | 60000 ms | sensitive | yes | Run a bounded extension-context request; credentials require sensitive confirmation. |
 | `ask` | `askUser` | system | 305000 ms | no | yes | Open a local prompt tab and wait for a user answer. |
 | `session-summary` | `session-summary` | read | 30000 ms | no | yes | Summarize bridge health, workspace policy, scoped group state, and recommendations. |
+| `recording-summary` | `recording-summary` | read | 5000 ms | no | no | Summarize an opt-in local action recording JSONL file and produce a human-reviewed replay-lite checklist. |
 | `debug-bundle` | `debug-bundle` | read | 60000 ms | no | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
 | `with-temp-tab` | `with-temp-tab` | interaction | 120000 ms | no | yes | Open a run-owned temporary scoped tab, run a bounded read command, and clean up the tab automatically. |
 | `cleanup-run-tabs` | `cleanup-run-tabs` | interaction | 30000 ms | no | yes | Close tabs recorded as owned by a run id and remove them from local run state. |
@@ -233,6 +234,8 @@ chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
 
 Interactions require `--confirm`.
 
+Set `CHROME_BRIDGE_RECORDING_PATH=/tmp/chrome-bridge-actions.jsonl` to append redacted command metadata while using the CLI. Run `chrome-bridge recording-summary --recording /tmp/chrome-bridge-actions.jsonl` to produce a replay-lite checklist; it is intentionally human-reviewed and never auto-executes recorded actions.
+
 <!-- BEGIN GENERATED CLI USAGE: interactions -->
 ```bash
 chrome-bridge click --tab <id> (--selector <css> | --ref <ref>) --confirm [--allow-external]
@@ -298,6 +301,7 @@ Cookie values, whole-cookie-jar queries, storage values, and credentialed reques
 ```bash
 chrome-bridge ask --question <text> [--choices-json <json>] [--no-text] [--timeout-ms 300000] [--keep-tab]
 chrome-bridge session-summary
+chrome-bridge recording-summary --recording <file> [--limit 500] [--out <file>]
 chrome-bridge debug-bundle --out <dir> [--tab <id>] [--allow-external] [--include-snapshot] [--include-observe] [--include-screenshot] [--include-trace-events]
 ```
 <!-- END GENERATED CLI USAGE: human-in-the-loop -->

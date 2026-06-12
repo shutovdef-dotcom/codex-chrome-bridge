@@ -13,6 +13,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'bin/chrome-bridge.mjs',
   'mcp/chrome-bridge-mcp.mjs',
   'server/bridge-server.mjs',
+  'shared/action-recording.mjs',
   'shared/command-registry.mjs',
   'shared/cpa-offer-extract.mjs',
   'shared/diagnostics-output.mjs',
