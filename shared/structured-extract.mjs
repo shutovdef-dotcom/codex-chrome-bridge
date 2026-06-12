@@ -81,6 +81,94 @@ function stripTags(value) {
   return decodeHtml(String(value || '').replace(/<[^>]+>/g, ' '));
 }
 
+function parseJsonLd(content) {
+  const raw = String(content || '').trim();
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    try {
+      return JSON.parse(decodeHtml(raw));
+    } catch {
+      return null;
+    }
+  }
+}
+
+function collectJsonLdNodes(value, output = []) {
+  if (Array.isArray(value)) {
+    for (const item of value) collectJsonLdNodes(item, output);
+    return output;
+  }
+  if (!value || typeof value !== 'object') return output;
+  output.push(value);
+  if (value['@graph']) collectJsonLdNodes(value['@graph'], output);
+  return output;
+}
+
+function jsonLdNodes(html) {
+  const nodes = [];
+  const scriptPattern = /<script\b(?=[^>]*type\s*=\s*(["'])application\/ld\+json\1)[^>]*>([\s\S]*?)<\/script>/gi;
+  for (const match of String(html || '').matchAll(scriptPattern)) {
+    const parsed = parseJsonLd(match[2]);
+    if (parsed) collectJsonLdNodes(parsed, nodes);
+  }
+  return nodes;
+}
+
+function schemaTypes(node) {
+  return (Array.isArray(node?.['@type']) ? node['@type'] : [node?.['@type']])
+    .filter(Boolean)
+    .map((value) => String(value).split(/[\/#]/).pop().toLowerCase());
+}
+
+function schemaNode(nodes, typeNames) {
+  const wanted = new Set(typeNames.map((type) => type.toLowerCase()));
+  return nodes.find((node) => schemaTypes(node).some((type) => wanted.has(type))) || null;
+}
+
+function schemaText(value) {
+  if (typeof value === 'string' || typeof value === 'number') return clip(value, 300);
+  if (Array.isArray(value)) return schemaText(value[0]);
+  if (value && typeof value === 'object') {
+    return schemaText(value.name || value.headline || value['@value']);
+  }
+  return null;
+}
+
+function schemaAuthorName(articleNode) {
+  const author = articleNode?.author;
+  return schemaText(author);
+}
+
+function schemaDate(value) {
+  return /^\d{4}-\d{2}-\d{2}/.exec(schemaText(value) || '')?.[0] || null;
+}
+
+function schemaOffers(productNode) {
+  const offers = productNode?.offers;
+  if (!offers) return [];
+  return Array.isArray(offers) ? offers.filter(Boolean) : [offers];
+}
+
+function normalizeSchemaAvailability(value) {
+  const raw = schemaText(value);
+  if (!raw) return null;
+  return clip(raw.split(/[\/#]/).pop(), 120) || null;
+}
+
+function schemaPriceHints(productNode) {
+  return schemaOffers(productNode)
+    .map((offer) => {
+      const currency = schemaText(offer?.priceCurrency);
+      const price = schemaText(offer?.price);
+      if (currency && price) return `${currency} ${price}`;
+      return price || null;
+    })
+    .filter(Boolean)
+    .slice(0, 25);
+}
+
 function htmlAttribute(source, name) {
   const pattern = new RegExp(`\\b${name}\\s*=\\s*(["'])(.*?)\\1`, 'i');
   return decodeHtml(pattern.exec(source || '')?.[2] || '');
@@ -139,15 +227,23 @@ function downloadLinks(html, sourceUrl) {
     .slice(0, 50);
 }
 
-function inferTitle({ preset, title, html, text }) {
+function inferTitle({ preset, title, html, text, structuredData = [] }) {
+  const articleNode = schemaNode(structuredData, ['NewsArticle', 'Article', 'BlogPosting']);
+  const productNode = schemaNode(structuredData, ['Product']);
+  const schemaTitle = preset === 'product-page'
+    ? schemaText(productNode?.name)
+    : schemaText(articleNode?.headline || articleNode?.name);
   const h1 = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html || '')?.[1];
   const htmlTitle = /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html || '')?.[1];
   const firstLine = lines(text)[0];
   if (preset === 'pricing-table') return clip(h1 || htmlTitle || title || firstLine, 300) || null;
-  return clip(title || h1 || htmlTitle || firstLine, 300) || null;
+  return clip(schemaTitle || title || h1 || htmlTitle || firstLine, 300) || null;
 }
 
-function inferByline({ html, text }) {
+function inferByline({ html, text, structuredData = [] }) {
+  const articleNode = schemaNode(structuredData, ['NewsArticle', 'Article', 'BlogPosting']);
+  const schemaAuthor = schemaAuthorName(articleNode);
+  if (schemaAuthor) return clip(schemaAuthor, 200);
   const authorMeta = metaContent(html, ['author', 'article:author']);
   if (authorMeta) return clip(authorMeta, 200);
   const byline = /(?:^|\n)\s*(?:by|author|автор)\s+([^\n]+)/i.exec(String(text || ''))?.[1];
@@ -156,7 +252,10 @@ function inferByline({ html, text }) {
   return clip(stripTags(bylineHtml || '').replace(/^by\s+/i, ''), 200) || null;
 }
 
-function inferPublishedDate({ html, text }) {
+function inferPublishedDate({ html, text, structuredData = [] }) {
+  const articleNode = schemaNode(structuredData, ['NewsArticle', 'Article', 'BlogPosting']);
+  const schemaPublished = schemaDate(articleNode?.datePublished || articleNode?.dateCreated);
+  if (schemaPublished) return schemaPublished;
   const metaDate = metaContent(html, ['article:published_time', 'datePublished', 'date']);
   const timeDate = /<time\b[^>]*\bdatetime\s*=\s*(["'])(.*?)\1/i.exec(html || '')?.[2];
   const textDate = /\b(20\d{2}-\d{2}-\d{2})\b/.exec(text || '')?.[1];
@@ -191,12 +290,15 @@ function dlValue(html, termPattern) {
   return clip(stripTags(pattern.exec(html || '')?.[1] || ''), 200) || null;
 }
 
-function inferSku({ html, text }) {
-  return dlValue(html, 'SKU') || keyValueFromText(text, 'SKU');
+function inferSku({ html, text, structuredData = [] }) {
+  const productNode = schemaNode(structuredData, ['Product']);
+  return schemaText(productNode?.sku) || dlValue(html, 'SKU') || keyValueFromText(text, 'SKU');
 }
 
-function inferAvailability({ html, text }) {
-  return dlValue(html, 'Availability|Stock|Status') || keyValueFromText(text, 'Availability|Stock');
+function inferAvailability({ html, text, structuredData = [] }) {
+  const productNode = schemaNode(structuredData, ['Product']);
+  const schemaAvailability = normalizeSchemaAvailability(schemaOffers(productNode)[0]?.availability || productNode?.availability);
+  return schemaAvailability || dlValue(html, 'Availability|Stock|Status') || keyValueFromText(text, 'Availability|Stock');
 }
 
 function priceHints(text) {
@@ -225,6 +327,27 @@ function tableRows(html) {
   return tables;
 }
 
+function pricingCards(html) {
+  const plans = [];
+  const cardPattern = /<article\b([^>]*)>([\s\S]*?)<\/article>/gi;
+  for (const match of String(html || '').matchAll(cardPattern)) {
+    const attrs = match[1] || '';
+    if (!/\b(plan|tier|pricing-card|price-card)\b/i.test(attrs)) continue;
+    const body = match[2] || '';
+    const name = clip(stripTags(/<h[2-4]\b[^>]*>([\s\S]*?)<\/h[2-4]>/i.exec(body)?.[1] || htmlAttribute(attrs, 'aria-label')), 100);
+    const priceHtml = /class\s*=\s*["'][^"']*(?:price|cost|rate)[^"']*["'][^>]*>([\s\S]*?)</i.exec(body)?.[1];
+    const bodyText = stripTags(body);
+    const price = clip(stripTags(priceHtml || '') || /(?:[$€£]\s?\d+(?:[.,]\d+)?(?:\/\w+)?|custom pricing|\d+(?:[.,]\d+)?\s?(?:USD|EUR|GBP|RUB|₽|\/mo|per month))/i.exec(bodyText)?.[0], 100);
+    if (!name || !price) continue;
+    const features = Array.from(body.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi))
+      .map((item) => clip(stripTags(item[1]), 120))
+      .filter(Boolean)
+      .slice(0, 20);
+    plans.push({ name, price, features });
+  }
+  return plans.slice(0, 50);
+}
+
 function pricingPlans({ html, text }) {
   const plans = [];
   for (const rows of tableRows(html)) {
@@ -248,6 +371,9 @@ function pricingPlans({ html, text }) {
   }
 
   if (plans.length) return plans.slice(0, 50);
+
+  const cardPlans = pricingCards(html);
+  if (cardPlans.length) return cardPlans;
 
   for (const line of lines(text)) {
     const match = /^([A-Z][A-Za-z0-9 _-]{2,40})\s+-\s+(.+?(?:month|mo|pricing|custom|\$|€|£|₽|USD|EUR|RUB)[^-]*)\s+-\s*(.*)$/i.exec(line);
@@ -273,11 +399,12 @@ function extractArticle(input) {
 }
 
 function extractProductPage(input) {
+  const productNode = schemaNode(input.structuredData || [], ['Product']);
   return {
     title: inferTitle({ preset: 'product-page', ...input }),
     sku: inferSku(input),
     availability: inferAvailability(input),
-    priceHints: priceHints(input.text),
+    priceHints: unique([...schemaPriceHints(productNode), ...priceHints(input.text)]),
     downloadLinks: downloadLinks(input.html, input.sourceUrl),
     canonicalUrl: canonicalUrl(input.html, input.sourceUrl),
   };
@@ -328,7 +455,7 @@ export function extractStructuredPreset({
   if (!STRUCTURED_EXTRACTION_PRESETS.includes(preset)) {
     throw new Error(`Unsupported structured extraction preset: ${preset || 'missing'}`);
   }
-  const input = { text, html, sourceUrl, title };
+  const input = { text, html, sourceUrl, title, structuredData: jsonLdNodes(html) };
   const schema = PRESET_SCHEMAS[preset];
   return {
     outputContract: STRUCTURED_PRESET_OUTPUT_CONTRACT_VERSION,

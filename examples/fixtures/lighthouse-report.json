@@ -1,0 +1,41 @@
+{
+  "lighthouseVersion": "12.0.0",
+  "requestedUrl": "https://example.test/pricing",
+  "finalDisplayedUrl": "https://example.test/pricing",
+  "fetchTime": "2026-06-12T08:30:00.000Z",
+  "categories": {
+    "performance": {
+      "score": 0.91
+    },
+    "accessibility": {
+      "score": 0.98
+    },
+    "best-practices": {
+      "score": 0.94
+    },
+    "seo": {
+      "score": 0.88
+    }
+  },
+  "audits": {
+    "unused-javascript": {
+      "id": "unused-javascript",
+      "title": "Reduce unused JavaScript",
+      "score": 0,
+      "displayValue": "Potential savings of 320 KiB",
+      "numericValue": 327680
+    },
+    "largest-contentful-paint": {
+      "id": "largest-contentful-paint",
+      "title": "Largest Contentful Paint",
+      "score": 0.55,
+      "displayValue": "3.1 s",
+      "numericValue": 3100
+    },
+    "document-title": {
+      "id": "document-title",
+      "title": "Document has a title element",
+      "score": 1
+    }
+  }
+}

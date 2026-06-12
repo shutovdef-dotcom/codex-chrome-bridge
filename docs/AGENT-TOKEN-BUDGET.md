@@ -4,6 +4,8 @@ Last updated: 2026-06-12
 
 This note records the highest-token patterns observed while developing Chrome Bridge and the cheaper defaults agents should use.
 
+For command selection, start with [EXAMPLES.md](EXAMPLES.md). It shows fixture-backed, metadata-first flows for structured presets, download discovery, and Lighthouse ingestion.
+
 ## Biggest Token Drains
 
 - Full live `runtime-smoke` output is the largest recurring drain. A passing run can include thousands of JSON lines because every step result is printed.

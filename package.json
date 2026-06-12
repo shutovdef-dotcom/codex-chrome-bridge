@@ -36,6 +36,7 @@
   "files": [
     "bin/",
     "docs/",
+    "examples/",
     "extension/",
     "mcp/",
     "scripts/",

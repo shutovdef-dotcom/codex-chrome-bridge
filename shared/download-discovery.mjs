@@ -53,6 +53,27 @@ function fileTypeFor(href = '') {
   return match ? match[1].replace(/^jpeg$/i, 'jpg').toLowerCase() : null;
 }
 
+function fileTypeForMime(type = '') {
+  const value = String(type || '').toLowerCase();
+  if (value.includes('csv')) return 'csv';
+  if (value.includes('spreadsheet') || value.includes('excel') || value.includes('xlsx')) return 'xlsx';
+  if (value.includes('pdf')) return 'pdf';
+  if (value.includes('json')) return 'json';
+  if (value.includes('xml')) return 'xml';
+  if (value.includes('zip')) return 'zip';
+  return null;
+}
+
+function fileTypeForLabel(label = '') {
+  const value = String(label || '').toLowerCase();
+  if (/\bcsv\b/.test(value)) return 'csv';
+  if (/\bxlsx?\b|spreadsheet/.test(value)) return 'xlsx';
+  if (/\bpdf\b/.test(value)) return 'pdf';
+  if (/\bjson\b/.test(value)) return 'json';
+  if (/\bxml\b/.test(value)) return 'xml';
+  return null;
+}
+
 function fileNameFor(href = '') {
   try {
     const parsed = new URL(href);
@@ -70,7 +91,7 @@ function anchorCandidates(html, sourceUrl) {
     const href = normalizeUrl(htmlAttribute(match[1], 'href'), sourceUrl);
     if (!href || !/^https?:\/\//i.test(href)) continue;
     const label = clip(stripTags(match[2]), 300);
-    const fileType = fileTypeFor(href);
+    const fileType = fileTypeFor(href) || fileTypeForMime(htmlAttribute(match[1], 'type')) || fileTypeForLabel(label);
     const hasDownloadAttr = hasBooleanOrValuedAttribute(match[1], 'download');
     const labelMatches = DOWNLOAD_LABEL_PATTERN.test(label);
     if (!fileType && !hasDownloadAttr && !labelMatches) continue;

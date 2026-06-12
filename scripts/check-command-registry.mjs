@@ -637,12 +637,17 @@ check(packageJson.scripts?.['check:tab-group-persistence'] === 'node ./scripts/c
 check(packageJson.scripts?.['check:diagnostics'] === 'node ./scripts/check-diagnostics.mjs', 'package scripts must expose diagnostics contract check');
 check(packageJson.scripts?.['check:ubs-fixes'] === 'node ./scripts/check-ubs-fixes.mjs', 'package scripts must expose UBS fix plan contract check');
 check(packageJson.scripts?.['check:roadmap-next-slice'] === 'node ./scripts/check-roadmap-next-slice.mjs', 'package scripts must expose next roadmap slice contract check');
+check(packageJson.scripts?.['check:examples-gallery'] === 'node ./scripts/check-examples-gallery.mjs', 'package scripts must expose examples gallery contract check');
+check(packageJson.files?.includes('examples/'), 'package files must include examples directory');
+check(readmeText.includes('docs/EXAMPLES.md'), 'README must link examples gallery');
+check(packageContentsCheckerText.includes('examples/fixtures/article-news.html'), 'package contents checker must require examples fixtures');
 check(packageJson.scripts?.check?.includes('npm run check:runtime-smoke-plan'), 'npm run check must include runtime smoke plan contract check');
 check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include roadmap coverage contract check');
 check(packageJson.scripts?.check?.includes('npm run check:cli-local-tools'), 'npm run check must include CLI local tools contract check');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-runtime-smoke'), 'npm run check must include MCP runtime smoke contract check');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-local-tools'), 'npm run check must include MCP local tools contract check');
 check(packageJson.scripts?.check?.includes('npm run check:tab-group-persistence'), 'npm run check must include tab-group persistence behavior check');
+check(packageJson.scripts?.check?.includes('npm run check:examples-gallery'), 'npm run check must include examples gallery contract check');
 check(packageJson.scripts?.['check:runtime-smoke-plan'] && packageText.includes('check:runtime-smoke-plan'), 'package metadata must keep runtime smoke plan checker discoverable');
 check(packageJson.scripts?.['check:roadmap'] && packageText.includes('check:roadmap'), 'package metadata must keep roadmap coverage checker discoverable');
 check(packageJson.scripts?.['check:cli-local-tools'] && packageText.includes('check:cli-local-tools'), 'package metadata must keep CLI local tools checker discoverable');
