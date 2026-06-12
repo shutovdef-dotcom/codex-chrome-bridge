@@ -14,6 +14,7 @@ import { ingestLighthouseReportFile } from '../shared/lighthouse-ingest.mjs';
 import { buildLighthousePlan } from '../shared/lighthouse-plan.mjs';
 import { buildNetworkExport } from '../shared/network-export.mjs';
 import { actionRecordForCandidate, buildActPreviewPlan } from '../shared/act-preview.mjs';
+import { buildPageSearch } from '../shared/page-search.mjs';
 import {
   createPreviewActionId,
   DEFAULT_ACT_PREVIEW_TTL_MS,
@@ -3623,6 +3624,39 @@ async function main() {
       artifactPath: envelope.artifactPath,
       diagnostics: envelope.diagnostics,
     });
+    return;
+  }
+
+  if (cmd === 'page-search') {
+    const query = args.query || first;
+    if (!query) throw new Error('page-search requires --query <text>');
+    const result = await command('text', {
+      ...targetPayload(args),
+      maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 1_000, 200_000) ?? 200_000,
+      ...fullPageReadPayload({ ...args, 'full-page': args['viewport-only'] ? false : true }),
+    }, 30_000);
+    const envelope = await formatReadOutput({
+      action: 'text',
+      result,
+      options: {
+        ...readOutputOptions(args),
+        summaryOnly: true,
+      },
+    });
+    printJson(await buildPageSearch({
+      query,
+      text: result.text,
+      source: {
+        url: result.url || result.tab?.url || null,
+        title: result.title || result.tab?.title || null,
+        tabId: result.tab?.id ?? result.tabId ?? null,
+      },
+      rawArtifactPath: envelope.artifactPath,
+      out: args.out,
+      artifactDir: args['artifact-dir'],
+      maxMatches: parseNumberRangeArg(args['max-matches'], '--max-matches', 1, 50) ?? 8,
+      maxSnippetChars: parseNumberRangeArg(args['max-snippet-chars'], '--max-snippet-chars', 80, 2_000) ?? 320,
+    }));
     return;
   }
 

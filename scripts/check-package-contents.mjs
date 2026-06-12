@@ -22,6 +22,7 @@ const REQUIRED_PACKAGE_FILES = Object.freeze([
   'shared/lighthouse-plan.mjs',
   'shared/lighthouse-ingest.mjs',
   'shared/network-export.mjs',
+  'shared/page-search.mjs',
   'shared/act-preview.mjs',
   'shared/act-preview-state.mjs',
   'shared/output-envelope.mjs',

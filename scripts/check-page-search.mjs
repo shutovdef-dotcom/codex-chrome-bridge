@@ -46,7 +46,9 @@ const packageJson = packageText ? JSON.parse(packageText) : {};
 
 check(packageJson.scripts?.['check:page-search'] === 'node ./scripts/check-page-search.mjs', 'package.json must expose check:page-search');
 check(packageJson.scripts?.check?.includes('npm run check:page-search'), 'npm run check must include check:page-search');
-check(helperText.includes('export function buildPageSearch'), 'shared/page-search.mjs must export buildPageSearch');
+const exportsBuildPageSearch = helperText.includes('export function buildPageSearch')
+  || helperText.includes('export async function buildPageSearch');
+check(exportsBuildPageSearch, 'shared/page-search.mjs must export buildPageSearch');
 check(helperText.includes('PAGE_SEARCH_CONTRACT_VERSION'), 'page-search helper must expose a contract version');
 check(CLI_COMMANDS.includes('page-search'), 'CLI commands must include page-search');
 check(MCP_TOOLS.includes('chrome_bridge_page_search'), 'MCP tools must include chrome_bridge_page_search');
@@ -59,7 +61,7 @@ check(cliDocsText.includes('page-search') && cliDocsText.includes('ranked snippe
 check(mcpDocsText.includes('chrome_bridge_page_search') && mcpDocsText.includes('ranked snippets'), 'MCP docs must document page-search ranked snippets');
 check(packageContentsText.includes('shared/page-search.mjs'), 'package contents checker must require shared/page-search.mjs');
 
-if (helperText.includes('export function buildPageSearch')) {
+if (exportsBuildPageSearch) {
   const helper = await import(pathToFileURL(path.join(rootDir, 'shared/page-search.mjs')).href);
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-page-search-check-'));
   try {

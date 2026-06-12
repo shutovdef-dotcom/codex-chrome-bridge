@@ -72,6 +72,7 @@ Version: 0.4.1
 | last-artifact | artifact | read | 5000 ms | last-artifact | - | no | Print metadata for the latest artifact recorded by metadata-first read outputs. |
 | read-artifact | artifact | read | 5000 ms | read-artifact | - | no | Read a small head and grep slice from a local artifact without dumping the full file. |
 | grep-page | read | read | 30000 ms | grep-page | - | yes | Read page text into an artifact and print regex-matching snippets only. |
+| page-search | read | read | 30000 ms | page-search | chrome_bridge_page_search | yes | Search full-page text with ranked snippets while keeping raw page text in local artifacts. |
 | links | read | read | 30000 ms | links | - | yes | Read selector HTML into an artifact and print extracted links only. |
 | tables | read | read | 30000 ms | tables | - | yes | Read selector HTML into an artifact and print extracted tables only. |
 | download-discovery | read | read | 30000 ms | download-discovery | chrome_bridge_download_discovery | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
@@ -120,6 +121,7 @@ chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-f
 chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge html [--tab <id>] [--selector <css> | --ref <ref>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge grep-page --pattern <regex> [--tab <id>] [--artifact-dir <dir>] [--max-matches 20] [--viewport-only] [--allow-external]
+chrome-bridge page-search --query <text> [--tab <id>] [--artifact-dir <dir>] [--out <file>] [--max-matches 8] [--max-snippet-chars 320] [--viewport-only] [--allow-external]
 chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge download-discovery --out <file> [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]

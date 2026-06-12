@@ -25,6 +25,7 @@ import { buildNetworkExport } from '../shared/network-export.mjs';
 import { summarizeDiagnosticsOutput } from '../shared/diagnostics-output.mjs';
 import { buildToolAdvisor } from '../shared/tool-advisor.mjs';
 import { appendActionRecording, summarizeActionRecording } from '../shared/action-recording.mjs';
+import { buildPageSearch } from '../shared/page-search.mjs';
 import {
   bridgeFetchTimeoutSignal,
   isAbortError,
@@ -1321,6 +1322,58 @@ server.tool(
     allowExternal: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('findElements', args, 30_000)),
+);
+
+server.tool(
+  'chrome_bridge_page_search',
+  'Search full-page text with ranked snippets while keeping raw page text in local artifacts.',
+  {
+    query: z.string(),
+    tabId: chromeIdSchema.optional(),
+    artifactDir: z.string().optional(),
+    out: z.string().optional(),
+    maxChars: z.number().min(1000).max(200000).optional(),
+    maxMatches: z.number().min(1).max(50).optional(),
+    maxSnippetChars: z.number().min(80).max(2000).optional(),
+    viewportOnly: z.boolean().optional(),
+    allowExternal: z.boolean().optional(),
+    ...fullPageReadSchema,
+  },
+  async (args) => {
+    const result = await bridgeCommand('text', {
+      tabId: args.tabId,
+      allowExternal: args.allowExternal,
+      maxChars: args.maxChars ?? 200_000,
+      fullPage: args.viewportOnly ? false : true,
+      waitForText: args.waitForText,
+      waitForPattern: args.waitForPattern,
+      scrollStepPx: args.scrollStepPx,
+      maxScrollSteps: args.maxScrollSteps,
+      scrollDelayMs: args.scrollDelayMs,
+    }, 30_000);
+    const envelope = await formatReadOutput({
+      action: 'text',
+      result,
+      options: {
+        artifactDir: args.artifactDir,
+        summaryOnly: true,
+      },
+    });
+    return textResult(await buildPageSearch({
+      query: args.query,
+      text: result.text,
+      source: {
+        url: result.url || result.tab?.url || null,
+        title: result.title || result.tab?.title || null,
+        tabId: result.tab?.id ?? result.tabId ?? null,
+      },
+      rawArtifactPath: envelope.artifactPath,
+      out: args.out,
+      artifactDir: args.artifactDir,
+      maxMatches: args.maxMatches ?? 8,
+      maxSnippetChars: args.maxSnippetChars ?? 320,
+    }));
+  },
 );
 
 server.tool(

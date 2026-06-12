@@ -46,7 +46,7 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - Profile-aware onboarding: `doctor`, `mcp-config`, `session-summary`, and `chrome_bridge_tool_advisor` now recommend safer next steps and compact MCP profiles per client.
 - Compact IDE profile: Cursor/Windsurf snippets set `CHROME_BRIDGE_MCP_TOOL_PROFILE=core`, exposing 40 high-value tools instead of the full surface for better IDE-agent ergonomics.
 - MCP guidance surfaces: built-in prompts and resources expose quickstart, safety, compatibility, profile, and workflow guidance without forcing agents to rediscover the right tool chain.
-- Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
+- Read-first surface: text, HTML, structured snapshots, ranked snippets through `page-search`, screenshots, waits, tabs, and windows.
 - Agent discovery: ranked read-only `observe` output for actionable elements, querySelector-verified selectors, and `frameDiagnostics` / `shadowDiagnostics` capability metadata.
 - Ref-first actions: `observe` and `find-elements` return compact `elementRef` values such as `e3`; follow-up commands can use `--ref <ref>` instead of repeating a CSS selector.
 - High-level action planning: read-only `act-preview` turns natural-language intent like "click login" or "download report" into deterministic low-level CLI/MCP action proposals without mutating the page.
@@ -138,6 +138,7 @@ Cheap-first reads:
 node ./bin/chrome-bridge.mjs status --token-budget
 node ./bin/chrome-bridge.mjs tabs --summary-only
 node ./bin/chrome-bridge.mjs grep-page --pattern "payout|geo|error"
+node ./bin/chrome-bridge.mjs page-search --query "download spreadsheet report" --artifact-dir /tmp/chrome-bridge-artifacts
 node ./bin/chrome-bridge.mjs links --selector "main"
 node ./bin/chrome-bridge.mjs tables --selector "main"
 node ./bin/chrome-bridge.mjs read-artifact --path /tmp/page.txt --head 40 --grep "payout"
@@ -212,6 +213,8 @@ node ./bin/chrome-bridge.mjs debug-bundle --out /tmp/chrome-bridge-debug
 If the target tab is not the last focused tab, run `node ./bin/chrome-bridge.mjs tabs --all --confirm` first, choose the tab ID explicitly, then run `node ./bin/chrome-bridge.mjs adopt-tab --tab <id> --confirm`.
 
 `observe` and `find-elements` intentionally target the main-frame light DOM. Their output includes `frameDiagnostics`, `shadowDiagnostics`, and `capabilityWarnings` so agents can see when iframe or shadow DOM content may be present but not directly represented by `elementRef` targets.
+
+Use `page-search` when a large page needs ranked snippets rather than a full text dump. It keeps raw page text in a local artifact and returns only compact scored matches plus artifact paths.
 
 For replay-lite diagnostics, set `CHROME_BRIDGE_RECORDING_PATH=/tmp/chrome-bridge-actions.jsonl` before running CLI or MCP commands. The recording stores redacted command metadata only; `node ./bin/chrome-bridge.mjs recording-summary --recording /tmp/chrome-bridge-actions.jsonl` produces a human-reviewed checklist and does not replay actions automatically.
 

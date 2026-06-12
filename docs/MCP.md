@@ -71,6 +71,8 @@ When the next step is unclear, call `chrome_bridge_tool_advisor`; when the insta
 
 These discovery tools target the main-frame light DOM. Their output includes `frameDiagnostics`, `shadowDiagnostics`, and `capabilityWarnings` so MCP agents can notice iframe or shadow DOM boundaries before choosing a target.
 
+Use `chrome_bridge_page_search` for large pages where ranked snippets are safer than dumping full page text into MCP output. It keeps raw text in local artifacts and returns compact scored matches plus artifact paths.
+
 Set `CHROME_BRIDGE_RECORDING_PATH=/tmp/chrome-bridge-actions.jsonl` before starting the MCP server to append redacted command metadata. Use `chrome_bridge_recording_summary` to read that JSONL file as a replay-lite checklist; it is intentionally human-reviewed and never auto-executes recorded browser actions.
 
 ## Tools
@@ -121,6 +123,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_act_apply` | `act-apply` | interaction | 30000 ms | yes | yes | Apply exactly one previously previewed action by id with confirmation, then return before/after evidence and a recommended next read. |
 | `chrome_bridge_find_elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | `chrome_bridge_extract` | `extractPage` | read | 30000 ms | no | yes | Extract structured tables, form structure, lists, key-value blocks, or artifact-backed CPA offer presets without current form values. |
+| `chrome_bridge_page_search` | `page-search` | read | 30000 ms | no | yes | Search full-page text with ranked snippets while keeping raw page text in local artifacts. |
 | `chrome_bridge_download_discovery` | `download-discovery` | read | 30000 ms | no | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
 | `chrome_bridge_download` | `download` | interaction | 60000 ms | yes | yes | Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents. |
 | `chrome_bridge_lighthouse_plan` | `lighthouse-plan` | read | 5000 ms | no | no | Print the exact local Lighthouse command and follow-up ingest command without running Lighthouse directly. |

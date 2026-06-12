@@ -47,6 +47,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `text` | `text` | read | 30000 ms | no | yes | Read bounded visible page text with optional full-page scroll-walk coverage. |
 | `html` | `html` | read | 30000 ms | no | yes | Read bounded page HTML for a selector or the whole document. |
 | `grep-page` | `grep-page` | read | 30000 ms | no | yes | Read page text into an artifact and print regex-matching snippets only. |
+| `page-search` | `page-search` | read | 30000 ms | no | yes | Search full-page text with ranked snippets while keeping raw page text in local artifacts. |
 | `links` | `links` | read | 30000 ms | no | yes | Read selector HTML into an artifact and print extracted links only. |
 | `tables` | `tables` | read | 30000 ms | no | yes | Read selector HTML into an artifact and print extracted tables only. |
 | `download-discovery` | `download-discovery` | read | 30000 ms | no | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
@@ -209,6 +210,7 @@ chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-f
 chrome-bridge text [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge html [--tab <id>] [--selector <css> | --ref <ref>] [--max-chars 500000] [--out <path>] [--inner] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
 chrome-bridge grep-page --pattern <regex> [--tab <id>] [--artifact-dir <dir>] [--max-matches 20] [--viewport-only] [--allow-external]
+chrome-bridge page-search --query <text> [--tab <id>] [--artifact-dir <dir>] [--out <file>] [--max-matches 8] [--max-snippet-chars 320] [--viewport-only] [--allow-external]
 chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge download-discovery --out <file> [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
@@ -221,6 +223,8 @@ chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
 `observe` is read-only. It returns ranked actionable elements with querySelector-verified selectors, labels, roles, suggested action kinds, and risk hints so agents can choose targets before using confirmed interaction commands. Short selectors use stable attributes when available; otherwise Chrome Bridge falls back to an `nth-of-type` path that resolves back to the observed element.
 
 `observe` and `find-elements` target the main-frame light DOM. Their output includes `frameDiagnostics`, `shadowDiagnostics`, and `capabilityWarnings` so agents can detect iframe or shadow DOM boundaries instead of assuming every visible control is directly targetable by `elementRef`.
+
+`page-search` is for large pages where a full `text --include-content` dump would be wasteful. It writes raw page text to a local artifact, writes a separate search artifact, and returns only ranked snippets plus artifact paths.
 
 `act-preview` builds on `observe`: give it an intent like "click login", "open pricing", "search for \"wireless mouse\"", or "download report", and it will return ranked deterministic action candidates, risk flags, exact low-level CLI/MCP proposals, and an "ask user first" hint when the action still needs user input or looks risky. It never mutates the page.
 
