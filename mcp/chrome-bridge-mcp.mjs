@@ -247,6 +247,39 @@ async function localRuntimeSmoke(args = {}) {
   }
 }
 
+async function localActPreview(args = {}) {
+  try {
+    const cliArgs = [
+      path.join(rootDir, 'bin/chrome-bridge.mjs'),
+      'act-preview',
+      '--intent',
+      args.intent,
+    ];
+    if (args.tabId !== undefined) cliArgs.push('--tab', String(args.tabId));
+    if (args.maxCandidates !== undefined) cliArgs.push('--max-candidates', String(args.maxCandidates));
+    if (args.riskTolerance) cliArgs.push('--risk', args.riskTolerance);
+    if (args.selectorPreference) cliArgs.push('--selector-preference', args.selectorPreference);
+    if (args.allowExternal) cliArgs.push('--allow-external');
+    const result = await execFileAsync(process.execPath, cliArgs, { timeout: 30_000 });
+    return parseLocalCliJson(result.stdout) || {};
+  } catch (error) {
+    const parsed = parseLocalCliJson(error?.stdout);
+    if (parsed) {
+      return {
+        ...parsed,
+        cliExitError: String(error?.message || error),
+        stderr: error?.stderr || '',
+      };
+    }
+    return {
+      ok: false,
+      error: String(error?.message || error),
+      stdout: error?.stdout || '',
+      stderr: error?.stderr || '',
+    };
+  }
+}
+
 async function sessionSummary() {
   const health = await bridgeFetch('/health').catch((error) => ({
     ok: false,
@@ -1183,6 +1216,20 @@ server.tool(
     allowExternal: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('observe', args, 30_000)),
+);
+
+server.tool(
+  'chrome_bridge_act_preview',
+  'Plan one likely next browser action from natural-language intent and current page state without mutating the page.',
+  {
+    intent: z.string(),
+    tabId: chromeIdSchema.optional(),
+    maxCandidates: z.number().min(1).max(20).optional(),
+    riskTolerance: z.enum(['read-only', 'confirmed-interaction', 'private-read']).optional(),
+    selectorPreference: z.enum(['stable', 'any']).optional(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await localActPreview(args)),
 );
 
 server.tool(

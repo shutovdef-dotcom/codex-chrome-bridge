@@ -63,6 +63,8 @@ The MCP server also exposes compact prompts and resources for agent guidance tha
 Use prompts when the agent needs a reusable workflow. Use resources when the agent needs compact reference material or the active MCP profile summary without calling larger browser tools.
 When the next step is unclear, call `chrome_bridge_tool_advisor`; when the install profile is unclear, read `chrome-bridge://profiles/current` or run `chrome_bridge_doctor`.
 
+`chrome_bridge_act_preview` is the new read-only action-planning layer: give it a natural-language intent and it will inspect the current page with the local bridge, rank likely next actions, and return exact low-level CLI/MCP proposals without mutating page state.
+
 ## Tools
 
 For risk tiers, default timeouts, confirmation requirements, direct `/command` payload keys, CLI aliases, MCP tool names, local diagnostic/tooling commands, and live-bridge flags, see the generated [command catalog](COMMAND-CATALOG.md) or call `chrome_bridge_command_catalog`.
@@ -107,6 +109,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_reload_tab` | `reloadTab` | interaction | 30000 ms | no | yes | Reload the selected tab. |
 | `chrome_bridge_wait_for_selector` | `waitForSelector` | read | 30000 ms | no | yes | Wait for a selector to appear in the selected tab. |
 | `chrome_bridge_observe` | `observe` | read | 30000 ms | no | yes | Read ranked actionable elements with querySelector-verified selectors without mutating page state. |
+| `chrome_bridge_act_preview` | `act-preview` | read | 30000 ms | no | yes | Plan one likely next browser action from intent and observed page state without mutating the page. |
 | `chrome_bridge_find_elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | `chrome_bridge_extract` | `extractPage` | read | 30000 ms | no | yes | Extract structured tables, form structure, lists, key-value blocks, or artifact-backed CPA offer presets without current form values. |
 | `chrome_bridge_download_discovery` | `download-discovery` | read | 30000 ms | no | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |

@@ -39,6 +39,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `reload` | `reloadTab` | interaction | 30000 ms | no | yes | Reload the selected tab. |
 | `wait` | `waitForSelector` | read | 30000 ms | no | yes | Wait for a selector to appear in the selected tab. |
 | `observe` | `observe` | read | 30000 ms | no | yes | Read ranked actionable elements with querySelector-verified selectors without mutating page state. |
+| `act-preview` | `act-preview` | read | 30000 ms | no | yes | Plan one likely next browser action from intent and observed page state without mutating the page. |
 | `find-elements` | `findElements` | read | 30000 ms | no | yes | Filter ranked actionable elements with querySelector-verified selectors by role, text, nearby text, href, action, or risk. |
 | `extract` | `extractPage` | read | 30000 ms | no | yes | Extract structured tables, form structure, lists, key-value blocks, or artifact-backed CPA offer presets without current form values. |
 | `snapshot` | `snapshot` | read | 30000 ms | no | yes | Read a bounded structured page snapshot with optional full-page rendered text coverage. |
@@ -190,6 +191,7 @@ If the target page is the last focused Chrome tab, omit `--tab <id>` and run `ch
 ```bash
 chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
 chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]
+chrome-bridge act-preview --intent <text> [--tab <id>] [--max-candidates 5] [--risk read-only|confirmed-interaction|private-read] [--selector-preference stable|any] [--allow-external]
 chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>] [--placeholder <text>] [--href <text>] [--action <kind>] [--risk <risk>] [--limit 80] [--tab <id>] [--allow-external]
 chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-offer|article|product-page|pricing-table --network <name> --out <file> [--artifact-dir <dir>]] [--max-items 50] [--tab <id>] [--allow-external]
 chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]
@@ -206,6 +208,8 @@ chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]
 <!-- END GENERATED CLI USAGE: page-reads -->
 
 `observe` is read-only. It returns ranked actionable elements with querySelector-verified selectors, labels, roles, suggested action kinds, and risk hints so agents can choose targets before using confirmed interaction commands. Short selectors use stable attributes when available; otherwise Chrome Bridge falls back to an `nth-of-type` path that resolves back to the observed element.
+
+`act-preview` builds on `observe`: give it an intent like "click login", "open pricing", "search for \"wireless mouse\"", or "download report", and it will return ranked deterministic action candidates, risk flags, exact low-level CLI/MCP proposals, and an "ask user first" hint when the action still needs user input or looks risky. It never mutates the page.
 
 `find-elements --near-text` filters candidates by nearby container text, which helps target controls next to a label, heading, or form section without requiring exact button text.
 

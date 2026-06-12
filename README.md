@@ -48,6 +48,7 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - MCP guidance surfaces: built-in prompts and resources expose quickstart, safety, compatibility, profile, and workflow guidance without forcing agents to rediscover the right tool chain.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
 - Agent discovery: ranked read-only `observe` output for actionable elements and querySelector-verified selectors.
+- High-level action planning: read-only `act-preview` turns natural-language intent like "click login" or "download report" into deterministic low-level CLI/MCP action proposals without mutating the page.
 - Structured extraction: read tables, form structure, lists, key-value blocks, and artifact-backed presets such as `cpa-offer`, `article`, `product-page`, and `pricing-table` without returning private form values.
 - Export helpers: save screenshots, print the current tab to PDF locally, and discover likely download/offline-export affordances without clicking them.
 - Controlled interactions: clicks, typing, keyboard, select boxes, hover, and scroll.

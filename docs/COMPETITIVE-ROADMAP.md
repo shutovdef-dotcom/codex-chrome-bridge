@@ -368,6 +368,7 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - add universal MCP client setup generation through `mcp-config` and `chrome_bridge_mcp_config`, covering Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients
   - add `CHROME_BRIDGE_MCP_TOOL_PROFILE=full|core|read` so IDE clients can use a compact profile while full-capability clients keep the complete tool surface
   - add profile-aware onboarding and summary guidance so local diagnostics, setup snippets, prompts/resources, and the deterministic advisor agree on the safest next MCP profile and follow-up command
+  - add read-only `act-preview` so natural-language intents can map to deterministic low-level action proposals without mutating the page
   - refresh public positioning from Codex-only language to Chrome MCP Bridge while preserving package, repository, binary, default group lifecycle, and legacy `codex-config` compatibility
 
 ## Next Recommended Slice
@@ -384,8 +385,8 @@ The previous recommended slice has now landed:
 After this change set, the highest-value next implementation is:
 
 1. Decide whether to create a non-breaking alias package/repository name such as `chrome-mcp-bridge` while preserving `codex-chrome-bridge` redirects and migration docs.
-2. Add one-click install surfaces where supported by major clients, starting with VS Code and Cursor, then consider a Claude Code plugin wrapper if it can stay thin and local-first.
-3. Extend setup ergonomics from profile hints into installable artifacts such as checked-in example config files, copy-paste helpers, or thin wrappers per major client.
+2. Implement confirmed one-step `act-apply`, but only as a follow-up to `act-preview` with explicit preview IDs, stale-preview rejection, and one-action-only guarantees.
+3. Add one-click install surfaces where supported by major clients, starting with VS Code and Cursor, then consider a Claude Code plugin wrapper if it can stay thin and local-first.
 4. Continue collecting real-page evidence and add fixtures only for repeated gaps.
 5. Keep UBS triage evidence-first; do not broad-clean pattern noise unless it becomes a confirmed runtime path.
 

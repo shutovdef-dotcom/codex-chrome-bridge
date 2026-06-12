@@ -69,6 +69,7 @@ Version: 0.4.1
 | links | read | read | 30000 ms | links | - | yes | Read selector HTML into an artifact and print extracted links only. |
 | tables | read | read | 30000 ms | tables | - | yes | Read selector HTML into an artifact and print extracted tables only. |
 | download-discovery | read | read | 30000 ms | download-discovery | chrome_bridge_download_discovery | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
+| act-preview | read | read | 30000 ms | act-preview | chrome_bridge_act_preview | yes | Plan one likely next browser action from intent and observed page state without mutating the page. |
 | lighthouse-ingest | diagnostic | read | 5000 ms | lighthouse-ingest | chrome_bridge_lighthouse_ingest | no | Summarize a local Lighthouse JSON report into scores and failing audits. |
 | command-catalog | diagnostic | read | 5000 ms | command-catalog | chrome_bridge_command_catalog | no | Print this shared command registry as JSON or Markdown. |
 | advise | diagnostic | read | 5000 ms | advise | chrome_bridge_tool_advisor | no | Recommend the safest next CLI and MCP tools for a task without contacting Chrome. |
@@ -102,6 +103,7 @@ chrome-bridge forward [--tab <id>] [--allow-external]
 chrome-bridge reload [--tab <id>] [--bypass-cache] [--allow-external]
 chrome-bridge wait --selector <css> [--timeout-ms 10000] [--hidden-ok] [--tab <id>] [--allow-external]
 chrome-bridge observe [--tab <id>] [--limit 80] [--max-text-chars 160] [--allow-external]
+chrome-bridge act-preview --intent <text> [--tab <id>] [--max-candidates 5] [--risk read-only|confirmed-interaction|private-read] [--selector-preference stable|any] [--allow-external]
 chrome-bridge find-elements [--role <role>] [--text <text>] [--near-text <text>] [--placeholder <text>] [--href <text>] [--action <kind>] [--risk <risk>] [--limit 80] [--tab <id>] [--allow-external]
 chrome-bridge extract [--kind all|tables|forms|lists|keyValues] [--preset cpa-offer|article|product-page|pricing-table --network <name> --out <file> [--artifact-dir <dir>]] [--max-items 50] [--tab <id>] [--allow-external]
 chrome-bridge snapshot [--tab <id>] [--max-chars 200000] [--full-page] [--wait-for-text <text>] [--wait-for-pattern <regex>] [--scroll-step-px <n>] [--max-scroll-steps <n>] [--scroll-delay-ms <n>] [--out <path>] [--summary-only] [--include-content] [--no-content] [--max-inline-chars 4000] [--allow-external]

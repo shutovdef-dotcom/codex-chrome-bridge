@@ -651,12 +651,14 @@ check(packageJson.scripts?.['check:ubs-fixes'] === 'node ./scripts/check-ubs-fix
 check(packageJson.scripts?.['check:roadmap-next-slice'] === 'node ./scripts/check-roadmap-next-slice.mjs', 'package scripts must expose next roadmap slice contract check');
 check(packageJson.scripts?.['check:examples-gallery'] === 'node ./scripts/check-examples-gallery.mjs', 'package scripts must expose examples gallery contract check');
 check(packageJson.scripts?.['check:client-config-examples'] === 'node ./scripts/check-client-config-examples.mjs', 'package scripts must expose client config examples contract check');
+check(packageJson.scripts?.['check:act-preview'] === 'node ./scripts/check-act-preview.mjs', 'package scripts must expose act-preview contract check');
 check(packageJson.files?.includes('examples/'), 'package files must include examples directory');
 check(readmeText.includes('docs/EXAMPLES.md'), 'README must link examples gallery');
 check(readmeText.includes('docs/COMPATIBILITY.md'), 'README must link MCP client compatibility guide');
 check(readmeText.includes('docs/DISTRIBUTION.md'), 'README must link distribution and GitHub SEO guide');
 check(packageContentsCheckerText.includes('examples/fixtures/article-news.html'), 'package contents checker must require examples fixtures');
 check(packageContentsCheckerText.includes('examples/mcp-clients/cursor.mcp.json'), 'package contents checker must require checked-in MCP client config examples');
+check(packageContentsCheckerText.includes('shared/act-preview.mjs'), 'package contents checker must require act-preview shared helper');
 check(packageJson.scripts?.check?.includes('npm run check:runtime-smoke-plan'), 'npm run check must include runtime smoke plan contract check');
 check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include roadmap coverage contract check');
 check(packageJson.scripts?.check?.includes('npm run check:cli-local-tools'), 'npm run check must include CLI local tools contract check');
@@ -665,6 +667,7 @@ check(packageJson.scripts?.check?.includes('npm run check:mcp-local-tools'), 'np
 check(packageJson.scripts?.check?.includes('npm run check:tab-group-persistence'), 'npm run check must include tab-group persistence behavior check');
 check(packageJson.scripts?.check?.includes('npm run check:examples-gallery'), 'npm run check must include examples gallery contract check');
 check(packageJson.scripts?.check?.includes('npm run check:client-config-examples'), 'npm run check must include client config examples contract check');
+check(packageJson.scripts?.check?.includes('npm run check:act-preview'), 'npm run check must include act-preview contract check');
 check(packageJson.scripts?.['check:runtime-smoke-plan'] && packageText.includes('check:runtime-smoke-plan'), 'package metadata must keep runtime smoke plan checker discoverable');
 check(packageJson.scripts?.['check:roadmap'] && packageText.includes('check:roadmap'), 'package metadata must keep roadmap coverage checker discoverable');
 check(packageJson.scripts?.['check:cli-local-tools'] && packageText.includes('check:cli-local-tools'), 'package metadata must keep CLI local tools checker discoverable');

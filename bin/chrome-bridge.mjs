@@ -11,6 +11,7 @@ import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
 import { buildStructuredPresetExtraction } from '../shared/structured-extract.mjs';
 import { buildDownloadDiscovery } from '../shared/download-discovery.mjs';
 import { ingestLighthouseReportFile } from '../shared/lighthouse-ingest.mjs';
+import { buildActPreviewPlan } from '../shared/act-preview.mjs';
 import { buildToolAdvisor } from '../shared/tool-advisor.mjs';
 import {
   bridgeFetchTimeoutSignal,
@@ -91,6 +92,18 @@ function toolAdvisorInput(args) {
     hasLiveBridge: args['live-bridge'] ? true : (args.offline ? false : undefined),
     mcpProfile: process.env.CHROME_BRIDGE_MCP_TOOL_PROFILE || 'full',
     availableMcpTools: MCP_TOOLS,
+  };
+}
+
+function actPreviewInput(args, observed) {
+  const intent = typeof args.intent === 'string' ? args.intent : args._.slice(1).join(' ').trim();
+  return {
+    intent,
+    observed,
+    tabId: observed?.tab?.id || parseChromeIdArg(args.tab, '--tab'),
+    maxCandidates: parseNumberRangeArg(args['max-candidates'], '--max-candidates', 1, 20) ?? 5,
+    riskTolerance: args.risk || 'confirmed-interaction',
+    selectorPreference: args['selector-preference'] || 'stable',
   };
 }
 
@@ -3223,6 +3236,16 @@ async function main() {
       limit: parseNumberRangeArg(args.limit, '--limit', 1, 300),
       maxTextChars: parseNumberRangeArg(args['max-text-chars'], '--max-text-chars', 20, 1_000),
     }, 30_000));
+    return;
+  }
+
+  if (cmd === 'act-preview') {
+    const observed = await command('observe', {
+      ...targetPayload(args),
+      limit: parseNumberRangeArg(args.limit, '--limit', 1, 300) ?? 120,
+      maxTextChars: parseNumberRangeArg(args['max-text-chars'], '--max-text-chars', 20, 1_000) ?? 200,
+    }, 30_000);
+    printJson(buildActPreviewPlan(actPreviewInput(args, observed)));
     return;
   }
 
