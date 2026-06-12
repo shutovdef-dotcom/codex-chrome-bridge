@@ -3667,6 +3667,18 @@ async function main() {
     return;
   }
 
+  if (cmd === 'download') {
+    if (!args.confirm) throw new Error('download requires --confirm');
+    if (!args.selector) throw new Error('download requires --selector <css>');
+    printJson(await command('download', {
+      ...targetPayload(args),
+      selector: args.selector,
+      downloadTimeoutMs: parseNumberRangeArg(args['download-timeout-ms'], '--download-timeout-ms', 1_000, 180_000),
+      ...confirmationPayload(args),
+    }, 60_000));
+    return;
+  }
+
   if (cmd === 'click-at') {
     if (!args.confirm) throw new Error('click-at requires --confirm');
     const x = parseRequiredFiniteNumberArg(args.x, '--x', 'click-at requires numeric --x and --y');

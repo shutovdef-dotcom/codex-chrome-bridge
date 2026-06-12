@@ -6,6 +6,7 @@ export const MANIFEST_PERMISSIONS = [
   'bookmarks',
   'cookies',
   'debugger',
+  'downloads',
   'history',
   'offscreen',
   'scripting',
@@ -60,6 +61,7 @@ export const COMMAND_PAYLOAD_SCHEMAS = freezeSchemaMap({
   listSelectOptions: stringSelector,
   scroll: [...base, 'x', 'y'],
   click: [...confirmed, 'selector'],
+  download: [...confirmed, 'selector', 'downloadTimeoutMs'],
   clickAt: [...confirmed, 'x', 'y', 'button', 'trusted'],
   hover: [...base, 'selector', 'x', 'y', 'trusted'],
   type: [...confirmed, 'selector', 'text', 'trusted'],
@@ -129,6 +131,7 @@ const INTERACTION_ACTIONS = new Set([
   'reloadTab',
   'scroll',
   'click',
+  'download',
   'clickAt',
   'hover',
   'type',
@@ -166,6 +169,7 @@ export const ACTION_DEFAULT_TIMEOUT_MS = Object.freeze({
   printPdf: 60_000,
   fetchUrl: 60_000,
   uploadFile: 60_000,
+  download: 60_000,
 });
 
 export function commandRiskTier(action) {
@@ -348,6 +352,13 @@ const ACTION_DOCS = Object.freeze({
     summary: 'Click a selector in the selected tab.',
     cli: ['click'],
     mcp: ['chrome_bridge_click'],
+    requiresConfirmation: true,
+  },
+  download: {
+    category: 'interaction',
+    summary: 'Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents.',
+    cli: ['download'],
+    mcp: ['chrome_bridge_download'],
     requiresConfirmation: true,
   },
   clickAt: {
@@ -803,6 +814,7 @@ export const CLI_USAGE_LINES = Object.freeze([
   'chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]',
   'chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]',
   'chrome-bridge download-discovery --out <file> [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]',
+  'chrome-bridge download --selector <css> --confirm [--download-timeout-ms <ms>] [--tab <id>] [--allow-external]',
   'chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]',
   'chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]',
   'chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]',
@@ -923,6 +935,7 @@ export const CLI_USAGE_GROUPS = Object.freeze([
     title: 'Interactions',
     commands: Object.freeze([
       'click',
+      'download',
       'click-at',
       'hover',
       'type',
@@ -1121,6 +1134,7 @@ export const CLI_COMMANDS = Object.freeze([
   'links',
   'tables',
   'download-discovery',
+  'download',
   'screenshot',
   'pdf',
   'scroll',
@@ -1197,6 +1211,7 @@ export const MCP_TOOLS = Object.freeze([
   'chrome_bridge_find_elements',
   'chrome_bridge_extract',
   'chrome_bridge_download_discovery',
+  'chrome_bridge_download',
   'chrome_bridge_lighthouse_plan',
   'chrome_bridge_snapshot',
   'chrome_bridge_text',
@@ -1566,7 +1581,7 @@ export function validateCommandPayload(action, payload = {}) {
   const normalizedPayload = payload === undefined ? {} : payload;
   rejectUnknownKeys(normalizedPayload, allowed, action);
 
-  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'maxPixels', 'requestTimeoutMs', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs']) {
+  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'maxPixels', 'requestTimeoutMs', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs', 'downloadTimeoutMs']) {
     ensureNumber(normalizedPayload, key, action);
   }
   ensureNonNegativeInteger(normalizedPayload, 'tabId', action);
@@ -1648,11 +1663,14 @@ export function validateCommandPayload(action, payload = {}) {
   if (action === 'askUser') {
     ensureNumberRange(normalizedPayload, 'timeoutMs', action, 5_000, 1_800_000);
   }
+  if (action === 'download') {
+    ensureNumberRange(normalizedPayload, 'downloadTimeoutMs', action, 1_000, 180_000);
+  }
 
   if (action === 'open') {
     ensureNonEmptyString(normalizedPayload, 'url', action);
   }
-  if (['waitForSelector', 'click', 'select', 'listSelectOptions', 'uploadFile'].includes(action)) {
+  if (['waitForSelector', 'click', 'download', 'select', 'listSelectOptions', 'uploadFile'].includes(action)) {
     ensureNonEmptyString(normalizedPayload, 'selector', action);
   }
   ensureSelectTarget(normalizedPayload, action);

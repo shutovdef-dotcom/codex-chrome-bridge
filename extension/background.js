@@ -69,6 +69,7 @@ import {
   fetchUrl,
   historySearch,
 } from './browser-data.js';
+import { download } from './download-actions.js';
 chrome.runtime.onInstalled.addListener(startBridge);
 chrome.runtime.onStartup.addListener(startBridge);
 chrome.action.onClicked.addListener(startBridge);
@@ -184,6 +185,8 @@ async function dispatch(action, payload) {
       return scroll(payload);
     case 'click':
       return click(payload);
+    case 'download':
+      return download(payload);
     case 'clickAt':
       return clickAt(payload);
     case 'hover':

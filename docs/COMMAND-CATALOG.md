@@ -32,6 +32,7 @@ Version: 0.4.1
 | listSelectOptions | read | read | 30000 ms | select-options | chrome_bridge_select_options | no | tabId, allowExternal, groupTitle, groupColor, selector | Read available select options without returning current selection state. |
 | scroll | interaction | interaction | 10000 ms | scroll | chrome_bridge_scroll | no | tabId, allowExternal, groupTitle, groupColor, x, y | Scroll the selected tab. |
 | click | interaction | interaction | 30000 ms | click | chrome_bridge_click | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector | Click a selector in the selected tab. |
+| download | interaction | interaction | 60000 ms | download | chrome_bridge_download | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, downloadTimeoutMs | Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents. |
 | clickAt | interaction | interaction | 30000 ms | click-at | chrome_bridge_click_at | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, x, y, button, trusted | Click viewport coordinates, optionally through trusted debugger input. |
 | hover | interaction | interaction | 30000 ms | hover | chrome_bridge_hover | no | tabId, allowExternal, groupTitle, groupColor, selector, x, y, trusted | Hover an element or coordinates in the selected tab. |
 | type | interaction | interaction | 30000 ms | type | chrome_bridge_type | yes | tabId, allowExternal, groupTitle, groupColor, confirmed, selector, text, trusted | Type text into a selector, optionally through trusted debugger input. |
@@ -117,6 +118,7 @@ chrome-bridge grep-page --pattern <regex> [--tab <id>] [--artifact-dir <dir>] [-
 chrome-bridge links [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge tables [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
 chrome-bridge download-discovery --out <file> [--selector <css>] [--tab <id>] [--artifact-dir <dir>] [--allow-external]
+chrome-bridge download --selector <css> --confirm [--download-timeout-ms <ms>] [--tab <id>] [--allow-external]
 chrome-bridge screenshot [--tab <id>] --out <file> [--full-page] [--selector <css>] [--max-pixels <n>] [--fallback viewport|error] [--timeout-ms <n>] [--allow-external]
 chrome-bridge pdf [--tab <id>] --out <file> [--landscape] [--omit-background] [--page-ranges <ranges>] [--scale <0.1-2>] [--allow-external]
 chrome-bridge scroll --tab <id> --y <pixels> [--allow-external]

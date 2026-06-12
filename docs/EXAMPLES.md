@@ -62,6 +62,21 @@ The result includes candidate counts, top links, top actions, selector hints, an
 
 Fixture: `examples/fixtures/downloads.html`.
 
+## Confirmed Download
+
+Use this after `download-discovery`, `observe`, or `find-elements` has already identified the exact export control you want. The command clicks one confirmed selector, waits for exactly one browser download, and returns only local file metadata.
+
+```bash
+node ./bin/chrome-bridge.mjs download \
+  --selector "[data-testid='export-xlsx']" \
+  --confirm \
+  --download-timeout-ms 45000
+```
+
+The result is intentionally metadata-first: local path, file name, extension, byte counts, and timing. It does not inline raw download URLs or file contents.
+
+Fixture: `examples/fixtures/downloads.html`.
+
 ## Lighthouse Ingest
 
 Use this after Lighthouse has already produced a local JSON report. Chrome Bridge does not run Lighthouse here; it ingests a local report and emits scores plus a bounded list of failing audits.

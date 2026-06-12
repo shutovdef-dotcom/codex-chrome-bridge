@@ -53,7 +53,7 @@ The default MCP server profile is `full`, which exposes every registered tool. S
 | Profile | Best for | Behavior |
 | --- | --- | --- |
 | `full` | Claude Code, Codex, local harnesses, debugging | Exposes the full MCP tool surface. |
-| `core` | Cursor, Windsurf/Cascade, IDE agents with compact tool budgets | Exposes 39 high-value tools and omits sensitive private-browser tools by default. |
+| `core` | Cursor, Windsurf/Cascade, IDE agents with compact tool budgets | Exposes 40 high-value tools and omits sensitive private-browser tools by default. |
 | `read` | Conservative read-mostly clients | Exposes read/discovery/export/diagnostic tools and omits most mutation/private-data tools. |
 
 Use `core` first in clients that warn about large MCP tool lists. Switch to `full` when you specifically need private browser-data tools such as cookies, storage values, history, bookmarks, or extension-context requests.

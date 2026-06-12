@@ -565,6 +565,7 @@ const MCP_TOOL_PROFILES = Object.freeze({
     'chrome_bridge_find_elements',
     'chrome_bridge_extract',
     'chrome_bridge_download_discovery',
+    'chrome_bridge_download',
     'chrome_bridge_snapshot',
     'chrome_bridge_text',
     'chrome_bridge_html',
@@ -581,7 +582,6 @@ const MCP_TOOL_PROFILES = Object.freeze({
     'chrome_bridge_scroll',
     'chrome_bridge_ask_user',
     'chrome_bridge_session_summary',
-    'chrome_bridge_debug_bundle',
     'chrome_bridge_lighthouse_ingest',
   ]),
   read: new Set([
@@ -1409,6 +1409,22 @@ server.tool(
       maxHtmlChars: args.maxHtmlChars ?? 500_000,
     },
   })),
+);
+
+server.tool(
+  'chrome_bridge_download',
+  'Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents.',
+  {
+    tabId: chromeIdSchema.optional(),
+    allowExternal: z.boolean().optional(),
+    selector: z.string(),
+    confirmed: z.boolean(),
+    downloadTimeoutMs: z.number().min(1000).max(180000).optional(),
+  },
+  async (args) => {
+    if (!args.confirmed) throw new Error('chrome_bridge_download requires confirmed=true');
+    return textResult(await bridgeCommand('download', args, 60_000));
+  },
 );
 
 server.tool(

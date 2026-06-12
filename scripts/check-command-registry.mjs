@@ -233,11 +233,14 @@ check(packageJson.scripts?.['check:roadmap'] === 'node ./scripts/check-roadmap-c
 check(packageJson.scripts?.['check:mcp-prompts'] === 'node ./scripts/check-mcp-prompts.mjs', 'check:mcp-prompts must verify MCP prompts');
 check(packageJson.scripts?.['check:mcp-resources'] === 'node ./scripts/check-mcp-resources.mjs', 'check:mcp-resources must verify MCP resources');
 check(packageJson.scripts?.['check:tool-advisor'] === 'node ./scripts/check-tool-advisor.mjs', 'check:tool-advisor must verify deterministic advisor surfaces');
+check(packageJson.scripts?.['check:download-manager'] === 'node ./scripts/check-download-manager.mjs', 'check:download-manager must verify confirmed single-download behavior');
 check(packageJson.scripts?.check?.includes('npm run check:privacy'), 'npm run check must include check:privacy');
 check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include check:roadmap');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-prompts'), 'npm run check must include check:mcp-prompts');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-resources'), 'npm run check must include check:mcp-resources');
 check(packageJson.scripts?.check?.includes('npm run check:tool-advisor'), 'npm run check must include check:tool-advisor');
+check(packageJson.scripts?.check?.includes('npm run check:download-manager'), 'npm run check must include check:download-manager');
+check(packageJson.scripts?.check?.includes('node --check ./extension/download-actions.js'), 'npm run check must syntax-check extension/download-actions.js');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-cleanup.js'), 'npm run check must syntax-check extension/tab-cleanup.js');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-group-persistence.js'), 'npm run check must syntax-check extension/tab-group-persistence.js');
 if (isRepositoryCheckout || checkWorkflowText) {
@@ -262,6 +265,7 @@ for (const requiredPackageFile of [
   'shared/safe-record.mjs',
   'shared/session-group-title.mjs',
   'shared/structured-extract.mjs',
+  'extension/download-actions.js',
   'extension/extension-errors.js',
   'extension/page-scripts.js',
   'extension/navigation-actions.js',
@@ -283,6 +287,7 @@ for (const requiredPackageFile of [
   'scripts/check-roadmap-coverage.mjs',
   'scripts/check-package-contents.mjs',
   'scripts/check-privacy-scan.mjs',
+  'scripts/check-download-manager.mjs',
   'scripts/check-diagnostics.mjs',
   'scripts/check-ubs-fixes.mjs',
   'scripts/check-roadmap-next-slice.mjs',
@@ -548,6 +553,10 @@ expectPayload('askUser', {}, false, 'askUser missing question payload');
 expectPayload('clickAt', { x: 0, y: 0, confirmed: true }, true, 'clickAt zero coordinates payload');
 expectPayload('clickAt', { y: 5, confirmed: true }, false, 'clickAt missing x payload');
 expectPayload('click', { confirmed: true }, false, 'click missing selector payload');
+expectPayload('download', { selector: '#export' }, false, 'download missing confirmation payload');
+expectPayload('download', { selector: '#export', confirmed: true }, true, 'download confirmed payload');
+expectPayload('download', { selector: '#export', confirmed: true, downloadTimeoutMs: 1_000 }, true, 'download minimum timeout payload');
+expectPayload('download', { selector: '#export', confirmed: true, downloadTimeoutMs: 999 }, false, 'download invalid timeout payload');
 expectPayload('type', { selector: '#name', text: '', confirmed: true }, true, 'type empty text payload');
 expectPayload('type', { selector: '#name', confirmed: true }, false, 'type missing text payload');
 expectPayload('press', { confirmed: true }, false, 'press missing key payload');
@@ -650,6 +659,7 @@ check(packageJson.scripts?.['check:diagnostics'] === 'node ./scripts/check-diagn
 check(packageJson.scripts?.['check:ubs-fixes'] === 'node ./scripts/check-ubs-fixes.mjs', 'package scripts must expose UBS fix plan contract check');
 check(packageJson.scripts?.['check:roadmap-next-slice'] === 'node ./scripts/check-roadmap-next-slice.mjs', 'package scripts must expose next roadmap slice contract check');
 check(packageJson.scripts?.['check:examples-gallery'] === 'node ./scripts/check-examples-gallery.mjs', 'package scripts must expose examples gallery contract check');
+check(packageJson.scripts?.['check:download-manager'] === 'node ./scripts/check-download-manager.mjs', 'package scripts must expose download-manager contract check');
 check(packageJson.scripts?.['check:network-export'] === 'node ./scripts/check-network-export.mjs', 'package scripts must expose network-export contract check');
 check(packageJson.scripts?.['check:client-docs'] === 'node ./scripts/check-client-docs.mjs', 'package scripts must expose client docs contract check');
 check(packageJson.scripts?.['check:client-config-examples'] === 'node ./scripts/check-client-config-examples.mjs', 'package scripts must expose client config examples contract check');
@@ -672,7 +682,9 @@ check(packageContentsCheckerText.includes('shared/act-preview.mjs'), 'package co
 check(packageContentsCheckerText.includes('shared/act-preview-state.mjs'), 'package contents checker must require act-preview state helper');
 check(packageContentsCheckerText.includes('shared/lighthouse-plan.mjs'), 'package contents checker must require lighthouse-plan shared helper');
 check(packageContentsCheckerText.includes('shared/network-export.mjs'), 'package contents checker must require network-export shared helper');
+check(packageContentsCheckerText.includes('extension/download-actions.js'), 'package contents checker must require download-actions extension helper');
 check(packageContentsCheckerText.includes('scripts/check-lighthouse-plan.mjs'), 'package contents checker must require lighthouse-plan checker');
+check(packageContentsCheckerText.includes('scripts/check-download-manager.mjs'), 'package contents checker must require download-manager checker');
 check(packageContentsCheckerText.includes('scripts/check-network-export.mjs'), 'package contents checker must require network-export checker');
 check(packageContentsCheckerText.includes('docs/INSTALL.md'), 'package contents checker must require the install guide');
 check(packageContentsCheckerText.includes('docs/REGISTRY-SUBMISSIONS.md'), 'package contents checker must require the registry submissions guide');
@@ -688,6 +700,7 @@ check(packageJson.scripts?.check?.includes('npm run check:mcp-runtime-smoke'), '
 check(packageJson.scripts?.check?.includes('npm run check:mcp-local-tools'), 'npm run check must include MCP local tools contract check');
 check(packageJson.scripts?.check?.includes('npm run check:tab-group-persistence'), 'npm run check must include tab-group persistence behavior check');
 check(packageJson.scripts?.check?.includes('npm run check:examples-gallery'), 'npm run check must include examples gallery contract check');
+check(packageJson.scripts?.check?.includes('npm run check:download-manager'), 'npm run check must include download-manager contract check');
 check(packageJson.scripts?.check?.includes('npm run check:network-export'), 'npm run check must include network-export contract check');
 check(packageJson.scripts?.check?.includes('npm run check:client-docs'), 'npm run check must include client docs contract check');
 check(packageJson.scripts?.check?.includes('npm run check:client-config-examples'), 'npm run check must include client config examples contract check');
@@ -703,6 +716,7 @@ check(packageJson.scripts?.['check:mcp-runtime-smoke'] && packageText.includes('
 check(packageJson.scripts?.['check:mcp-local-tools'] && packageText.includes('check:mcp-local-tools'), 'package metadata must keep MCP local tools checker discoverable');
 check(packageJson.scripts?.['check:tab-group-persistence'] && packageText.includes('check:tab-group-persistence'), 'package metadata must keep tab-group persistence checker discoverable');
 check(packageJson.scripts?.['check:lighthouse-plan'] && packageText.includes('check:lighthouse-plan'), 'package metadata must keep lighthouse-plan checker discoverable');
+check(packageJson.scripts?.['check:download-manager'] && packageText.includes('check:download-manager'), 'package metadata must keep download-manager checker discoverable');
 check(packageJson.scripts?.['check:network-export'] && packageText.includes('check:network-export'), 'package metadata must keep network-export checker discoverable');
 check(packageJson.scripts?.['check:client-docs'] && packageText.includes('check:client-docs'), 'package metadata must keep client docs checker discoverable');
 check(packageJson.scripts?.['check:extension-package'] && packageText.includes('check:extension-package'), 'package metadata must keep extension package checker discoverable');
@@ -747,6 +761,7 @@ check(packageContentsCheckerText.includes("'scripts/check-mcp-runtime-smoke.mjs'
 check(packageContentsCheckerText.includes("'scripts/check-mcp-local-tools.mjs'"), 'package contents must include MCP local tools checker');
 check(packageContentsCheckerText.includes("'scripts/check-tab-group-persistence.mjs'"), 'package contents must include tab-group persistence checker');
 check(packageContentsCheckerText.includes("'scripts/check-lighthouse-plan.mjs'"), 'package contents must include lighthouse-plan checker');
+check(packageContentsCheckerText.includes("'scripts/check-download-manager.mjs'"), 'package contents must include download-manager checker');
 check(packageContentsCheckerText.includes("'scripts/check-network-export.mjs'"), 'package contents must include network-export checker');
 check(packageContentsCheckerText.includes("'scripts/check-client-docs.mjs'"), 'package contents must include client docs checker');
 check(packageContentsCheckerText.includes("'scripts/check-extension-package.mjs'"), 'package contents must include extension package checker');

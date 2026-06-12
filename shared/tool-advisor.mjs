@@ -75,14 +75,14 @@ const SCENARIOS = Object.freeze([
     ],
     recommendedPreflight: ['health', 'workspace'],
     recommendedFirst: 'download-discovery',
-    recommendedNext: ['observe', 'findElements', 'pdf'],
+    recommendedNext: ['observe', 'findElements', 'download', 'pdf'],
     prompts: ['chrome_bridge_read_first', 'chrome_bridge_safe_interaction'],
     resources: [
       'chrome-bridge://workflows/read-first',
       'chrome-bridge://docs/safety',
     ],
     notes: [
-      'The current stable path is read-only download discovery first, then a user-approved interaction if needed.',
+      'Start with read-only download discovery, then use a confirmed single-download action only for a user-approved selector.',
       'If a printable export is enough, pdf is often safer than clicking unknown export controls.',
     ],
     artifactGuidance: 'Prefer download-discovery or pdf output instead of broad screenshots.',
@@ -288,6 +288,11 @@ const COMMANDS = Object.freeze({
     mcp: 'chrome_bridge_download_discovery',
     liveBridge: true,
   },
+  download: {
+    cli: 'chrome-bridge download --selector "<css>" --confirm',
+    mcp: 'chrome_bridge_download',
+    liveBridge: true,
+  },
   pdf: {
     cli: 'chrome-bridge pdf --out /tmp/chrome-bridge.pdf',
     mcp: 'chrome_bridge_pdf',
@@ -487,10 +492,6 @@ export function buildToolAdvisor(input = {}) {
   if (scenario.requiresLiveBridge && hasLiveBridge === false) {
     notes.push('The recommended browser tools need the live bridge and extension connection; use doctor, mcp-config, or command-catalog until the bridge is free.');
   }
-  if (scenario.id === 'download-export') {
-    notes.push('Confirmed download-manager execution is still a planned follow-up; the safest current tool is download-discovery.');
-  }
-
   return {
     ok: true,
     version: BRIDGE_VERSION,

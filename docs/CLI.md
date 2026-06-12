@@ -50,6 +50,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `links` | `links` | read | 30000 ms | no | yes | Read selector HTML into an artifact and print extracted links only. |
 | `tables` | `tables` | read | 30000 ms | no | yes | Read selector HTML into an artifact and print extracted tables only. |
 | `download-discovery` | `download-discovery` | read | 30000 ms | no | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
+| `download` | `download` | interaction | 60000 ms | yes | yes | Click one confirmed selector, wait for exactly one browser download, and return local file metadata without file contents. |
 | `screenshot` | `screenshot` | read | 30000 ms | no | yes | Capture a PNG screenshot of the selected tab, full page, or selector. |
 | `pdf` | `printPdf` | read | 60000 ms | no | yes | Print the selected tab to a local PDF artifact. |
 | `scroll` | `scroll` | interaction | 10000 ms | no | yes | Scroll the selected tab. |
@@ -100,7 +101,7 @@ The command metadata table below is generated from the shared registry by `npm r
 <!-- BEGIN GENERATED CLI SAFETY NOTES -->
 The safety notes below are generated from the shared registry by `npm run docs:commands`.
 
-- `--confirm` is required for: `set-workspace`, `clear-workspace`, `adopt-tab`, `close-tab`, `close-group`, `act-apply`, `click`, `click-at`, `type`, `press`, `select`, `fill-form`, `handle-dialog`, `upload-file`, `trace-start`, `history`, `bookmarks`, `reload-extension`.
+- `--confirm` is required for: `set-workspace`, `clear-workspace`, `adopt-tab`, `close-tab`, `close-group`, `act-apply`, `download`, `click`, `click-at`, `type`, `press`, `select`, `fill-form`, `handle-dialog`, `upload-file`, `trace-start`, `history`, `bookmarks`, `reload-extension`.
 - `--confirm` is conditionally required for: `windows`, `tabs`; use it with `--all` on scoped inventory commands.
 - `--confirm-sensitive` is required in addition to `--confirm` for private-value requests exposed by: `cookies`, `storage`, `request`.
 - Live bridge caution: run `reload-extension --confirm`, `doctor --live-checks`, and `runtime-smoke` only when no other session is using the bridge.
@@ -229,6 +230,7 @@ Interactions require `--confirm`.
 <!-- BEGIN GENERATED CLI USAGE: interactions -->
 ```bash
 chrome-bridge click --tab <id> --selector <css> --confirm [--allow-external]
+chrome-bridge download --selector <css> --confirm [--download-timeout-ms <ms>] [--tab <id>] [--allow-external]
 chrome-bridge click-at --x <px> --y <px> --confirm [--trusted] [--tab <id>] [--allow-external]
 chrome-bridge hover [--selector <css>] [--x <px> --y <px>] [--trusted] [--tab <id>] [--allow-external]
 chrome-bridge type --tab <id> --selector <css> --text <text> --confirm [--trusted] [--allow-external]

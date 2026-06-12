@@ -44,14 +44,14 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - MCP client setup: `mcp-config` prints ready-to-paste snippets for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients.
 - Project-local MCP install: `mcp-write` writes or merges local client config files for Claude Code, Cursor, Codex, and VS Code without touching user-global config by default.
 - Profile-aware onboarding: `doctor`, `mcp-config`, `session-summary`, and `chrome_bridge_tool_advisor` now recommend safer next steps and compact MCP profiles per client.
-- Compact IDE profile: Cursor/Windsurf snippets set `CHROME_BRIDGE_MCP_TOOL_PROFILE=core`, exposing 39 high-value tools instead of the full surface for better IDE-agent ergonomics.
+- Compact IDE profile: Cursor/Windsurf snippets set `CHROME_BRIDGE_MCP_TOOL_PROFILE=core`, exposing 40 high-value tools instead of the full surface for better IDE-agent ergonomics.
 - MCP guidance surfaces: built-in prompts and resources expose quickstart, safety, compatibility, profile, and workflow guidance without forcing agents to rediscover the right tool chain.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
 - Agent discovery: ranked read-only `observe` output for actionable elements and querySelector-verified selectors.
 - High-level action planning: read-only `act-preview` turns natural-language intent like "click login" or "download report" into deterministic low-level CLI/MCP action proposals without mutating the page.
 - Bounded high-level apply: confirmed `act-apply` executes exactly one previously previewed action, rejects stale previews, and returns before/after evidence plus the next recommended read.
 - Structured extraction: read tables, form structure, lists, key-value blocks, and artifact-backed presets such as `cpa-offer`, `article`, `product-page`, and `pricing-table` without returning private form values.
-- Export helpers: save screenshots, print the current tab to PDF locally, and discover likely download/offline-export affordances without clicking them.
+- Export helpers: save screenshots, print the current tab to PDF locally, discover likely download/offline-export affordances without clicking them, and run a confirmed single-download export that returns local file metadata only.
 - Controlled interactions: clicks, typing, keyboard, select boxes, hover, and scroll.
 - Workflow helpers: privacy-preserving select option discovery and form fill previews, dialog handling, and file input uploads.
 - Debugging tools: bounded diagnostics, page performance/resource summaries, handoff-only Lighthouse planning, local Lighthouse report ingestion, and console/network trace through Chrome Debugger/CDP.
@@ -140,6 +140,7 @@ node ./bin/chrome-bridge.mjs read-artifact --path /tmp/page.txt --head 40 --grep
 node ./bin/chrome-bridge.mjs extract --preset cpa-offer --network leads_su --out /tmp/offer.json
 node ./bin/chrome-bridge.mjs extract --preset article --out /tmp/article.json --artifact-dir /tmp/chrome-bridge-artifacts
 node ./bin/chrome-bridge.mjs download-discovery --out /tmp/downloads.json --artifact-dir /tmp/chrome-bridge-artifacts
+node ./bin/chrome-bridge.mjs download --selector "[data-testid='export-csv']" --confirm --download-timeout-ms 45000
 node ./bin/chrome-bridge.mjs network-export --artifact-dir /tmp/chrome-bridge-artifacts --har-out /tmp/chrome-bridge-network.har.json
 node ./bin/chrome-bridge.mjs lighthouse-plan --url https://example.com --out /tmp/lighthouse.json --summary-out /tmp/lighthouse-summary.json
 node ./bin/chrome-bridge.mjs lighthouse-ingest --report /tmp/lighthouse.json --out /tmp/lighthouse-summary.json
@@ -189,6 +190,7 @@ node ./bin/chrome-bridge.mjs find-elements --near-text "Billing address" --actio
 node ./bin/chrome-bridge.mjs extract --kind forms
 node ./bin/chrome-bridge.mjs extract --preset article --out /tmp/chrome-bridge-article.json --artifact-dir /tmp/chrome-bridge-artifacts
 node ./bin/chrome-bridge.mjs download-discovery --out /tmp/chrome-bridge-downloads.json --artifact-dir /tmp/chrome-bridge-artifacts
+node ./bin/chrome-bridge.mjs download --selector "[data-testid='export-csv']" --confirm --download-timeout-ms 45000
 
 # Export or debug locally when needed.
 node ./bin/chrome-bridge.mjs network-export --artifact-dir /tmp/chrome-bridge-artifacts --har-out /tmp/chrome-bridge-network.har.json
@@ -240,6 +242,7 @@ Useful MCP tools:
 - `chrome_bridge_find_elements`
 - `chrome_bridge_extract`
 - `chrome_bridge_download_discovery`
+- `chrome_bridge_download`
 - `chrome_bridge_lighthouse_ingest`
 - `chrome_bridge_snapshot`
 - `chrome_bridge_screenshot`
