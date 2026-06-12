@@ -63,6 +63,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `trace-start` | `traceStart` | system | 30000 ms | yes | yes | Start bounded console and network metadata tracing. |
 | `trace-summary` | `traceSummary` | read | 30000 ms | no | yes | Read trace session metadata without returning the trace event log. |
 | `trace-events` | `traceEvents` | read | 30000 ms | no | yes | Read recent bounded trace events. |
+| `diagnostics` | `diagnostics` | read | 30000 ms | no | yes | Read bounded page, trace, network-count, resource, and performance diagnostics without raw event logs. |
 | `trace-stop` | `traceStop` | system | 30000 ms | no | yes | Stop tracing and return recent events. |
 | `history` | `historySearch` | private-read | 30000 ms | yes | yes | Search Chrome history with explicit confirmation. |
 | `bookmarks` | `bookmarksSearch` | private-read | 30000 ms | yes | yes | Search Chrome bookmarks with explicit confirmation. |
@@ -232,6 +233,7 @@ Use `--trusted` when you need Chrome Debugger input events rather than DOM-dispa
 chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-network] [--no-console] [--include-extension-events] [--allow-external]
 chrome-bridge trace-summary [--tab <id>] [--allow-external]
 chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]
+chrome-bridge diagnostics [--tab <id>] [--out <file>] [--allow-external]
 chrome-bridge trace-stop [--tab <id>] [--limit 100] [--allow-external]
 ```
 <!-- END GENERATED CLI USAGE: trace -->

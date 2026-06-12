@@ -13,6 +13,7 @@ import {
   lastArtifact,
   readArtifactPreview,
 } from '../shared/output-envelope.mjs';
+import { summarizeDiagnosticsOutput } from '../shared/diagnostics-output.mjs';
 import {
   createRunId,
   readRunState,
@@ -2950,6 +2951,14 @@ tool_timeout_sec = 60
       ...targetPayload(args),
       limit: parseNumberRangeArg(args.limit, '--limit', 1, 2_000),
     }, 30_000));
+    return;
+  }
+
+  if (cmd === 'diagnostics') {
+    const result = await command('diagnostics', targetPayload(args), 30_000);
+    const artifactPath = typeof args.out === 'string' ? path.resolve(args.out) : null;
+    if (artifactPath) await writeJsonFile(artifactPath, result);
+    printJson(summarizeDiagnosticsOutput(result, { artifactPath }));
     return;
   }
 

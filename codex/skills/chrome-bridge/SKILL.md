@@ -93,6 +93,7 @@ node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" links --selector "main"
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" tables --selector "main"
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" last-artifact
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" read-artifact --path /tmp/page.txt --head 40 --grep "payout"
+node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" diagnostics --out /tmp/chrome-bridge-diagnostics.json
 ```
 
 Use artifact-backed reads for large pages:
@@ -101,6 +102,8 @@ Use artifact-backed reads for large pages:
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" text --full-page --summary-only --out /tmp/page.txt
 node "$CHROME_BRIDGE_ROOT/bin/chrome-bridge.mjs" snapshot --full-page --summary-only --out /tmp/page.json
 ```
+
+Use `diagnostics --out <file>` before raw trace events or debug bundles when you need page health, performance timing, resource counts, and trace event counts. Its stdout is metadata-first and omits raw console/network event logs; the local artifact keeps the fuller bridge response for targeted inspection.
 
 Structured CPA offer extraction keeps stdout small and writes raw text/html only to local artifacts:
 

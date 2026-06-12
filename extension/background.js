@@ -19,6 +19,7 @@ import {
   workspaceStatus,
 } from './navigation-actions.js';
 import {
+  diagnostics,
   extractPage,
   findElements,
   listSelectOptions,
@@ -171,6 +172,8 @@ async function dispatch(action, payload) {
       return pageText(payload);
     case 'html':
       return pageHTML(payload);
+    case 'diagnostics':
+      return diagnostics(payload);
     case 'screenshot':
       return screenshot(payload);
     case 'printPdf':

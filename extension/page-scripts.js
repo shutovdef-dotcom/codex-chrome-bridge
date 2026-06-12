@@ -233,6 +233,77 @@ export function collectHTML(options = {}) {
   };
 }
 
+export function collectDiagnostics() {
+  const finiteNumber = (value) => (Number.isFinite(Number(value)) ? Number(value) : null);
+  const rounded = (value) => {
+    const numeric = finiteNumber(value);
+    return numeric === null ? null : Math.round(numeric);
+  };
+  const resources = performance.getEntriesByType?.('resource') || [];
+  const navigation = performance.getEntriesByType?.('navigation')?.[0] || null;
+  const resourceSummary = {
+    count: resources.length,
+    transferSize: 0,
+    encodedBodySize: 0,
+    decodedBodySize: 0,
+    byType: {},
+  };
+
+  for (const resource of resources) {
+    const type = resource.initiatorType || 'other';
+    if (!resourceSummary.byType[type]) {
+      resourceSummary.byType[type] = {
+        count: 0,
+        transferSize: 0,
+        encodedBodySize: 0,
+        decodedBodySize: 0,
+      };
+    }
+    const bucket = resourceSummary.byType[type];
+    const transferSize = finiteNumber(resource.transferSize) || 0;
+    const encodedBodySize = finiteNumber(resource.encodedBodySize) || 0;
+    const decodedBodySize = finiteNumber(resource.decodedBodySize) || 0;
+    bucket.count += 1;
+    bucket.transferSize += transferSize;
+    bucket.encodedBodySize += encodedBodySize;
+    bucket.decodedBodySize += decodedBodySize;
+    resourceSummary.transferSize += transferSize;
+    resourceSummary.encodedBodySize += encodedBodySize;
+    resourceSummary.decodedBodySize += decodedBodySize;
+  }
+
+  return {
+    page: {
+      readyState: document.readyState,
+      visibilityState: document.visibilityState,
+      titleLength: document.title.length,
+      urlProtocol: location.protocol,
+      urlHost: location.host,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+      },
+    },
+    performance: {
+      navigation: navigation ? {
+        type: navigation.type || null,
+        domContentLoadedMs: rounded(navigation.domContentLoadedEventEnd),
+        loadEventMs: rounded(navigation.loadEventEnd),
+        responseEndMs: rounded(navigation.responseEnd),
+        transferSize: rounded(navigation.transferSize),
+        encodedBodySize: rounded(navigation.encodedBodySize),
+        decodedBodySize: rounded(navigation.decodedBodySize),
+      } : null,
+      resources: resourceSummary,
+    },
+    lighthouse: {
+      handoff: 'Run Lighthouse manually from Chrome DevTools or with npx lighthouse against the selected tab URL.',
+      commandTemplate: 'npx lighthouse <url> --view',
+    },
+  };
+}
+
 export async function waitForSelectorInPage(options = {}) {
   const selector = String(options.selector || '');
   const timeoutMs = Number(options.timeoutMs || 10_000);

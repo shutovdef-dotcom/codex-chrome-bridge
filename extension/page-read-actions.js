@@ -1,4 +1,5 @@
 import {
+  collectDiagnostics,
   collectExtract,
   collectHTML,
   collectObserve,
@@ -8,6 +9,7 @@ import {
   listSelectOptionsInPage,
   waitForSelectorInPage,
 } from './page-scripts.js';
+import { traceSummaryForTab } from './debugger-session.js';
 import { execute } from './page-execution.js';
 import { requireConfirmed, requireSensitiveConfirmed } from './safety-gates.js';
 import { tabInfo } from './tab-info.js';
@@ -64,6 +66,23 @@ export async function pageHTML(payload) {
   const tab = await getTargetTab(payload);
   const result = await execute(tab.id, collectHTML, [payload]);
   return { tab: tabInfo(tab), ...result };
+}
+
+export async function diagnostics(payload) {
+  const tab = await getTargetTab(payload);
+  const result = await execute(tab.id, collectDiagnostics, [payload]);
+  return {
+    tab: tabInfo(tab),
+    generatedAt: new Date().toISOString(),
+    privacy: {
+      rawConsoleText: false,
+      rawNetworkUrls: false,
+      requestBodies: false,
+      responseBodies: false,
+    },
+    trace: traceSummaryForTab(tab.id, tab),
+    ...result,
+  };
 }
 
 export async function listSelectOptions(payload) {

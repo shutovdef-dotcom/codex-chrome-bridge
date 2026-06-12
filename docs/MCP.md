@@ -80,6 +80,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_trace_start` | `traceStart` | system | 30000 ms | yes | yes | Start bounded console and network metadata tracing. |
 | `chrome_bridge_trace_summary` | `traceSummary` | read | 30000 ms | no | yes | Read trace session metadata without returning the trace event log. |
 | `chrome_bridge_trace_events` | `traceEvents` | read | 30000 ms | no | yes | Read recent bounded trace events. |
+| `chrome_bridge_diagnostics` | `diagnostics` | read | 30000 ms | no | yes | Read bounded page, trace, network-count, resource, and performance diagnostics without raw event logs. |
 | `chrome_bridge_trace_stop` | `traceStop` | system | 30000 ms | no | yes | Stop tracing and return recent events. |
 | `chrome_bridge_history_search` | `historySearch` | private-read | 30000 ms | yes | yes | Search Chrome history with explicit confirmation. |
 | `chrome_bridge_bookmarks_search` | `bookmarksSearch` | private-read | 30000 ms | yes | yes | Search Chrome bookmarks with explicit confirmation. |

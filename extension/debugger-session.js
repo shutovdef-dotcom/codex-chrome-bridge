@@ -190,7 +190,48 @@ export function traceSummaryForTab(tabId, tab = null) {
     startedAt: session?.startedAt,
     eventCount: session?.events?.length || 0,
     maxEvents: session?.maxEvents || MAX_TRACE_EVENTS,
+    eventSummary: traceEventSummary(session?.events || []),
   };
+}
+
+export function traceEventSummary(events = []) {
+  const summary = {
+    console: {
+      count: 0,
+      byLevel: {},
+    },
+    network: {
+      requestCount: 0,
+      responseCount: 0,
+      failedCount: 0,
+      statusCounts: {},
+      resourceTypes: {},
+    },
+  };
+
+  for (const event of events) {
+    if (event.kind === 'console' || event.kind === 'log') {
+      summary.console.count += 1;
+      const level = String(event.level || 'unknown');
+      summary.console.byLevel[level] = (summary.console.byLevel[level] || 0) + 1;
+      continue;
+    }
+
+    if (event.kind === 'network.request') summary.network.requestCount += 1;
+    if (event.kind === 'network.response') {
+      summary.network.responseCount += 1;
+      const status = String(event.status || 'unknown');
+      summary.network.statusCounts[status] = (summary.network.statusCounts[status] || 0) + 1;
+    }
+    if (event.kind === 'network.failed') summary.network.failedCount += 1;
+
+    if (String(event.kind || '').startsWith('network.')) {
+      const resourceType = String(event.resourceType || 'unknown');
+      summary.network.resourceTypes[resourceType] = (summary.network.resourceTypes[resourceType] || 0) + 1;
+    }
+  }
+
+  return summary;
 }
 
 export function traceEventsForTab(tab, payload = {}) {

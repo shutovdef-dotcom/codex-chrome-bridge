@@ -15,6 +15,7 @@ import {
   commandDefaultTimeoutMs,
 } from '../shared/command-registry.mjs';
 import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
+import { summarizeDiagnosticsOutput } from '../shared/diagnostics-output.mjs';
 import { formatReadOutput } from '../shared/output-envelope.mjs';
 
 const BRIDGE_URL = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
@@ -391,6 +392,19 @@ async function debugBundle(args = {}) {
     files: manifest.files,
     createdAt,
   };
+}
+
+async function diagnostics(args = {}) {
+  const result = await bridgeCommand('diagnostics', {
+    tabId: args.tabId,
+    allowExternal: args.allowExternal,
+  }, 30_000);
+  const artifactPath = args.out ? path.resolve(args.out) : null;
+  if (artifactPath) {
+    await fs.mkdir(path.dirname(artifactPath), { recursive: true });
+    await fs.writeFile(artifactPath, `${JSON.stringify(result, null, 2)}\n`);
+  }
+  return summarizeDiagnosticsOutput(result, { artifactPath });
 }
 
 const server = new McpServer({
@@ -1068,6 +1082,17 @@ server.tool(
     allowExternal: z.boolean().optional(),
   },
   async (args) => textResult(await bridgeCommand('traceEvents', args, 30_000)),
+);
+
+server.tool(
+  'chrome_bridge_diagnostics',
+  'Read bounded page, trace, network-count, resource, and performance diagnostics without returning raw event logs, resource URLs, or request/response bodies.',
+  {
+    tabId: chromeIdSchema.optional(),
+    out: z.string().optional(),
+    allowExternal: z.boolean().optional(),
+  },
+  async (args) => textResult(await diagnostics(args)),
 );
 
 server.tool(

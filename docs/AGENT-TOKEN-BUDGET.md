@@ -24,7 +24,10 @@ node ./bin/chrome-bridge.mjs links --selector main
 node ./bin/chrome-bridge.mjs tables --selector main
 node ./bin/chrome-bridge.mjs last-artifact
 node ./bin/chrome-bridge.mjs read-artifact --path /tmp/page.txt --head 40 --grep "needle"
+node ./bin/chrome-bridge.mjs diagnostics --out /tmp/chrome-bridge-diagnostics.json
 ```
+
+Use `diagnostics --out <file>` before `trace-events` or `debug-bundle` when possible. It keeps stdout to bounded page, performance, resource, and trace counts while preserving a local artifact for follow-up.
 
 For live verification:
 

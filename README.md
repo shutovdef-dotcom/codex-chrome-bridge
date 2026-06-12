@@ -45,7 +45,7 @@ Codex Chrome Bridge is for logged-in, human-owned Chrome workflows:
 - Export helpers: save screenshots and print the current tab to PDF locally.
 - Controlled interactions: clicks, typing, keyboard, select boxes, hover, and scroll.
 - Workflow helpers: privacy-preserving select option discovery and form fill previews, dialog handling, and file input uploads.
-- Debugging tools: bounded console/network trace through Chrome Debugger/CDP.
+- Debugging tools: bounded diagnostics, page performance/resource summaries, and console/network trace through Chrome Debugger/CDP.
 - Browser data tools: guarded history, bookmarks, cookies, page storage, and extension-context fetch.
 - Human-in-the-loop: local prompt tab for user choices, manual confirmations, and CAPTCHA coordination.
 - Policy-aware diagnostics: session summaries and redacted debug bundles include workspace policy state; debug bundles omit page artifacts and full trace events unless explicitly requested.
@@ -129,6 +129,7 @@ node ./bin/chrome-bridge.mjs links --selector "main"
 node ./bin/chrome-bridge.mjs tables --selector "main"
 node ./bin/chrome-bridge.mjs read-artifact --path /tmp/page.txt --head 40 --grep "payout"
 node ./bin/chrome-bridge.mjs extract --preset cpa-offer --network leads_su --out /tmp/offer.json
+node ./bin/chrome-bridge.mjs diagnostics --out /tmp/chrome-bridge-diagnostics.json
 node ./bin/chrome-bridge.mjs screenshot --out /tmp/page.png --full-page --max-pixels 50000000 --fallback viewport
 ```
 
@@ -175,6 +176,7 @@ node ./bin/chrome-bridge.mjs extract --kind forms
 
 # Export or debug locally when needed.
 node ./bin/chrome-bridge.mjs pdf --out /tmp/chrome-bridge.pdf
+node ./bin/chrome-bridge.mjs diagnostics --out /tmp/chrome-bridge-diagnostics.json
 node ./bin/chrome-bridge.mjs debug-bundle --out /tmp/chrome-bridge-debug
 ```
 
@@ -208,6 +210,7 @@ Useful MCP tools:
 - `chrome_bridge_pdf`
 - `chrome_bridge_trace_start`
 - `chrome_bridge_trace_summary`
+- `chrome_bridge_diagnostics`
 - `chrome_bridge_cookies_list`
 - `chrome_bridge_storage_snapshot`
 - `chrome_bridge_ask_user`

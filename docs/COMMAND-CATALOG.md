@@ -26,6 +26,7 @@ Version: 0.4.1
 | snapshot | read | read | 30000 ms | snapshot | chrome_bridge_snapshot | no | tabId, allowExternal, maxChars, fullPage, waitForText, waitForPattern, scrollStepPx, maxScrollSteps, scrollDelayMs | Read a bounded structured page snapshot with optional full-page rendered text coverage. |
 | text | read | read | 30000 ms | text | chrome_bridge_text | no | tabId, allowExternal, maxChars, fullPage, waitForText, waitForPattern, scrollStepPx, maxScrollSteps, scrollDelayMs | Read bounded visible page text with optional full-page scroll-walk coverage. |
 | html | read | read | 30000 ms | html | chrome_bridge_html | no | tabId, allowExternal, maxChars, selector, outer | Read bounded page HTML for a selector or the whole document. |
+| diagnostics | debug | read | 30000 ms | diagnostics | chrome_bridge_diagnostics | no | tabId, allowExternal | Read bounded page, trace, network-count, resource, and performance diagnostics without raw event logs. |
 | screenshot | artifact | read | 30000 ms | screenshot | chrome_bridge_screenshot | no | tabId, allowExternal, fullPage, selector, maxPixels, fallback | Capture a PNG screenshot of the selected tab, full page, or selector. |
 | printPdf | artifact | read | 60000 ms | pdf | chrome_bridge_pdf | no | tabId, allowExternal, landscape, printBackground, preferCssPageSize, pageRanges, scale | Print the selected tab to a local PDF artifact. |
 | listSelectOptions | read | read | 30000 ms | select-options | chrome_bridge_select_options | no | tabId, allowExternal, selector | Read available select options without returning current selection state. |
@@ -120,6 +121,7 @@ chrome-bridge upload-file --selector <css> (--file <path> | --files-json <json>)
 chrome-bridge trace-start --confirm [--tab <id>] [--max-events 500] [--no-network] [--no-console] [--include-extension-events] [--allow-external]
 chrome-bridge trace-summary [--tab <id>] [--allow-external]
 chrome-bridge trace-events [--tab <id>] [--limit 100] [--allow-external]
+chrome-bridge diagnostics [--tab <id>] [--out <file>] [--allow-external]
 chrome-bridge trace-stop [--tab <id>] [--limit 100] [--allow-external]
 chrome-bridge history [--query <text>] --confirm [--limit 25] [--start-time <ms>] [--end-time <ms>]
 chrome-bridge bookmarks [--query <text>] --confirm [--limit 50]
