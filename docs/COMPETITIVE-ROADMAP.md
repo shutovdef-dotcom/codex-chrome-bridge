@@ -324,9 +324,10 @@ This repository iteration implements the merged Phase 0-4 roadmap:
 
 After this change set lands cleanly, the highest-value next implementation is:
 
-1. Add schema-backed structured extraction presets beyond `cpa-offer` only when they preserve metadata-first stdout and local artifact storage.
-2. Add download/offline-export discovery before attempting any heavier cloud-browser or crawler-style work.
-3. Add optional Lighthouse result ingestion after the handoff path is stable, keeping raw reports local and exposing only scores, failing audits, and artifact paths by default.
+1. Close the P0 items from the [UBS bug scan and fix plan](UBS-BUG-SCAN-2026-06-12.md): abortable fetch boundaries and safe metadata merges.
+2. Add schema-backed structured extraction presets beyond `cpa-offer` only when they preserve metadata-first stdout and local artifact storage.
+3. Add download/offline-export discovery before attempting any heavier cloud-browser or crawler-style work.
+4. Add optional Lighthouse result ingestion after the handoff path is stable, keeping raw reports local and exposing only scores, failing audits, and artifact paths by default.
 
 That sequence keeps the product close to its strongest differentiator: safe local control of the user's real Chrome profile with small, agent-friendly outputs.
 

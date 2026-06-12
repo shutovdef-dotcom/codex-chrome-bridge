@@ -262,6 +262,7 @@ codex/      optional Codex skill handoff
 | Safety and privacy | [docs/SAFETY.md](docs/SAFETY.md) |
 | Agent token budget | [docs/AGENT-TOKEN-BUDGET.md](docs/AGENT-TOKEN-BUDGET.md) |
 | Competitive analysis and roadmap | [docs/COMPETITIVE-ROADMAP.md](docs/COMPETITIVE-ROADMAP.md) |
+| UBS bug scan and fix plan | [docs/UBS-BUG-SCAN-2026-06-12.md](docs/UBS-BUG-SCAN-2026-06-12.md) |
 | Publishing checklist | [docs/PUBLISHING.md](docs/PUBLISHING.md) |
 | AI-readable project summary | [llms.txt](llms.txt) |
 
