@@ -263,6 +263,13 @@ if (isRepositoryCheckout || checkWorkflowText) {
 check(packageContentsCheckerText.includes('REQUIRED_PACKAGE_FILES'), 'package contents checker must declare required package files');
 for (const requiredPackageFile of [
   'shared/command-registry.mjs',
+  'shared/registry/actions.mjs',
+  'shared/registry/metadata.mjs',
+  'shared/registry/cli-usage.mjs',
+  'shared/registry/surfaces.mjs',
+  'shared/registry/generated-docs.mjs',
+  'shared/registry/validation.mjs',
+  'shared/registry/index.mjs',
   'shared/diagnostics-output.mjs',
   'shared/download-discovery.mjs',
   'shared/fetch-timeout.mjs',
@@ -290,7 +297,9 @@ for (const requiredPackageFile of [
   'docs/COMPETITIVE-ROADMAP.md',
   'docs/DISTRIBUTION.md',
   'scripts/checks/contracts/check-command-registry.mjs',
+  'scripts/checks/contracts/check-registry-module-boundaries.mjs',
   'scripts/checks/contracts/check-bridge-contract.mjs',
+  'scripts/checks/lib/registry-source.mjs',
   'scripts/docs/check-docs-coverage.mjs',
   'scripts/checks/release/check-roadmap-coverage.mjs',
   'scripts/package/check-package-contents.mjs',

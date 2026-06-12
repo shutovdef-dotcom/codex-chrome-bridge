@@ -1487,6 +1487,21 @@ function checkIncludes(text, needles, label) {
   }));
 }
 
+async function readSelfTestRegistrySource(paths) {
+  const files = [
+    paths.registry,
+    paths.registryActions,
+    paths.registryMetadata,
+    paths.registryCliUsage,
+    paths.registrySurfaces,
+    paths.registryGeneratedDocs,
+    paths.registryValidation,
+    paths.registryIndex,
+  ];
+  const parts = await Promise.all(files.map((filePath) => fs.readFile(filePath, 'utf8').catch(() => '')));
+  return parts.join('\n');
+}
+
 async function selfTest() {
   const paths = {
     manifest: path.join(rootDir, 'extension/manifest.json'),
@@ -1518,6 +1533,13 @@ async function selfTest() {
     cli: path.join(rootDir, 'bin/chrome-bridge.mjs'),
     mcp: path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'),
     registry: path.join(rootDir, 'shared/command-registry.mjs'),
+    registryActions: path.join(rootDir, 'shared/registry/actions.mjs'),
+    registryMetadata: path.join(rootDir, 'shared/registry/metadata.mjs'),
+    registryCliUsage: path.join(rootDir, 'shared/registry/cli-usage.mjs'),
+    registrySurfaces: path.join(rootDir, 'shared/registry/surfaces.mjs'),
+    registryGeneratedDocs: path.join(rootDir, 'shared/registry/generated-docs.mjs'),
+    registryValidation: path.join(rootDir, 'shared/registry/validation.mjs'),
+    registryIndex: path.join(rootDir, 'shared/registry/index.mjs'),
     outputEnvelope: path.join(rootDir, 'shared/output-envelope.mjs'),
     runTabs: path.join(rootDir, 'shared/run-tabs.mjs'),
     structuredExtract: path.join(rootDir, 'shared/structured-extract.mjs'),
@@ -1531,6 +1553,7 @@ async function selfTest() {
     bridgeContractChecker: path.join(rootDir, 'scripts/checks/contracts/check-bridge-contract.mjs'),
     docsCoverageChecker: path.join(rootDir, 'scripts/docs/check-docs-coverage.mjs'),
     packageContentsChecker: path.join(rootDir, 'scripts/package/check-package-contents.mjs'),
+    registrySourceHelper: path.join(rootDir, 'scripts/checks/lib/registry-source.mjs'),
     privacyScanner: path.join(rootDir, 'scripts/checks/release/check-privacy-scan.mjs'),
     roadmapNextSliceChecker: path.join(rootDir, 'scripts/checks/features/check-roadmap-next-slice.mjs'),
     packageJson: path.join(rootDir, 'package.json'),
@@ -1606,7 +1629,7 @@ async function selfTest() {
     fs.readFile(paths.server, 'utf8'),
     fs.readFile(paths.cli, 'utf8'),
     fs.readFile(paths.mcp, 'utf8'),
-    fs.readFile(paths.registry, 'utf8'),
+    readSelfTestRegistrySource(paths),
     fs.readFile(paths.runTabs, 'utf8'),
     fs.readFile(paths.structuredExtract, 'utf8'),
     fs.readFile(paths.downloadDiscovery, 'utf8'),
@@ -1652,6 +1675,13 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.cli]),
     tryExec(process.execPath, ['--check', paths.mcp]),
     tryExec(process.execPath, ['--check', paths.registry]),
+    tryExec(process.execPath, ['--check', paths.registryActions]),
+    tryExec(process.execPath, ['--check', paths.registryMetadata]),
+    tryExec(process.execPath, ['--check', paths.registryCliUsage]),
+    tryExec(process.execPath, ['--check', paths.registrySurfaces]),
+    tryExec(process.execPath, ['--check', paths.registryGeneratedDocs]),
+    tryExec(process.execPath, ['--check', paths.registryValidation]),
+    tryExec(process.execPath, ['--check', paths.registryIndex]),
     tryExec(process.execPath, ['--check', paths.outputEnvelope]),
     tryExec(process.execPath, ['--check', paths.runTabs]),
     tryExec(process.execPath, ['--check', paths.structuredExtract]),
@@ -1664,6 +1694,7 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.bridgeContractChecker]),
     tryExec(process.execPath, ['--check', paths.docsCoverageChecker]),
     tryExec(process.execPath, ['--check', paths.packageContentsChecker]),
+    tryExec(process.execPath, ['--check', paths.registrySourceHelper]),
     tryExec(process.execPath, ['--check', paths.privacyScanner]),
     tryExec(process.execPath, ['--check', paths.roadmapNextSliceChecker]),
   ]);

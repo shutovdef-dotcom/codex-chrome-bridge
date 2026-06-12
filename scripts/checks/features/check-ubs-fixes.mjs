@@ -8,6 +8,7 @@ import {
   runStatePath,
 } from '../../../shared/run-tabs.mjs';
 import { validateCommandPayload } from '../../../shared/command-registry.mjs';
+import { readRegistrySource } from '../lib/registry-source.mjs';
 import { fetchUrl } from '../../../extension/browser-data.js';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -34,7 +35,7 @@ async function checkSourceSurface() {
     askText,
   ] = await Promise.all([
     readProjectFile('package.json'),
-    readProjectFile('shared/command-registry.mjs'),
+    readRegistrySource(rootDir),
     readProjectFile('bin/chrome-bridge.mjs'),
     readProjectFile('mcp/chrome-bridge-mcp.mjs'),
     readProjectFile('extension/browser-data.js'),

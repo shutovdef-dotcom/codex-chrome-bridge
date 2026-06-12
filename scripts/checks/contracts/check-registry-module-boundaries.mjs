@@ -32,6 +32,13 @@ const modules = [
   'shared/registry/index.mjs',
 ];
 
+const syntaxCheckedFiles = [
+  'shared/command-registry.mjs',
+  ...modules,
+  'scripts/checks/lib/registry-source.mjs',
+  'scripts/checks/contracts/check-registry-module-boundaries.mjs',
+];
+
 for (const modulePath of modules) {
   check(await exists(modulePath), `registry module is missing: ${modulePath}`);
 }
@@ -39,7 +46,12 @@ for (const modulePath of modules) {
 check(wrapperText.trim() === "export * from './registry/index.mjs';", 'shared/command-registry.mjs must stay as a stable re-export wrapper');
 check((wrapperText.match(/\n/g) || []).length <= 1, 'shared/command-registry.mjs wrapper must stay tiny');
 check(packageJson.scripts?.['check:registry-modules'] === 'node ./scripts/checks/contracts/check-registry-module-boundaries.mjs', 'package.json must expose check:registry-modules');
-check(packageJson.scripts?.check?.includes('node --check ./scripts/checks/contracts/check-registry-module-boundaries.mjs'), 'npm run check must syntax-check check-registry-module-boundaries');
+for (const syntaxCheckedFile of syntaxCheckedFiles) {
+  check(
+    packageJson.scripts?.check?.includes(`node --check ./${syntaxCheckedFile}`),
+    `npm run check must syntax-check ${syntaxCheckedFile}`,
+  );
+}
 check(packageJson.scripts?.check?.includes('npm run check:registry-modules'), 'npm run check must run check:registry-modules');
 
 const actionsText = await read('shared/registry/actions.mjs');

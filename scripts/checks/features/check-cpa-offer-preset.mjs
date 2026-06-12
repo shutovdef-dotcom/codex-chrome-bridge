@@ -11,6 +11,7 @@ import {
   extractCpaOffer,
 } from '../../../shared/cpa-offer-extract.mjs';
 import { validateCommandPayload } from '../../../shared/command-registry.mjs';
+import { readRegistrySource } from '../lib/registry-source.mjs';
 
 const execFileAsync = promisify(execFile);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -271,7 +272,7 @@ async function checkCliPreset(tmpDir) {
 async function checkSurface() {
   const [packageText, registry, cli, mcp] = await Promise.all([
     fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
-    fs.readFile(path.join(rootDir, 'shared/command-registry.mjs'), 'utf8'),
+    readRegistrySource(rootDir),
     fs.readFile(path.join(rootDir, 'bin/chrome-bridge.mjs'), 'utf8'),
     fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
   ]);

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { formatReadOutput } from '../../../shared/output-envelope.mjs';
 import { validateCommandPayload } from '../../../shared/command-registry.mjs';
+import { readRegistrySource } from '../lib/registry-source.mjs';
 
 const execFileAsync = promisify(execFile);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -188,7 +189,7 @@ async function checkCliSizeAwareScreenshot(tmpDir) {
 async function checkSurface() {
   const [packageText, registry, cli, mcp, pageArtifacts] = await Promise.all([
     fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
-    fs.readFile(path.join(rootDir, 'shared/command-registry.mjs'), 'utf8'),
+    readRegistrySource(rootDir),
     fs.readFile(path.join(rootDir, 'bin/chrome-bridge.mjs'), 'utf8'),
     fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
     fs.readFile(path.join(rootDir, 'extension/page-artifacts.js'), 'utf8'),
