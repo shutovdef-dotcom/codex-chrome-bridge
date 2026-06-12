@@ -5,6 +5,6 @@ export function reloadExtension(payload = {}) {
   setTimeout(() => chrome.runtime.reload(), 100);
   return {
     reloading: true,
-    message: 'Codex Chrome Bridge extension reload requested',
+    message: 'Chrome MCP Bridge extension reload requested',
   };
 }

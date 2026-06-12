@@ -139,7 +139,7 @@ if (parsed) {
     'coverage plan nextCommand must point at the first live verification prep step',
   );
   check(
-    parsed.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    parsed.nextAction?.includes('Reload the unpacked Chrome MCP Bridge extension'),
     'coverage plan top-level nextAction must explain the first live verification action',
   );
   check(
@@ -147,7 +147,7 @@ if (parsed) {
     'coverage plan verification metadata must include the first live verification command',
   );
   check(
-    parsed.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    parsed.verification?.nextAction?.includes('Reload the unpacked Chrome MCP Bridge extension'),
     'coverage plan verification metadata must include the first live verification action',
   );
   check(
@@ -241,7 +241,7 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
     'stale-extension top-level nextCommand must point at extension reload',
   );
   check(
-    staleParsed.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    staleParsed.nextAction?.includes('Reload the unpacked Chrome MCP Bridge extension'),
     'stale-extension top-level nextAction must explain the reload action',
   );
   check(
@@ -249,7 +249,7 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
     'stale-extension verification metadata must point at extension reload as the next command',
   );
   check(
-    staleParsed.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    staleParsed.verification?.nextAction?.includes('Reload the unpacked Chrome MCP Bridge extension'),
     'stale-extension verification metadata must explain the next reload action',
   );
   check(staleParsed.verification?.observed?.extensionVersion === staleExtensionVersion, 'stale-extension verification metadata must include observed extension version');

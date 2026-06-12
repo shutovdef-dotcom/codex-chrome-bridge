@@ -163,7 +163,7 @@ if (coveragePlanParsed) {
     'MCP coverage-plan nextCommand must point at the first live verification prep step',
   );
   check(
-    coveragePlanParsed.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    coveragePlanParsed.nextAction?.includes('Reload the unpacked Chrome MCP Bridge extension'),
     'MCP coverage-plan top-level nextAction must explain the first live verification action',
   );
   check(
@@ -171,7 +171,7 @@ if (coveragePlanParsed) {
     'MCP coverage-plan verification metadata must include the first live verification command',
   );
   check(
-    coveragePlanParsed.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    coveragePlanParsed.verification?.nextAction?.includes('Reload the unpacked Chrome MCP Bridge extension'),
     'MCP coverage-plan verification metadata must include the first live verification action',
   );
   check(coveragePlanParsed.verification?.status === 'not-run', 'MCP coverage-plan verification status must be not-run');
@@ -258,7 +258,7 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
     'MCP stale-extension top-level nextCommand must point at extension reload',
   );
   check(
-    staleParsed.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    staleParsed.nextAction?.includes('Reload the unpacked Chrome MCP Bridge extension'),
     'MCP stale-extension top-level nextAction must explain the reload action',
   );
   check(
@@ -266,7 +266,7 @@ await withStaleHealthServer(async (bridgeUrl, staleExtensionVersion) => {
     'MCP stale-extension verification metadata must point at extension reload as the next command',
   );
   check(
-    staleParsed.verification?.nextAction?.includes('Reload the unpacked Codex Chrome Bridge extension'),
+    staleParsed.verification?.nextAction?.includes('Reload the unpacked Chrome MCP Bridge extension'),
     'MCP stale-extension verification metadata must explain the next reload action',
   );
   check(staleParsed.verification?.observed?.extensionVersion === staleExtensionVersion, 'MCP stale-extension verification metadata must include observed extension version');

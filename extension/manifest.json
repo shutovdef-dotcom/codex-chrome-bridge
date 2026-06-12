@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Codex Chrome Bridge",
+  "name": "Chrome MCP Bridge",
   "version": "0.4.1",
-  "description": "Local read-mostly bridge for Codex to inspect a dedicated Chrome tab.",
+  "description": "Local read-mostly Chrome MCP bridge for AI agents.",
   "permissions": [
     "activeTab",
     "alarms",
@@ -24,6 +24,6 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Codex Chrome Bridge"
+    "default_title": "Chrome MCP Bridge"
   }
 }

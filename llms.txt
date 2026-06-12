@@ -1,17 +1,19 @@
-# Codex Chrome Bridge
+# Chrome MCP Bridge
 
-> Local Chrome extension, CLI, and MCP server for read-mostly control of a real Google Chrome profile from Codex-style agents.
+> Local Chrome extension, CLI, and MCP server for read-mostly control of a real logged-in Google Chrome profile from AI agents.
 
-Codex Chrome Bridge helps AI agents work with the user's own logged-in Chrome session while staying scoped to a dedicated Chrome tab group and requiring explicit confirmation for sensitive actions.
+Chrome MCP Bridge, formerly Codex Chrome Bridge, helps AI agents work with the user's own logged-in Chrome session while staying scoped to a dedicated Chrome tab group and requiring explicit confirmation for sensitive actions.
 
 It exposes read-first browser automation through CLI and MCP tools including tab adoption, workspace policy status, a local command catalog, observe/find-elements, structured extraction, screenshots, PDF export, safe debug bundles, and confirmed interaction helpers.
+
+It is stdio-MCP compatible with Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic MCP clients. Use `chrome-bridge mcp-config` or `chrome_bridge_mcp_config` to print client-specific setup snippets. Cursor and Windsurf snippets use `CHROME_BRIDGE_MCP_TOOL_PROFILE=core` to keep the active tool surface compact for IDE agents.
 
 Verification is intentionally staged: `npm run check`, `npm run check:runtime-smoke-plan`, `npm run check:roadmap`, `npm run check:cli-local-tools`, `npm run check:mcp-runtime-smoke`, `npm run check:mcp-local-tools`, `npm run check:tab-group-persistence`, and `npm run check:privacy` are offline; `npm run runtime-smoke:plan` prints the live smoke checklist without contacting Chrome or the bridge; `check:roadmap` also exposes a machine-readable `deferredLiveVerification` runbook with the pending live gate, final CLI commands, final MCP calls, success criteria, and required live coverage items; live verification should run only when no other session is using the bridge and follows `reload-extension --confirm`, `doctor --live-checks`, then `runtime-smoke`; skipped or failed smoke outputs expose top-level `nextCommand` / `nextAction` plus `verification.nextCommand` / `verification.nextAction`; completion requires `ok: true`, `coverage.ok: true`, `verification.status: "passed"`, and `finalVerificationComplete: true`.
 
 ## Best for
 
 - MCP browser automation with a real Chrome profile.
-- Codex-style AI agents that need local browser tools.
+- AI agents that need local browser tools in Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, or another MCP client.
 - Logged-in dashboard inspection for analytics, webmaster tools, admin panels, and extension-authenticated pages.
 - Human-in-the-loop browser workflows where the user can confirm sensitive actions.
 - Privacy-aware local browser control through a Chrome Manifest V3 extension, CLI, MCP server, and explicit workspace policy.
@@ -29,11 +31,13 @@ Verification is intentionally staged: `npm run check`, `npm run check:runtime-sm
 
 - `README.md` - overview, quick start, MCP setup, and safety model.
 - `docs/MCP.md` - MCP server and tool reference.
+- `docs/COMPATIBILITY.md` - Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic MCP client setup.
 - `docs/CLI.md` - command-line reference.
 - `docs/EXTENSION.md` - Chrome extension setup.
 - `docs/SAFETY.md` - privacy, confirmations, and sensitive-data rules.
 - `docs/ARCHITECTURE.md` - system architecture.
+- `docs/DISTRIBUTION.md` - distribution, GitHub SEO, package keywords, and rebrand boundaries.
 
 ## Discovery phrases
 
-Codex Chrome Bridge, Chrome MCP server, Chrome extension MCP bridge, MCP browser automation, AI agent browser tools, real Chrome profile automation, logged-in Chrome automation, local-first browser automation, privacy-aware browser automation, Codex browser control, human-in-the-loop browser automation, browser observe tools, structured browser extraction, Chrome workspace policy.
+Chrome MCP Bridge, Codex Chrome Bridge, Chrome MCP server, Chrome extension MCP bridge, MCP browser automation, AI agent browser tools, Claude Code browser MCP, Cursor browser MCP, Windsurf browser MCP, Hermes Agent MCP, VS Code MCP browser tools, real Chrome profile automation, logged-in Chrome automation, local-first browser automation, privacy-aware browser automation, Codex browser control, human-in-the-loop browser automation, browser observe tools, structured browser extraction, Chrome workspace policy.

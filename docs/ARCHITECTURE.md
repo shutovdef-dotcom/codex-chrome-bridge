@@ -1,6 +1,6 @@
 # Architecture
 
-Codex Chrome Bridge has four runtime pieces.
+Chrome MCP Bridge, formerly Codex Chrome Bridge, has four runtime pieces.
 
 ## Chrome Extension
 
@@ -63,6 +63,7 @@ It defines:
 - CLI usage signatures used by `chrome-bridge --help`
 - CLI reference usage groups used by `npm run docs:commands`
 - MCP tool names
+- local MCP client setup metadata exposed through `mcp-config` / `chrome_bridge_mcp_config`
 - server payload schemas for direct `/command` callers
 - per-action risk tiers and default timeout metadata
 - debugger-backed actions that must be serialized per tab
@@ -88,7 +89,9 @@ It also contains:
 
 ## MCP Server
 
-`mcp/chrome-bridge-mcp.mjs` exposes the same browser surface as MCP tools over stdio.
+`mcp/chrome-bridge-mcp.mjs` exposes the same browser surface as MCP tools over stdio for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic MCP clients.
+
+The MCP server supports `CHROME_BRIDGE_MCP_TOOL_PROFILE=full|core|read`. The default `full` profile exposes every tool. The `core` profile keeps the active tool list compact for IDE clients and omits sensitive private-browser tools by default, while `read` favors conservative read-mostly inspection.
 
 The MCP server is intentionally thin:
 

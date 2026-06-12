@@ -71,11 +71,12 @@ Version: 0.4.1
 | download-discovery | read | read | 30000 ms | download-discovery | chrome_bridge_download_discovery | yes | Discover download and offline-export candidates without clicking or fetching candidate URLs. |
 | lighthouse-ingest | diagnostic | read | 5000 ms | lighthouse-ingest | chrome_bridge_lighthouse_ingest | no | Summarize a local Lighthouse JSON report into scores and failing audits. |
 | command-catalog | diagnostic | read | 5000 ms | command-catalog | chrome_bridge_command_catalog | no | Print this shared command registry as JSON or Markdown. |
+| mcp-config | diagnostic | read | 5000 ms | mcp-config | chrome_bridge_mcp_config | no | Print MCP client configuration snippets for Claude Code, Cursor, Codex, VS Code, Windsurf, Hermes, or generic stdio clients. |
 | self-test | verification | read | 10000 ms | self-test | chrome_bridge_self_test | no | Run static project parity checks without touching Chrome. |
 | runtime-smoke | verification | interaction | 180000 ms | runtime-smoke | chrome_bridge_runtime_smoke | yes | Run the real-browser fixture smoke test against the live bridge. |
 | doctor | diagnostic | read | 10000 ms | doctor | chrome_bridge_doctor | optional | Inspect local installation paths offline; pass --live-checks to probe bridge health and Chrome settings. |
 | extension-path | diagnostic | read | 5000 ms | extension-path | chrome_bridge_extension_path | no | Print the unpacked extension directory path. |
-| codex-config | diagnostic | read | 5000 ms | codex-config | chrome_bridge_codex_config | no | Print a Codex MCP configuration snippet using the current Node executable. |
+| codex-config | diagnostic | read | 5000 ms | codex-config | chrome_bridge_codex_config | no | Print the legacy Codex MCP configuration snippet using the current Node executable. |
 
 ## CLI Usage Signatures
 
@@ -141,6 +142,7 @@ chrome-bridge status [--token-budget]
 chrome-bridge last-artifact [--artifact-dir <dir>]
 chrome-bridge read-artifact --path <file> [--head <n>] [--grep <regex>] [--max-matches <n>]
 chrome-bridge command-catalog [--markdown]
+chrome-bridge mcp-config [--client all|claude-code|cursor|codex|vscode|windsurf|hermes|generic]
 chrome-bridge reload-extension --confirm
 chrome-bridge self-test
 chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan] [--summary-only] [--out <file>]

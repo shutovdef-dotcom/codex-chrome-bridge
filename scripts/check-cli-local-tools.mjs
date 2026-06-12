@@ -1037,6 +1037,21 @@ const extensionPathResult = await runCli(['extension-path']);
 check(extensionPathResult.ok, 'CLI extension-path must succeed offline');
 check(extensionPathResult.stdout.trim().endsWith('/extension'), 'CLI extension-path must return the unpacked extension path');
 
+const mcpConfigResult = await runCli(['mcp-config']);
+check(mcpConfigResult.ok, 'CLI mcp-config must succeed offline');
+check(mcpConfigResult.stdout.includes('## Claude Code'), 'CLI mcp-config must include Claude Code setup');
+check(mcpConfigResult.stdout.includes('## Cursor'), 'CLI mcp-config must include Cursor setup');
+check(mcpConfigResult.stdout.includes('## VS Code'), 'CLI mcp-config must include VS Code setup');
+check(mcpConfigResult.stdout.includes('## Windsurf / Cascade'), 'CLI mcp-config must include Windsurf setup');
+check(mcpConfigResult.stdout.includes('## Hermes Agent'), 'CLI mcp-config must include Hermes setup');
+check(mcpConfigResult.stdout.includes('mcp/chrome-bridge-mcp.mjs'), 'CLI mcp-config must point at the local MCP server file');
+
+const cursorMcpConfigResult = await runCli(['mcp-config', '--client', 'cursor']);
+check(cursorMcpConfigResult.ok, 'CLI mcp-config --client cursor must succeed offline');
+check(cursorMcpConfigResult.stdout.includes('"mcpServers"'), 'CLI cursor mcp-config must return mcpServers JSON');
+check(cursorMcpConfigResult.stdout.includes('"CHROME_BRIDGE_MCP_TOOL_PROFILE": "core"'), 'CLI cursor mcp-config must recommend the compact MCP tool profile');
+check(!cursorMcpConfigResult.stdout.includes('## Hermes Agent'), 'CLI mcp-config --client cursor must not print every client section');
+
 const codexConfigResult = await runCli(['codex-config']);
 check(codexConfigResult.ok, 'CLI codex-config must succeed offline');
 check(codexConfigResult.stdout.includes('[mcp_servers.chrome-bridge]'), 'CLI codex-config must return a Codex MCP server section');
@@ -1067,7 +1082,7 @@ if (failures.length) {
 
 process.stdout.write(`${JSON.stringify({
   ok: true,
-  checkedCommands: ['doctor', 'extension-path', 'codex-config', 'command-catalog'],
+  checkedCommands: ['doctor', 'extension-path', 'mcp-config', 'codex-config', 'command-catalog'],
   doctorOfflineByDefault: true,
   doctorLiveBridgeCurrent: liveDoctorBridgeCurrent,
   serverPortChecks,

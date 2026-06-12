@@ -80,12 +80,13 @@ The command metadata table below is generated from the shared registry by `npm r
 | `last-artifact` | `last-artifact` | read | 5000 ms | no | no | Print metadata for the latest artifact recorded by metadata-first read outputs. |
 | `read-artifact` | `read-artifact` | read | 5000 ms | no | no | Read a small head and grep slice from a local artifact without dumping the full file. |
 | `command-catalog` | `command-catalog` | read | 5000 ms | no | no | Print this shared command registry as JSON or Markdown. |
+| `mcp-config` | `mcp-config` | read | 5000 ms | no | no | Print MCP client configuration snippets for Claude Code, Cursor, Codex, VS Code, Windsurf, Hermes, or generic stdio clients. |
 | `reload-extension` | `reloadExtension` | system | 5000 ms | yes | yes | Ask the unpacked extension to reload itself after local file edits; requires confirmation. |
 | `self-test` | `self-test` | read | 10000 ms | no | no | Run static project parity checks without touching Chrome. |
 | `runtime-smoke` | `runtime-smoke` | interaction | 180000 ms | no | yes | Run the real-browser fixture smoke test against the live bridge. |
 | `doctor` | `doctor` | read | 10000 ms | no | optional | Inspect local installation paths offline; pass --live-checks to probe bridge health and Chrome settings. |
 | `extension-path` | `extension-path` | read | 5000 ms | no | no | Print the unpacked extension directory path. |
-| `codex-config` | `codex-config` | read | 5000 ms | no | no | Print a Codex MCP configuration snippet using the current Node executable. |
+| `codex-config` | `codex-config` | read | 5000 ms | no | no | Print the legacy Codex MCP configuration snippet using the current Node executable. |
 <!-- END GENERATED CLI REFERENCE -->
 
 ## Safety Notes
@@ -111,6 +112,7 @@ chrome-bridge status [--token-budget]
 chrome-bridge windows [--all --confirm] [--group-title <title>] [--group-color <color>]
 chrome-bridge doctor [--live-checks] [--copy-path] [--open-extensions]
 chrome-bridge extension-path
+chrome-bridge mcp-config [--client all|claude-code|cursor|codex|vscode|windsurf|hermes|generic]
 chrome-bridge codex-config
 chrome-bridge command-catalog [--markdown]
 chrome-bridge lighthouse-ingest --report <file> [--out <file>] [--max-audits 25]

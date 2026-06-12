@@ -268,7 +268,9 @@ for (const requiredPackageFile of [
   'extension/safety-gates.js',
   'extension/workspace-policy.js',
   'docs/COMMAND-CATALOG.md',
+  'docs/COMPATIBILITY.md',
   'docs/COMPETITIVE-ROADMAP.md',
+  'docs/DISTRIBUTION.md',
   'scripts/check-command-registry.mjs',
   'scripts/check-bridge-contract.mjs',
   'scripts/check-docs-coverage.mjs',
@@ -623,6 +625,9 @@ check(functionBlock(cliText, 'doctor').includes('Pass --live-checks'), 'CLI doct
 check(functionBlock(cliText, 'doctor').includes('runtime-smoke --coverage-plan'), 'CLI doctor offline mode must recommend the offline runtime smoke coverage plan');
 check(functionBlock(cliText, 'doctor').includes('expectedBridgeVersion'), 'CLI doctor live checks must report expected bridge version');
 check(functionBlock(cliText, 'doctor').includes('bridgeCurrent'), 'CLI doctor live checks must report whether the bridge server version is current');
+check(cliText.includes("if (cmd === 'mcp-config')"), 'CLI mcp-config command must be implemented');
+check(cliText.includes('function mcpConfigText'), 'CLI mcp-config must centralize MCP client snippet generation');
+check(cliText.includes('Claude Code') && cliText.includes('Cursor') && cliText.includes('Hermes Agent'), 'CLI mcp-config must cover major MCP clients');
 check(cliText.includes('function tomlString(value)'), 'CLI codex-config must escape TOML strings');
 check(cliText.includes('command = ${tomlString(process.execPath)}'), 'CLI codex-config must use the current Node executable');
 check(!cliText.includes('/opt/homebrew/bin/node'), 'CLI codex-config must not hardcode a Homebrew Node path');
@@ -641,6 +646,8 @@ check(packageJson.scripts?.['check:roadmap-next-slice'] === 'node ./scripts/chec
 check(packageJson.scripts?.['check:examples-gallery'] === 'node ./scripts/check-examples-gallery.mjs', 'package scripts must expose examples gallery contract check');
 check(packageJson.files?.includes('examples/'), 'package files must include examples directory');
 check(readmeText.includes('docs/EXAMPLES.md'), 'README must link examples gallery');
+check(readmeText.includes('docs/COMPATIBILITY.md'), 'README must link MCP client compatibility guide');
+check(readmeText.includes('docs/DISTRIBUTION.md'), 'README must link distribution and GitHub SEO guide');
 check(packageContentsCheckerText.includes('examples/fixtures/article-news.html'), 'package contents checker must require examples fixtures');
 check(packageJson.scripts?.check?.includes('npm run check:runtime-smoke-plan'), 'npm run check must include runtime smoke plan contract check');
 check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include roadmap coverage contract check');
@@ -695,6 +702,7 @@ check(packageContentsCheckerText.includes("'scripts/check-mcp-local-tools.mjs'")
 check(packageContentsCheckerText.includes("'scripts/check-tab-group-persistence.mjs'"), 'package contents must include tab-group persistence checker');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-cli-local-tools.mjs'), 'utf8').catch(() => '')).includes("runCli(['doctor'])"), 'CLI local tools checker must call doctor offline');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-cli-local-tools.mjs'), 'utf8').catch(() => '')).includes("runCli(['extension-path'])"), 'CLI local tools checker must call extension-path');
+check((await fs.readFile(path.join(rootDir, 'scripts/check-cli-local-tools.mjs'), 'utf8').catch(() => '')).includes("runCli(['mcp-config'])"), 'CLI local tools checker must call mcp-config');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-cli-local-tools.mjs'), 'utf8').catch(() => '')).includes("runCli(['codex-config'])"), 'CLI local tools checker must call codex-config');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-cli-local-tools.mjs'), 'utf8').catch(() => '')).includes("runCli(['command-catalog'])"), 'CLI local tools checker must call command-catalog');
 check((await fs.readFile(path.join(rootDir, 'scripts/check-cli-local-tools.mjs'), 'utf8').catch(() => '')).includes('catalogJson.counts?.mcpTools'), 'CLI local tools checker must assert command-catalog counts');
@@ -807,16 +815,22 @@ check(llmsText.includes('top-level `nextCommand` / `nextAction`'), 'llms metadat
 check(llmsText.includes('deferredLiveVerification'), 'llms metadata must mention check:roadmap deferred live gate output');
 check(llmsText.includes('finalVerificationComplete'), 'llms metadata must mention runtime smoke final completion marker');
 check(mcpText.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'), 'MCP bridgeCommand wrapper must default to registry action timeout');
+check(mcpText.includes('CHROME_BRIDGE_MCP_TOOL_PROFILE'), 'MCP server must support compact tool profiles for IDE client compatibility');
+check(mcpText.includes('chrome_bridge_cookies_list') && mcpText.includes('MCP_TOOL_PROFILES'), 'MCP tool profiles must make sensitive/private tools intentionally profile-gated');
 check(LOCAL_COMMAND_METADATA.doctor?.mcp?.includes('chrome_bridge_doctor'), 'registry local doctor command must expose an MCP tool');
 check(LOCAL_COMMAND_METADATA['extension-path']?.mcp?.includes('chrome_bridge_extension_path'), 'registry local extension-path command must expose an MCP tool');
+check(LOCAL_COMMAND_METADATA['mcp-config']?.mcp?.includes('chrome_bridge_mcp_config'), 'registry local mcp-config command must expose an MCP tool');
 check(LOCAL_COMMAND_METADATA['codex-config']?.mcp?.includes('chrome_bridge_codex_config'), 'registry local codex-config command must expose an MCP tool');
 check(MCP_TOOLS.includes('chrome_bridge_doctor'), 'MCP tool list must include chrome_bridge_doctor');
 check(MCP_TOOLS.includes('chrome_bridge_extension_path'), 'MCP tool list must include chrome_bridge_extension_path');
+check(MCP_TOOLS.includes('chrome_bridge_mcp_config'), 'MCP tool list must include chrome_bridge_mcp_config');
 check(MCP_TOOLS.includes('chrome_bridge_codex_config'), 'MCP tool list must include chrome_bridge_codex_config');
 check(mcpText.includes('chrome_bridge_doctor'), 'MCP server must register chrome_bridge_doctor');
 check(mcpText.includes('chrome_bridge_extension_path'), 'MCP server must register chrome_bridge_extension_path');
+check(mcpText.includes('chrome_bridge_mcp_config'), 'MCP server must register chrome_bridge_mcp_config');
 check(mcpText.includes('chrome_bridge_codex_config'), 'MCP server must register chrome_bridge_codex_config');
 check(mcpText.includes("localCliText('extension-path')"), 'MCP extension-path tool must use the local CLI command');
+check(mcpText.includes("localCliText('mcp-config'"), 'MCP mcp-config tool must use the local CLI command');
 check(mcpText.includes("localCliText('codex-config')"), 'MCP codex-config tool must use the local CLI command');
 check(mcpText.includes('liveChecks: z.boolean().optional()'), 'MCP doctor tool must expose optional liveChecks');
 check(functionBlock(mcpText, 'localDoctor').includes("if (args.liveChecks) cliArgs.push('--live-checks')"), 'MCP doctor helper must keep live checks behind liveChecks=true');

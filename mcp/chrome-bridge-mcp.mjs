@@ -151,10 +151,11 @@ function parseLocalCliJson(stdout) {
   }
 }
 
-async function localCliText(command) {
+async function localCliText(command, args = []) {
   const result = await execFileAsync(process.execPath, [
     path.join(rootDir, 'bin/chrome-bridge.mjs'),
     command,
+    ...args,
   ], { timeout: 5_000 });
   return result.stdout.trimEnd();
 }
@@ -430,9 +431,96 @@ async function diagnostics(args = {}) {
 }
 
 const server = new McpServer({
-  name: 'codex-chrome-bridge',
+  name: 'chrome-mcp-bridge',
   version: BRIDGE_VERSION,
 });
+
+const MCP_TOOL_PROFILES = Object.freeze({
+  full: null,
+  core: new Set([
+    'chrome_bridge_health',
+    'chrome_bridge_runtime_smoke',
+    'chrome_bridge_doctor',
+    'chrome_bridge_extension_path',
+    'chrome_bridge_mcp_config',
+    'chrome_bridge_command_catalog',
+    'chrome_bridge_windows',
+    'chrome_bridge_tabs',
+    'chrome_bridge_group',
+    'chrome_bridge_workspace',
+    'chrome_bridge_ensure_tab',
+    'chrome_bridge_adopt_tab',
+    'chrome_bridge_open',
+    'chrome_bridge_activate_tab',
+    'chrome_bridge_close_tab',
+    'chrome_bridge_close_group',
+    'chrome_bridge_wait_for_selector',
+    'chrome_bridge_observe',
+    'chrome_bridge_find_elements',
+    'chrome_bridge_extract',
+    'chrome_bridge_download_discovery',
+    'chrome_bridge_snapshot',
+    'chrome_bridge_text',
+    'chrome_bridge_html',
+    'chrome_bridge_screenshot',
+    'chrome_bridge_pdf',
+    'chrome_bridge_diagnostics',
+    'chrome_bridge_click_at',
+    'chrome_bridge_click',
+    'chrome_bridge_type',
+    'chrome_bridge_press',
+    'chrome_bridge_select',
+    'chrome_bridge_select_options',
+    'chrome_bridge_fill_form',
+    'chrome_bridge_scroll',
+    'chrome_bridge_ask_user',
+    'chrome_bridge_session_summary',
+    'chrome_bridge_debug_bundle',
+    'chrome_bridge_lighthouse_ingest',
+  ]),
+  read: new Set([
+    'chrome_bridge_health',
+    'chrome_bridge_doctor',
+    'chrome_bridge_extension_path',
+    'chrome_bridge_mcp_config',
+    'chrome_bridge_command_catalog',
+    'chrome_bridge_windows',
+    'chrome_bridge_tabs',
+    'chrome_bridge_group',
+    'chrome_bridge_workspace',
+    'chrome_bridge_ensure_tab',
+    'chrome_bridge_adopt_tab',
+    'chrome_bridge_open',
+    'chrome_bridge_wait_for_selector',
+    'chrome_bridge_observe',
+    'chrome_bridge_find_elements',
+    'chrome_bridge_extract',
+    'chrome_bridge_download_discovery',
+    'chrome_bridge_snapshot',
+    'chrome_bridge_text',
+    'chrome_bridge_html',
+    'chrome_bridge_screenshot',
+    'chrome_bridge_pdf',
+    'chrome_bridge_diagnostics',
+    'chrome_bridge_ask_user',
+    'chrome_bridge_session_summary',
+    'chrome_bridge_debug_bundle',
+    'chrome_bridge_lighthouse_ingest',
+  ]),
+});
+
+function normalizeMcpToolProfile(value) {
+  const profile = String(value || 'full').toLowerCase();
+  return Object.prototype.hasOwnProperty.call(MCP_TOOL_PROFILES, profile) ? profile : 'full';
+}
+
+const mcpToolProfile = normalizeMcpToolProfile(process.env.CHROME_BRIDGE_MCP_TOOL_PROFILE);
+const enabledMcpTools = MCP_TOOL_PROFILES[mcpToolProfile];
+const registerTool = server.tool.bind(server);
+server.tool = (name, ...args) => {
+  if (enabledMcpTools && !enabledMcpTools.has(name)) return undefined;
+  return registerTool(name, ...args);
+};
 
 server.tool(
   'chrome_bridge_health',
@@ -443,7 +531,7 @@ server.tool(
 
 server.tool(
   'chrome_bridge_reload_extension',
-  'Ask the loaded Codex Chrome Bridge extension to reload itself after local extension file edits. Requires confirmed=true because it interrupts active bridge sessions.',
+  'Ask the loaded Chrome MCP Bridge extension to reload itself after local extension file edits. Requires confirmed=true because it interrupts active bridge sessions.',
   {
     confirmed: z.boolean(),
   },
@@ -486,8 +574,17 @@ server.tool(
 );
 
 server.tool(
+  'chrome_bridge_mcp_config',
+  'Return MCP client configuration snippets for Claude Code, Cursor, Codex, VS Code, Windsurf, Hermes, or generic stdio clients. This is offline and does not contact Chrome or the bridge.',
+  {
+    client: z.enum(['all', 'claude-code', 'cursor', 'codex', 'vscode', 'windsurf', 'hermes', 'generic']).optional(),
+  },
+  async (args) => textResult(await localCliText('mcp-config', args.client ? ['--client', args.client] : [])),
+);
+
+server.tool(
   'chrome_bridge_codex_config',
-  'Return a Codex MCP configuration snippet for this local Chrome Bridge server using the current Node executable. This is offline and does not contact Chrome or the bridge.',
+  'Return the legacy Codex MCP configuration snippet for this local Chrome Bridge server using the current Node executable. This is offline and does not contact Chrome or the bridge.',
   {},
   async () => textResult(await localCliText('codex-config')),
 );

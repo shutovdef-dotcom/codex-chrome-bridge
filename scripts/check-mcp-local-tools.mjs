@@ -249,6 +249,7 @@ await withMcpClient(async (client) => {
 
   check(toolNames.has('chrome_bridge_doctor'), 'MCP tools list must expose chrome_bridge_doctor');
   check(toolNames.has('chrome_bridge_extension_path'), 'MCP tools list must expose chrome_bridge_extension_path');
+  check(toolNames.has('chrome_bridge_mcp_config'), 'MCP tools list must expose chrome_bridge_mcp_config');
   check(toolNames.has('chrome_bridge_codex_config'), 'MCP tools list must expose chrome_bridge_codex_config');
   check(toolNames.has('chrome_bridge_command_catalog'), 'MCP tools list must expose chrome_bridge_command_catalog');
 
@@ -296,6 +297,25 @@ await withMcpClient(async (client) => {
   const extensionPathText = extensionPath?.content?.find((item) => item?.type === 'text')?.text;
   check(typeof extensionPathText === 'string' && extensionPathText.endsWith('/extension'), 'MCP extension path tool must return the unpacked extension path');
 
+  const mcpConfig = await client.callTool({
+    name: 'chrome_bridge_mcp_config',
+    arguments: {},
+  });
+  const mcpConfigText = mcpConfig?.content?.find((item) => item?.type === 'text')?.text;
+  check(mcpConfigText?.includes('## Claude Code'), 'MCP mcp-config tool must include Claude Code setup');
+  check(mcpConfigText?.includes('## Cursor'), 'MCP mcp-config tool must include Cursor setup');
+  check(mcpConfigText?.includes('## Hermes Agent'), 'MCP mcp-config tool must include Hermes setup');
+  check(mcpConfigText?.includes('mcp/chrome-bridge-mcp.mjs'), 'MCP mcp-config tool must point at the local MCP server file');
+
+  const mcpCursorConfig = await client.callTool({
+    name: 'chrome_bridge_mcp_config',
+    arguments: { client: 'cursor' },
+  });
+  const mcpCursorConfigText = mcpCursorConfig?.content?.find((item) => item?.type === 'text')?.text;
+  check(mcpCursorConfigText?.includes('"mcpServers"'), 'MCP mcp-config cursor tool must return mcpServers JSON');
+  check(mcpCursorConfigText?.includes('"CHROME_BRIDGE_MCP_TOOL_PROFILE": "core"'), 'MCP mcp-config cursor tool must recommend the compact MCP tool profile');
+  check(!mcpCursorConfigText?.includes('## Hermes Agent'), 'MCP mcp-config cursor tool must not return every client section');
+
   const codexConfig = await client.callTool({
     name: 'chrome_bridge_codex_config',
     arguments: {},
@@ -303,6 +323,18 @@ await withMcpClient(async (client) => {
   const codexConfigText = codexConfig?.content?.find((item) => item?.type === 'text')?.text;
   check(codexConfigText?.includes('[mcp_servers.chrome-bridge]'), 'MCP codex-config tool must return a Codex MCP server section');
   check(codexConfigText?.includes('mcp/chrome-bridge-mcp.mjs'), 'MCP codex-config tool must point at the local MCP server file');
+});
+
+await withMcpClient(async (client) => {
+  const tools = await client.listTools();
+  const toolNames = new Set((tools.tools || []).map((tool) => tool.name));
+  check(toolNames.size > 0 && toolNames.size <= 40, 'MCP core profile must expose a compact tool list for IDE agents');
+  check(toolNames.has('chrome_bridge_mcp_config'), 'MCP core profile must expose chrome_bridge_mcp_config');
+  check(toolNames.has('chrome_bridge_observe'), 'MCP core profile must expose read-first observe');
+  check(toolNames.has('chrome_bridge_click'), 'MCP core profile must expose confirmed click');
+  check(!toolNames.has('chrome_bridge_cookies_list'), 'MCP core profile must omit sensitive private-browser tools by default');
+}, {
+  CHROME_BRIDGE_MCP_TOOL_PROFILE: 'core',
 });
 
 await withFakeLiveDoctor(async ({ bridgeUrl, pathEnv }) => {
@@ -721,7 +753,7 @@ process.stdout.write(`${JSON.stringify({
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,
   listedToolCount: MCP_TOOLS.length,
-  checkedTools: ['chrome_bridge_doctor', 'chrome_bridge_extension_path', 'chrome_bridge_codex_config', 'chrome_bridge_command_catalog'],
+  checkedTools: ['chrome_bridge_doctor', 'chrome_bridge_extension_path', 'chrome_bridge_mcp_config', 'chrome_bridge_codex_config', 'chrome_bridge_command_catalog'],
   doctorOfflineByDefault: true,
   doctorLiveBridgeCurrent,
   sessionSummaryStaleBridgeRecommendation,

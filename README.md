@@ -1,4 +1,6 @@
-# Codex Chrome Bridge
+# Chrome MCP Bridge
+
+Formerly **Codex Chrome Bridge**. The package, repository, and `chrome-bridge` binary keep their current names for compatibility.
 
 [![Check](https://github.com/shutovdef-dotcom/codex-chrome-bridge/actions/workflows/check.yml/badge.svg)](https://github.com/shutovdef-dotcom/codex-chrome-bridge/actions/workflows/check.yml)
 [![CodeQL](https://github.com/shutovdef-dotcom/codex-chrome-bridge/actions/workflows/codeql.yml/badge.svg)](https://github.com/shutovdef-dotcom/codex-chrome-bridge/actions/workflows/codeql.yml)
@@ -7,15 +9,15 @@
 [![Chrome MV3](https://img.shields.io/badge/chrome-MV3-4285F4.svg)](extension/manifest.json)
 [![MCP Server](https://img.shields.io/badge/MCP-server-6f42c1.svg)](docs/MCP.md)
 
-Local Chrome extension, CLI, and MCP server for read-mostly control of a real Google Chrome profile from Codex-style agents.
+Local Chrome extension, CLI, and MCP server for read-mostly control of a real logged-in Google Chrome profile from AI agents.
 
 Use it when an agent needs the browser session you are already logged into, but should stay scoped to a dedicated Chrome tab group and require explicit confirmation before sensitive actions.
 
 ## AI Discovery / GEO Summary
 
-Codex Chrome Bridge is a local-first Chrome MCP server, Chrome Manifest V3 extension, and CLI for AI agents that need controlled access to a real, already logged-in Google Chrome profile. It is built for Codex-style agent workflows, browser automation with human oversight, and read-mostly inspection of authenticated dashboards.
+Chrome MCP Bridge is a local-first Chrome MCP server, Chrome Manifest V3 extension, and CLI for AI agents that need controlled access to a real, already logged-in Google Chrome profile. It works with MCP-capable clients such as Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and other stdio MCP clients.
 
-Use this project for MCP browser automation, real Chrome profile automation, AI agent browser tools, logged-in dashboard inspection, Chrome extension MCP bridge workflows, local browser control for Codex, Search Console or analytics review, and privacy-aware browser automation.
+Use this project for MCP browser automation, real Chrome profile automation, AI agent browser tools, logged-in dashboard inspection, Chrome extension MCP bridge workflows, local browser control for Claude Code, Cursor, Codex, VS Code, Windsurf, Hermes, Search Console or analytics review, and privacy-aware browser automation.
 
 The project is intentionally not designed for CAPTCHA bypass, remote browser takeover, credential extraction, unattended account mutation, scraping behind access controls without permission, or replacing the user's judgment on sensitive actions.
 
@@ -23,7 +25,7 @@ The project is intentionally not designed for CAPTCHA bypass, remote browser tak
 
 Most browser automation starts a clean browser profile. That is great for tests and bad for real dashboards.
 
-Codex Chrome Bridge is for logged-in, human-owned Chrome workflows:
+Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 
 - search consoles and webmaster dashboards
 - analytics tools
@@ -39,6 +41,8 @@ Codex Chrome Bridge is for logged-in, human-owned Chrome workflows:
 - Existing-tab adoption: can pull an already-open Chrome tab into the scoped group.
 - Clean group lifecycle: bridge-owned groups are swept on startup, watched on create/update/removal plus tab membership changes, and marked unsaved when Chrome exposes that API. The guard recognizes `Codex Bridge ...` session titles, remembered bridge-created workspace titles, and session-scoped bridge-created group IDs; freshly created bridge session groups are remembered only for the current Chrome session, and bridge-owned tabs are then ungrouped before bridge-driven closing to avoid creating new saved closed tab-group chips.
 - CLI and MCP: usable from a terminal or any MCP-capable client.
+- MCP client setup: `mcp-config` prints ready-to-paste snippets for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients.
+- Compact IDE profile: Cursor/Windsurf snippets set `CHROME_BRIDGE_MCP_TOOL_PROFILE=core`, exposing 39 high-value tools instead of the full surface for better IDE-agent ergonomics.
 - Read-first surface: text, HTML, structured snapshots, screenshots, waits, tabs, and windows.
 - Agent discovery: ranked read-only `observe` output for actionable elements and querySelector-verified selectors.
 - Structured extraction: read tables, form structure, lists, key-value blocks, and artifact-backed presets such as `cpa-offer`, `article`, `product-page`, and `pricing-table` without returning private form values.
@@ -190,7 +194,18 @@ If the target tab is not the last focused tab, run `node ./bin/chrome-bridge.mjs
 
 ## MCP Setup
 
-Add this to `~/.codex/config.toml` or your MCP client's equivalent config:
+Generate a client-specific config snippet:
+
+```bash
+node ./bin/chrome-bridge.mjs mcp-config
+node ./bin/chrome-bridge.mjs mcp-config --client claude-code
+node ./bin/chrome-bridge.mjs mcp-config --client cursor
+node ./bin/chrome-bridge.mjs mcp-config --client hermes
+```
+
+Use the generated snippet in Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, or any stdio MCP client. Cursor and Windsurf snippets use the compact `core` tool profile by default; set `CHROME_BRIDGE_MCP_TOOL_PROFILE=full` if you want every tool in clients that handle larger tool lists well.
+
+Codex TOML example:
 
 ```toml
 [mcp_servers.chrome-bridge]
@@ -227,7 +242,7 @@ Useful MCP tools:
 - `chrome_bridge_command_catalog`
 - `chrome_bridge_runtime_smoke`
 
-Full reference: [MCP](docs/MCP.md).
+Full reference: [MCP](docs/MCP.md). Client setup guide: [MCP Client Compatibility](docs/COMPATIBILITY.md).
 
 ## macOS Background Service
 
@@ -266,6 +281,7 @@ codex/      optional Codex skill handoff
 | Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | CLI reference | [docs/CLI.md](docs/CLI.md) |
 | MCP reference | [docs/MCP.md](docs/MCP.md) |
+| MCP client compatibility | [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) |
 | Generated command catalog | [docs/COMMAND-CATALOG.md](docs/COMMAND-CATALOG.md) |
 | Examples gallery | [docs/EXAMPLES.md](docs/EXAMPLES.md) |
 | Real page validation | [docs/REAL-PAGE-VALIDATION.md](docs/REAL-PAGE-VALIDATION.md) |
@@ -273,6 +289,7 @@ codex/      optional Codex skill handoff
 | Safety and privacy | [docs/SAFETY.md](docs/SAFETY.md) |
 | Agent token budget | [docs/AGENT-TOKEN-BUDGET.md](docs/AGENT-TOKEN-BUDGET.md) |
 | Competitive analysis and roadmap | [docs/COMPETITIVE-ROADMAP.md](docs/COMPETITIVE-ROADMAP.md) |
+| Distribution and GitHub SEO | [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) |
 | UBS bug scan and fix plan | [docs/UBS-BUG-SCAN-2026-06-12.md](docs/UBS-BUG-SCAN-2026-06-12.md) |
 | Publishing checklist | [docs/PUBLISHING.md](docs/PUBLISHING.md) |
 | AI-readable project summary | [llms.txt](llms.txt) |

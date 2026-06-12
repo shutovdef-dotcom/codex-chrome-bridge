@@ -86,6 +86,25 @@ Next-slice rescan notes:
 - Manual triage of the new structured extraction, download discovery, and Lighthouse ingestion slice found two actionable edge cases: bare `<a download>` links were not classified as download-attribute links, and invalid Lighthouse JSON used to surface raw `JSON.parse` errors. Both are now covered by `npm run check:roadmap-next-slice`.
 - The remaining critical count is still the known broad-pattern bucket rather than a newly confirmed reachable runtime bug in this slice.
 
+MCP compatibility/rebrand rescan:
+
+```json
+{
+  "critical": 108,
+  "warning": 263,
+  "info": 4722,
+  "files": 61
+}
+```
+
+MCP compatibility/rebrand rescan notes:
+
+- Command: `/opt/homebrew/bin/bash /opt/homebrew/bin/ubs --format=json --ci --only=js --report-json /tmp/codex-chrome-bridge-ubs-mcp-compat.json .`
+- Exit code remained `1` because UBS still reports broad pattern findings.
+- Critical count did not increase from the fresh pre-change rescan (`108`), and the one-warning increase maps to broad structural pattern noise after adding MCP config/profile checks.
+- Manual triage found no new confirmed reachable runtime bug in the `mcp-config`, `chrome_bridge_mcp_config`, or `CHROME_BRIDGE_MCP_TOOL_PROFILE` slice.
+- The compact MCP tool profile is covered by `npm run check:mcp-local-tools`, including a `<= 40` tool-list assertion and omission of private cookie tools from the core profile.
+
 High-signal UBS buckets:
 
 - `fetch() without AbortSignal cancellation`: 5.

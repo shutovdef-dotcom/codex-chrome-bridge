@@ -621,6 +621,175 @@ function tomlString(value) {
   return JSON.stringify(String(value));
 }
 
+function shellSingleQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
+}
+
+function mcpServerPath() {
+  return path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs');
+}
+
+function stdioJsonServerConfig(options = {}) {
+  const config = {
+    command: process.execPath,
+    args: [mcpServerPath()],
+  };
+  if (options.toolProfile) {
+    config.env = {
+      CHROME_BRIDGE_MCP_TOOL_PROFILE: options.toolProfile,
+    };
+  }
+  return config;
+}
+
+function mcpServersJsonConfig(options = {}) {
+  return {
+    mcpServers: {
+      'chrome-bridge': stdioJsonServerConfig(options),
+    },
+  };
+}
+
+function vscodeMcpJsonConfig() {
+  return {
+    servers: {
+      chromeBridge: {
+        type: 'stdio',
+        ...stdioJsonServerConfig(),
+      },
+    },
+  };
+}
+
+function codexTomlConfig() {
+  return `[mcp_servers.chrome-bridge]
+command = ${tomlString(process.execPath)}
+args = [${tomlString(mcpServerPath())}]
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+`;
+}
+
+function hermesYamlConfig() {
+  return [
+    'mcp_servers:',
+    '  chrome_bridge:',
+    `    command: ${JSON.stringify(process.execPath)}`,
+    `    args: [${JSON.stringify(mcpServerPath())}]`,
+    '',
+  ].join('\n');
+}
+
+function normalizeMcpClient(value) {
+  const normalized = String(value || 'all').toLowerCase().replace(/[_\s]+/g, '-');
+  const aliases = {
+    claude: 'claude-code',
+    anthropic: 'claude-code',
+    vscode: 'vscode',
+    'vs-code': 'vscode',
+    'visual-studio-code': 'vscode',
+    cascade: 'windsurf',
+    json: 'generic',
+    'mcp-json': 'generic',
+  };
+  return aliases[normalized] || normalized;
+}
+
+function mcpConfigSections(client) {
+  const jsonConfig = JSON.stringify(mcpServersJsonConfig(), null, 2);
+  const coreJsonConfig = JSON.stringify(mcpServersJsonConfig({ toolProfile: 'core' }), null, 2);
+  const stdioEntry = JSON.stringify(stdioJsonServerConfig());
+  const sections = {
+    'claude-code': [
+      '## Claude Code',
+      '',
+      'Project `.mcp.json` or user config:',
+      '',
+      '```json',
+      jsonConfig,
+      '```',
+      '',
+      'Or add it with Claude Code CLI:',
+      '',
+      '```bash',
+      `claude mcp add-json chrome-bridge ${shellSingleQuote(stdioEntry)}`,
+      '```',
+    ].join('\n'),
+    cursor: [
+      '## Cursor',
+      '',
+      'Use `.cursor/mcp.json` in a project or `~/.cursor/mcp.json` globally. The `core` tool profile keeps the active tool list below common IDE-agent limits:',
+      '',
+      '```json',
+      coreJsonConfig,
+      '```',
+    ].join('\n'),
+    codex: [
+      '## Codex',
+      '',
+      'Use `.codex/config.toml` or `~/.codex/config.toml`:',
+      '',
+      '```toml',
+      codexTomlConfig().trimEnd(),
+      '```',
+    ].join('\n'),
+    vscode: [
+      '## VS Code',
+      '',
+      'Use `.vscode/mcp.json` in a workspace or the user MCP config:',
+      '',
+      '```json',
+      JSON.stringify(vscodeMcpJsonConfig(), null, 2),
+      '```',
+    ].join('\n'),
+    windsurf: [
+      '## Windsurf / Cascade',
+      '',
+      'Use Windsurf Settings / Cascade or raw `~/.codeium/windsurf/mcp_config.json`. The `core` tool profile keeps the active tool list compact for IDE agents:',
+      '',
+      '```json',
+      coreJsonConfig,
+      '```',
+    ].join('\n'),
+    hermes: [
+      '## Hermes Agent',
+      '',
+      'Add this under `mcp_servers` in `~/.hermes/config.yaml`:',
+      '',
+      '```yaml',
+      hermesYamlConfig().trimEnd(),
+      '```',
+    ].join('\n'),
+    generic: [
+      '## Generic stdio MCP client',
+      '',
+      'Use this command/args pair wherever the client accepts local stdio servers:',
+      '',
+      '```json',
+      JSON.stringify(stdioJsonServerConfig(), null, 2),
+      '```',
+    ].join('\n'),
+  };
+  if (client === 'all') return Object.values(sections);
+  if (!sections[client]) {
+    throw new Error(`Unsupported --client ${client}. Use all, claude-code, cursor, codex, vscode, windsurf, hermes, or generic.`);
+  }
+  return [sections[client]];
+}
+
+function mcpConfigText(args = {}) {
+  const client = normalizeMcpClient(args.client);
+  return [
+    '# Chrome MCP Bridge client configuration',
+    '',
+    'These snippets start the local stdio MCP server with the current Node executable.',
+    'Install and load the Chrome extension, then run the bridge server before using live browser tools.',
+    '',
+    ...mcpConfigSections(client),
+    '',
+  ].join('\n');
+}
+
 const EXPECTED_MANIFEST_PERMISSIONS = MANIFEST_PERMISSIONS;
 const EXPECTED_EXTENSION_ACTIONS = EXTENSION_ACTIONS;
 const EXPECTED_CLI_COMMANDS = CLI_COMMANDS;
@@ -761,7 +930,7 @@ async function doctor(args) {
       'Run ensure-tab/open/snapshot/screenshot commands for task-specific work.',
       'For future extension file edits, run chrome-bridge reload-extension --confirm.',
     ] : extensionConnected ? [
-      'Reload the unpacked Codex Chrome Bridge extension in chrome://extensions/.',
+      'Reload the unpacked Chrome MCP Bridge extension in chrome://extensions/.',
       `Confirm chrome-bridge health reports extension.info.version ${EXPECTED_EXTENSION_VERSION}.`,
     ] : [
       'Open chrome://extensions/ in the real Google Chrome profile.',
@@ -1609,7 +1778,7 @@ const RUNTIME_SMOKE_FINAL_MCP_CALLS = Object.freeze([
   { tool: 'chrome_bridge_runtime_smoke', arguments: {} },
 ]);
 
-const RUNTIME_SMOKE_RELOAD_EXTENSION_ACTION = 'Reload the unpacked Codex Chrome Bridge extension, then run chrome-bridge doctor --live-checks.';
+const RUNTIME_SMOKE_RELOAD_EXTENSION_ACTION = 'Reload the unpacked Chrome MCP Bridge extension, then run chrome-bridge doctor --live-checks.';
 const RUNTIME_SMOKE_RESTART_BRIDGE_ACTION = 'Restart the local Chrome Bridge server, then run chrome-bridge doctor --live-checks.';
 const RUNTIME_SMOKE_RERUN_ACTION = 'Review the smoke failures, fix the issue, then run chrome-bridge runtime-smoke again.';
 
@@ -2506,13 +2675,13 @@ async function main() {
     return;
   }
 
+  if (cmd === 'mcp-config') {
+    process.stdout.write(mcpConfigText(args));
+    return;
+  }
+
   if (cmd === 'codex-config') {
-    process.stdout.write(`[mcp_servers.chrome-bridge]
-command = ${tomlString(process.execPath)}
-args = [${tomlString(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'))}]
-startup_timeout_sec = 20
-tool_timeout_sec = 60
-`);
+    process.stdout.write(codexTomlConfig());
     return;
   }
 

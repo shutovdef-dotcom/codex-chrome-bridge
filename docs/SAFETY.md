@@ -1,6 +1,6 @@
 # Safety and Privacy
 
-Codex Chrome Bridge can inspect a real Chrome profile. That is powerful and sensitive.
+Chrome MCP Bridge can inspect a real Chrome profile. That is powerful and sensitive.
 
 ## Default Scope
 
@@ -20,6 +20,12 @@ Policy modes:
 - `strict`: outside tabs are blocked even when `allowExternal` or `--allow-external` is passed.
 
 Commands with explicit tab IDs reject outside tabs by default; `allowExternal` is only honored in `scoped` policy mode.
+
+## MCP Tool Profiles
+
+The MCP server exposes the full tool surface by default. IDE clients can set `CHROME_BRIDGE_MCP_TOOL_PROFILE=core` or `CHROME_BRIDGE_MCP_TOOL_PROFILE=read` to reduce tool-list size and keep sensitive private-browser tools out of the active client surface by default.
+
+Profiles do not weaken confirmation gates. When private or mutating tools are exposed, they still require the same `confirmed` and `confirmSensitive` arguments described below.
 
 ## Confirmation Gates
 

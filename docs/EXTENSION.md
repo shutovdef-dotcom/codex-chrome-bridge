@@ -1,6 +1,6 @@
 # Chrome Extension Setup
 
-Codex Chrome Bridge uses an unpacked Chrome extension from the `extension/` directory.
+Chrome MCP Bridge, formerly Codex Chrome Bridge, uses an unpacked Chrome extension from the `extension/` directory.
 
 ## Install
 

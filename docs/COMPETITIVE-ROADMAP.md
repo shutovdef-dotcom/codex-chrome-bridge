@@ -2,16 +2,55 @@
 
 Last updated: 2026-06-12
 
-This document captures the current competitive landscape for Codex Chrome Bridge, the product gaps that matter, and the phased implementation plan we can execute inside this repository.
+This document captures the current competitive landscape for Chrome MCP Bridge, formerly Codex Chrome Bridge, the product gaps that matter, and the phased implementation plan we can execute inside this repository.
 
 ## Scope
 
-The comparison focuses on products and projects that are close to Codex Chrome Bridge's actual use case:
+The comparison focuses on products and projects that are close to Chrome MCP Bridge's actual use case:
 
 - real-browser automation for AI agents
 - MCP or agent-facing browser tooling
 - existing logged-in browser sessions
 - local-first or extension-assisted control surfaces
+
+## Fresh Scan: 2026-06-12
+
+Primary sources reviewed:
+
+- [Playwright MCP](https://github.com/microsoft/playwright-mcp)
+- [Claude Code MCP docs](https://code.claude.com/docs/en/mcp)
+- [Cursor MCP docs](https://cursor.com/docs/mcp)
+- [VS Code MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration)
+- [Browserbase MCP](https://docs.browserbase.com/integrations/mcp/introduction)
+- [BrowserMCP](https://github.com/browsermcp/mcp)
+- [Browser Use MCP](https://docs.browser-use.com/open-source/customize/integrations/mcp-server)
+- [Browserless MCP](https://docs.browserless.io/mcp/overview)
+- [Hyperbrowser MCP](https://www.hyperbrowser.ai/docs/integrations/model-context-protocol)
+- [Anchor Browser MCP](https://docs.anchorbrowser.io/advanced/mcp)
+- [Hermes Agent MCP](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp)
+- [Windsurf/Cascade MCP](https://docs.devin.ai/desktop/cascade/mcp)
+
+Fresh findings:
+
+- The market language is now client-neutral. Playwright MCP, Browserless, Hyperbrowser, and hosted-browser vendors position around broad MCP compatibility rather than a single agent client.
+- Playwright MCP explicitly lists many client install paths and contrasts MCP with CLI/skills for token efficiency, validating Chrome MCP Bridge's dual CLI plus MCP strategy.
+- Claude Code supports local stdio servers, project/user/local scopes, `.mcp.json`, and dynamic tool updates/tool search. That raises the bar for server metadata and compact discoverability.
+- Cursor, VS Code, Windsurf/Cascade, and Hermes all need copy-pasteable client-specific snippets. A single Codex TOML snippet is no longer enough for distribution.
+- Browserless, Browserbase, Hyperbrowser, and Anchor compete on managed cloud sessions, file download/export, crawling, CAPTCHA/proxy/stealth, recordings/live view, and hosted browser infrastructure. Those are not the right default direction for a local real-profile bridge, but they define user expectations for documentation and setup polish.
+
+Audit outcomes from this scan:
+
+- Repositioned public docs around **Chrome MCP Bridge** while keeping the existing package, repository, and `chrome-bridge` binary for compatibility.
+- Added `mcp-config` and `chrome_bridge_mcp_config` to generate snippets for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients.
+- Added `CHROME_BRIDGE_MCP_TOOL_PROFILE=full|core|read`; the `core` profile exposes 39 high-value tools and omits sensitive private-browser tools, giving IDE clients a compact default.
+- Added [MCP Client Compatibility](COMPATIBILITY.md) as an SEO/distribution page and updated AI-discovery metadata.
+
+Remaining gaps:
+
+- GitHub repository/package rename or alias package (`chrome-mcp-bridge`) is still not done; doing it safely needs release planning, npm ownership checks, redirects, and migration docs.
+- One-click install buttons or marketplace entries for VS Code/Cursor/Claude plugin-style distribution are not implemented.
+- MCP prompts/resources are not yet exposed; the current surface is tools plus CLI/skill docs.
+- We do not provide hosted cloud sessions, proxy pools, CAPTCHA solving, live-view sharing, or large-scale crawling. Keep these out of the default scope unless the product intentionally moves beyond local real-profile control.
 
 ## Fresh Scan: 2026-06-11
 
@@ -325,6 +364,9 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - remember session-scoped bridge-created group IDs in Chrome session storage so custom session group titles stay covered by managed-group lifecycle guards without persisting browser-session IDs across Chrome restarts
   - add a bounded diagnostics surface with page health, navigation timing, resource counts, trace event counts, artifact-backed full results, and a Lighthouse handoff path without dumping raw trace/event logs by default
   - close the UBS bug-scan follow-up plan with abortable CLI/MCP/extension fetch boundaries, safe metadata stripping, rejection-safe offscreen listeners, prompt DOM hardening, corrupted run-state recovery, and dedicated `check:ubs-fixes` coverage
+  - add universal MCP client setup generation through `mcp-config` and `chrome_bridge_mcp_config`, covering Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients
+  - add `CHROME_BRIDGE_MCP_TOOL_PROFILE=full|core|read` so IDE clients can use a compact profile while full-capability clients keep the complete tool surface
+  - refresh public positioning from Codex-only language to Chrome MCP Bridge while preserving package, repository, binary, default group lifecycle, and legacy `codex-config` compatibility
 
 ## Next Recommended Slice
 
@@ -339,9 +381,11 @@ The previous recommended slice has now landed:
 
 After this change set, the highest-value next implementation is:
 
-1. Continue collecting real-page evidence and add fixtures only for repeated gaps.
-2. Consider one more high-value preset only after real usage shows a stable schema need.
-3. Keep UBS triage evidence-first; do not broad-clean pattern noise unless it becomes a confirmed runtime path.
+1. Decide whether to create a non-breaking alias package/repository name such as `chrome-mcp-bridge` while preserving `codex-chrome-bridge` redirects and migration docs.
+2. Add one-click install surfaces where supported by major clients, starting with VS Code and Cursor, then consider a Claude Code plugin wrapper if it can stay thin and local-first.
+3. Consider MCP prompts/resources only if they reduce tool-search friction without duplicating CLI docs or bloating context.
+4. Continue collecting real-page evidence and add fixtures only for repeated gaps.
+5. Keep UBS triage evidence-first; do not broad-clean pattern noise unless it becomes a confirmed runtime path.
 
 That sequence keeps the product close to its strongest differentiator: safe local control of the user's real Chrome profile with small, agent-friendly outputs.
 
