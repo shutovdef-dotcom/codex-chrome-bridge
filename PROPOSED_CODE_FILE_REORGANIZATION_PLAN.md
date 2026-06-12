@@ -1,6 +1,19 @@
 # Proposed Code File Reorganization Plan
 
-Status: proposal only. Do not move files from this document without a separate implementation pass.
+Status: primary implementation wave completed on 2026-06-12. Public entrypoints remain stable while the scripts taxonomy, shared command registry, CLI entrypoint, MCP entrypoint, and page-scripts wrapper split are now enforced by dedicated checks.
+
+Implemented phases:
+
+- Phase 0: reorganization guardrails.
+- Phase 1: scripts taxonomy.
+- Phase 2: `shared/command-registry.mjs` stable wrapper plus `shared/registry/` modules.
+- Phase 3: `bin/chrome-bridge.mjs` stable wrapper plus `bin/cli/main.mjs`.
+- Phase 4: `mcp/chrome-bridge-mcp.mjs` stable wrapper plus `mcp/server/main.mjs`.
+- Phase 5: `extension/page-scripts.js` stable wrapper plus `extension/page-scripts/main.js`.
+
+Deferred decisions:
+
+- Phase 6 extension folder grouping and Phase 7 server split remain optional future work because their blast radius is higher and the current modules are still cohesive enough.
 
 This plan applies Jeffrey's "Code Reorganizer" workflow to Chrome MCP Bridge. I inspected the current runtime folders, file sizes, import surfaces, command registry, extension manifest constraints, and the architecture document before proposing changes.
 
