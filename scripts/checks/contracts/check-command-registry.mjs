@@ -26,6 +26,8 @@ import {
 
 import { readCliSource } from '../lib/cli-source.mjs';
 
+import { readMcpSource } from '../lib/mcp-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 const isRepositoryCheckout = Boolean(await fs.stat(path.join(rootDir, '.git')).catch(() => null));
@@ -86,7 +88,7 @@ const [
   fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
   fs.readFile(path.join(rootDir, 'server/bridge-server.mjs'), 'utf8'),
   readCliSource(rootDir),
-  fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
+  readMcpSource(rootDir),
   fs.readFile(path.join(rootDir, 'extension/background.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/browser-data.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/debugger-session.js'), 'utf8').catch(() => ''),
@@ -265,6 +267,7 @@ if (isRepositoryCheckout || checkWorkflowText) {
 check(packageContentsCheckerText.includes('REQUIRED_PACKAGE_FILES'), 'package contents checker must declare required package files');
 for (const requiredPackageFile of [
   'bin/cli/main.mjs',
+  'mcp/server/main.mjs',
   'shared/command-registry.mjs',
   'shared/registry/actions.mjs',
   'shared/registry/metadata.mjs',
@@ -307,6 +310,8 @@ for (const requiredPackageFile of [
   'scripts/checks/release/check-roadmap-coverage.mjs',
   'scripts/checks/cli/check-cli-module-boundaries.mjs',
   'scripts/checks/lib/cli-source.mjs',
+  'scripts/checks/mcp/check-mcp-module-boundaries.mjs',
+  'scripts/checks/lib/mcp-source.mjs',
   'scripts/package/check-package-contents.mjs',
   'scripts/checks/release/check-privacy-scan.mjs',
   'scripts/checks/extension/check-download-manager.mjs',

@@ -7,6 +7,8 @@ import { readRegistrySource } from '../lib/registry-source.mjs';
 
 import { readCliSource } from '../lib/cli-source.mjs';
 
+import { readMcpSource } from '../lib/mcp-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 
@@ -62,7 +64,7 @@ const [
   fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
   readRegistrySource(rootDir),
   readCliSource(rootDir),
-  fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
+  readMcpSource(rootDir),
   fs.readFile(path.join(rootDir, 'extension/page-scripts.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-interactions.js'), 'utf8'),
   fs.readFile(path.join(rootDir, 'extension/page-artifacts.js'), 'utf8'),

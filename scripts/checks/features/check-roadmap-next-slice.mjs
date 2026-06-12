@@ -25,6 +25,8 @@ import { readRegistrySource } from '../lib/registry-source.mjs';
 const execFileAsync = promisify(execFile);
 import { readCliSource } from '../lib/cli-source.mjs';
 
+import { readMcpSource } from '../lib/mcp-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const cliPath = path.join(rootDir, 'bin/chrome-bridge.mjs');
 const failures = [];
@@ -419,7 +421,7 @@ async function checkSurface() {
     fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
     readRegistrySource(rootDir),
     readCliSource(rootDir),
-    fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
+    readMcpSource(rootDir),
     fs.readFile(path.join(rootDir, 'scripts/package/check-package-contents.mjs'), 'utf8'),
   ]);
   const packageJson = JSON.parse(packageText);

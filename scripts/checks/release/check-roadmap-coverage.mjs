@@ -15,6 +15,8 @@ import {
 const execFileAsync = promisify(execFile);
 import { readCliSource } from '../lib/cli-source.mjs';
 
+import { readMcpSource } from '../lib/mcp-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const cliPath = path.join(rootDir, 'bin/chrome-bridge.mjs');
 const failures = [];
@@ -122,7 +124,7 @@ const [
   readProjectFile('package.json'),
   readProjectFile('server/bridge-server.mjs'),
   readCliSource(rootDir),
-  readProjectFile('mcp/chrome-bridge-mcp.mjs'),
+  readMcpSource(rootDir),
   readProjectFile('extension/background.js'),
   readProjectFile('extension/browser-data.js'),
   readProjectFile('extension/debugger-session.js'),

@@ -13,6 +13,8 @@ import { fetchUrl } from '../../../extension/browser-data.js';
 
 import { readCliSource } from '../lib/cli-source.mjs';
 
+import { readMcpSource } from '../lib/mcp-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 
@@ -39,7 +41,7 @@ async function checkSourceSurface() {
     readProjectFile('package.json'),
     readRegistrySource(rootDir),
     readCliSource(rootDir),
-    readProjectFile('mcp/chrome-bridge-mcp.mjs'),
+    readMcpSource(rootDir),
     readProjectFile('extension/browser-data.js'),
     readProjectFile('server/bridge-server.mjs'),
     readProjectFile('shared/run-tabs.mjs'),

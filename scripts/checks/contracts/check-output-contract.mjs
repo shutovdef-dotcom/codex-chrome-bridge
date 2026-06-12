@@ -11,6 +11,8 @@ import {
 
 import { readCliSource } from '../lib/cli-source.mjs';
 
+import { readMcpSource } from '../lib/mcp-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 
@@ -159,7 +161,7 @@ async function checkScreenshotEnvelope(tmpDir) {
 async function checkSurface() {
   const [cliText, mcpText, packageText] = await Promise.all([
     readCliSource(rootDir),
-    fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
+    readMcpSource(rootDir),
     fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
   ]);
   const packageJson = JSON.parse(packageText);

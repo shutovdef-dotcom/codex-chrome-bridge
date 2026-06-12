@@ -15,6 +15,8 @@ import {
 
 import { readCliSource } from '../lib/cli-source.mjs';
 
+import { readMcpSource } from '../lib/mcp-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 
@@ -33,7 +35,7 @@ const [
 ] = await Promise.all([
   fs.readFile(path.join(rootDir, 'package.json'), 'utf8'),
   readCliSource(rootDir),
-  fs.readFile(path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'), 'utf8'),
+  readMcpSource(rootDir),
   fs.readFile(path.join(rootDir, 'shared/action-recording.mjs'), 'utf8'),
   fs.readFile(path.join(rootDir, 'README.md'), 'utf8'),
   fs.readFile(path.join(rootDir, 'docs/CLI.md'), 'utf8'),

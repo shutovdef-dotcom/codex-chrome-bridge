@@ -1510,6 +1510,15 @@ async function readSelfTestCliSource(paths) {
   return parts.join('\n');
 }
 
+async function readSelfTestMcpSource(paths) {
+  const files = [
+    paths.mcp,
+    paths.mcpMain,
+  ];
+  const parts = await Promise.all(files.map((filePath) => fs.readFile(filePath, 'utf8').catch(() => '')));
+  return parts.join('\n');
+}
+
 async function selfTest() {
   const paths = {
     manifest: path.join(rootDir, 'extension/manifest.json'),
@@ -1541,6 +1550,7 @@ async function selfTest() {
     cli: path.join(rootDir, 'bin/chrome-bridge.mjs'),
     cliMain: path.join(rootDir, 'bin/cli/main.mjs'),
     mcp: path.join(rootDir, 'mcp/chrome-bridge-mcp.mjs'),
+    mcpMain: path.join(rootDir, 'mcp/server/main.mjs'),
     registry: path.join(rootDir, 'shared/command-registry.mjs'),
     registryActions: path.join(rootDir, 'shared/registry/actions.mjs'),
     registryMetadata: path.join(rootDir, 'shared/registry/metadata.mjs'),
@@ -1637,7 +1647,7 @@ async function selfTest() {
     fs.readFile(paths.ask, 'utf8'),
     fs.readFile(paths.server, 'utf8'),
     readSelfTestCliSource(paths),
-    fs.readFile(paths.mcp, 'utf8'),
+    readSelfTestMcpSource(paths),
     readSelfTestRegistrySource(paths),
     fs.readFile(paths.runTabs, 'utf8'),
     fs.readFile(paths.structuredExtract, 'utf8'),
@@ -1684,6 +1694,7 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.cli]),
     tryExec(process.execPath, ['--check', paths.cliMain]),
     tryExec(process.execPath, ['--check', paths.mcp]),
+    tryExec(process.execPath, ['--check', paths.mcpMain]),
     tryExec(process.execPath, ['--check', paths.registry]),
     tryExec(process.execPath, ['--check', paths.registryActions]),
     tryExec(process.execPath, ['--check', paths.registryMetadata]),
@@ -1766,7 +1777,7 @@ async function selfTest() {
     { label: 'server registry version', item: EXPECTED_EXTENSION_VERSION, ok: server.includes('BRIDGE_VERSION') },
     { label: 'cli registry version', item: EXPECTED_EXTENSION_VERSION, ok: cli.includes('EXPECTED_EXTENSION_VERSION = BRIDGE_VERSION') },
     { label: 'mcp registry version', item: EXPECTED_EXTENSION_VERSION, ok: mcp.includes('version: BRIDGE_VERSION') },
-    { label: 'session group title imports', item: 'CLI and MCP', ok: cli.includes("from '../../shared/session-group-title.mjs'") && mcp.includes("from '../shared/session-group-title.mjs'") },
+    { label: 'session group title imports', item: 'CLI and MCP', ok: cli.includes("from '../../shared/session-group-title.mjs'") && mcp.includes("from '../../shared/session-group-title.mjs'") },
     { label: 'package version', item: EXPECTED_EXTENSION_VERSION, ok: packageJson.version === EXPECTED_EXTENSION_VERSION },
     { label: 'package-lock root version', item: EXPECTED_EXTENSION_VERSION, ok: packageLock.version === EXPECTED_EXTENSION_VERSION && packageLock.packages?.['']?.version === EXPECTED_EXTENSION_VERSION },
   ];

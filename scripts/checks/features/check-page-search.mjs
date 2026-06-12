@@ -12,6 +12,8 @@ import { readRegistrySource } from '../lib/registry-source.mjs';
 
 import { readCliSource } from '../lib/cli-source.mjs';
 
+import { readMcpSource } from '../lib/mcp-source.mjs';
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures = [];
 
@@ -38,7 +40,7 @@ const [
   readProjectFile('shared/page-search.mjs'),
   readRegistrySource(rootDir),
   readCliSource(rootDir),
-  readProjectFile('mcp/chrome-bridge-mcp.mjs'),
+  readMcpSource(rootDir),
   readProjectFile('README.md'),
   readProjectFile('docs/CLI.md'),
   readProjectFile('docs/MCP.md'),
