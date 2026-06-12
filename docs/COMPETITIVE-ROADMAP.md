@@ -389,6 +389,8 @@ After this change set, the highest-value next implementation is:
 
 That sequence keeps the product close to its strongest differentiator: safe local control of the user's real Chrome profile with small, agent-friendly outputs.
 
+For the detailed execution plan, PR sequence, verification matrix, and open product decisions, see [Implementation Plan: Local-First Competitive Gap Closure](IMPLEMENTATION-PLAN-2026-06-12.md).
+
 ## Runtime Verification When The Live Bridge Is Busy
 
 The implementation can be statically verified while another session is using the live bridge. When the live bridge is available again, use this sequence as the real-browser verification runbook:
