@@ -82,6 +82,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `command-catalog` | `command-catalog` | read | 5000 ms | no | no | Print this shared command registry as JSON or Markdown. |
 | `advise` | `advise` | read | 5000 ms | no | no | Recommend the safest next CLI and MCP tools for a task without contacting Chrome. |
 | `mcp-config` | `mcp-config` | read | 5000 ms | no | no | Print MCP client configuration snippets for Claude Code, Cursor, Codex, VS Code, Windsurf, Hermes, or generic stdio clients. |
+| `mcp-write` | `mcp-write` | read | 5000 ms | no | no | Write or merge a project-local MCP client config file, or render one to an explicit path without touching user-global config by default. |
 | `reload-extension` | `reloadExtension` | system | 5000 ms | yes | yes | Ask the unpacked extension to reload itself after local file edits; requires confirmation. |
 | `self-test` | `self-test` | read | 10000 ms | no | no | Run static project parity checks without touching Chrome. |
 | `runtime-smoke` | `runtime-smoke` | interaction | 180000 ms | no | yes | Run the real-browser fixture smoke test against the live bridge. |
@@ -115,6 +116,7 @@ chrome-bridge doctor [--live-checks] [--copy-path] [--open-extensions]
 chrome-bridge extension-path
 chrome-bridge advise --task <text> [--surface cli|mcp|both] [--risk read-only|confirmed-interaction|private-read] [--client claude-code|cursor|codex|vscode|windsurf|hermes|generic] [--live-bridge|--offline]
 chrome-bridge mcp-config [--client all|claude-code|cursor|codex|vscode|windsurf|hermes|generic]
+chrome-bridge mcp-write --client claude-code|cursor|codex|vscode|windsurf|hermes|generic [--root <dir>] [--out <file>] [--force]
 chrome-bridge codex-config
 chrome-bridge command-catalog [--markdown]
 chrome-bridge lighthouse-ingest --report <file> [--out <file>] [--max-audits 25]
@@ -157,7 +159,9 @@ By default, tab operations stay inside the configured workspace tab group, initi
 
 `tabs --all` and `windows --all` require `--confirm` because they can expose unrelated tab URLs and titles outside the scoped workspace group.
 
-`doctor` is offline by default and reports local paths plus setup hints without contacting the bridge or Chrome. It also reports recommended MCP profiles per client and offline next actions such as `runtime-smoke --coverage-plan`, `advise --task "<goal>"`, and `mcp-config --client ...`. Use `--live-checks` only when no other session is using the bridge; it probes `/health`, verifies the live bridge server version, checks the extension version, and checks Chrome Apple Events settings. `--copy-path` writes the extension path to the clipboard, and `--open-extensions` opens Chrome's extensions page.
+`doctor` is offline by default and reports local paths plus setup hints without contacting the bridge or Chrome. It also reports recommended MCP profiles per client and offline next actions such as `runtime-smoke --coverage-plan`, `advise --task "<goal>"`, `mcp-config --client ...`, and the new project-local installer path `mcp-write --client ...`. Use `--live-checks` only when no other session is using the bridge; it probes `/health`, verifies the live bridge server version, checks the extension version, and checks Chrome Apple Events settings. `--copy-path` writes the extension path to the clipboard, and `--open-extensions` opens Chrome's extensions page.
+
+`mcp-write` writes or merges project-local MCP config files for Claude Code, Cursor, Codex, and VS Code without touching user-global config by default. Use `--root <dir>` to target another workspace, `--out <file>` to render an explicit file for Windsurf, Hermes, or generic hosts, and `--force` only when you intentionally want to overwrite a non-mergeable existing file.
 
 `command-catalog` prints the shared registry metadata used by self-test and docs checks: extension action names, local diagnostic/tooling commands, risk tiers, default timeouts, live-bridge flags, CLI aliases, MCP tool names, direct `/command` payload keys, and confirmation requirements. Use `--markdown` for tables. The generated checked-in version is [COMMAND-CATALOG.md](COMMAND-CATALOG.md).
 

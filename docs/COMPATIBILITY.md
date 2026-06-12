@@ -12,11 +12,14 @@ node ./bin/chrome-bridge.mjs mcp-config --client codex
 node ./bin/chrome-bridge.mjs mcp-config --client vscode
 node ./bin/chrome-bridge.mjs mcp-config --client windsurf
 node ./bin/chrome-bridge.mjs mcp-config --client hermes
+node ./bin/chrome-bridge.mjs mcp-write --client cursor
+node ./bin/chrome-bridge.mjs mcp-write --client codex
 ```
 
 The MCP tool `chrome_bridge_mcp_config` returns the same snippets from inside clients that already have the server installed.
 For a safer install flow, `chrome_bridge_doctor`, `chrome_bridge_session_summary`, `chrome_bridge_tool_advisor`, and the `chrome-bridge://profiles/current` resource now echo the recommended profile and next setup steps after install.
 If you prefer checked-in template files, see `examples/mcp-clients/`.
+If you want the CLI to write a project-local config for you, use `mcp-write`. By default it only targets local workspace files and refuses to touch user-global config paths.
 
 ## Shared Requirements
 
@@ -32,6 +35,15 @@ Run these checks after setup:
 node ./bin/chrome-bridge.mjs doctor --live-checks
 node ./bin/chrome-bridge.mjs runtime-smoke --summary-only --out /tmp/chrome-bridge-runtime-smoke.json
 ```
+
+`mcp-write` supports project-local default paths for:
+
+- Claude Code: `.mcp.json`
+- Cursor: `.cursor/mcp.json`
+- Codex: `.codex/config.toml`
+- VS Code: `.vscode/mcp.json`
+
+For Windsurf, Hermes, or generic hosts, pass `--out <file>` when you want a rendered config file without editing any global user settings.
 
 ## Tool Profiles
 

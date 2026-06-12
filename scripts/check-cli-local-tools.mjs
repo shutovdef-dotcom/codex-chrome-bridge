@@ -1060,6 +1060,32 @@ check(cursorMcpConfigResult.stdout.includes('"CHROME_BRIDGE_MCP_TOOL_PROFILE": "
 check(cursorMcpConfigResult.stdout.includes('Recommended profile: `core`.'), 'CLI mcp-config --client cursor must explain the recommended profile');
 check(!cursorMcpConfigResult.stdout.includes('## Hermes Agent'), 'CLI mcp-config --client cursor must not print every client section');
 
+const mcpWriteTmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-mcp-write-check-'));
+const mcpWriteCursorResult = await runCli(['mcp-write', '--client', 'cursor', '--root', mcpWriteTmpDir]);
+check(mcpWriteCursorResult.ok, 'CLI mcp-write --client cursor must succeed offline');
+const mcpWriteCursorJson = parseJsonOutput(mcpWriteCursorResult, 'CLI mcp-write cursor');
+const cursorConfigPath = path.join(mcpWriteTmpDir, '.cursor', 'mcp.json');
+const cursorConfigText = await fs.readFile(cursorConfigPath, 'utf8');
+check(mcpWriteCursorJson?.path === cursorConfigPath, 'CLI mcp-write cursor must report the written project-local path');
+check(mcpWriteCursorJson?.projectLocal === true, 'CLI mcp-write cursor must stay project-local by default');
+check(cursorConfigText.includes('"CHROME_BRIDGE_MCP_TOOL_PROFILE": "core"'), 'CLI mcp-write cursor must write the core MCP profile');
+
+const codexConfigPath = path.join(mcpWriteTmpDir, '.codex', 'config.toml');
+await fs.mkdir(path.dirname(codexConfigPath), { recursive: true });
+await fs.writeFile(codexConfigPath, '[mcp_servers.other]\ncommand = "node"\nargs = ["/tmp/other.mjs"]\n', 'utf8');
+const mcpWriteCodexResult = await runCli(['mcp-write', '--client', 'codex', '--root', mcpWriteTmpDir]);
+check(mcpWriteCodexResult.ok, 'CLI mcp-write --client codex must merge into project-local config');
+const codexConfigText = await fs.readFile(codexConfigPath, 'utf8');
+check(codexConfigText.includes('[mcp_servers.other]'), 'CLI mcp-write codex must preserve other MCP server sections');
+check(codexConfigText.includes('[mcp_servers.chrome-bridge]'), 'CLI mcp-write codex must add the chrome-bridge MCP section');
+
+const hermesWriteResult = await runCli(['mcp-write', '--client', 'hermes', '--root', mcpWriteTmpDir]);
+check(!hermesWriteResult.ok, 'CLI mcp-write hermes without --out must fail closed');
+check(
+  `${hermesWriteResult.stderr}\n${hermesWriteResult.stdout}\n${hermesWriteResult.error}`.includes('no built-in project-local config path'),
+  'CLI mcp-write hermes failure must explain the missing project-local path',
+);
+
 const codexConfigResult = await runCli(['codex-config']);
 check(codexConfigResult.ok, 'CLI codex-config must succeed offline');
 check(codexConfigResult.stdout.includes('[mcp_servers.chrome-bridge]'), 'CLI codex-config must return a Codex MCP server section');

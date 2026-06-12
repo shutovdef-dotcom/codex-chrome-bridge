@@ -42,6 +42,7 @@ Chrome MCP Bridge is for logged-in, human-owned Chrome workflows:
 - Clean group lifecycle: bridge-owned groups are swept on startup, watched on create/update/removal plus tab membership changes, and marked unsaved when Chrome exposes that API. The guard recognizes `Codex Bridge ...` session titles, remembered bridge-created workspace titles, and session-scoped bridge-created group IDs; freshly created bridge session groups are remembered only for the current Chrome session, and bridge-owned tabs are then ungrouped before bridge-driven closing to avoid creating new saved closed tab-group chips.
 - CLI and MCP: usable from a terminal or any MCP-capable client.
 - MCP client setup: `mcp-config` prints ready-to-paste snippets for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic stdio MCP clients.
+- Project-local MCP install: `mcp-write` writes or merges local client config files for Claude Code, Cursor, Codex, and VS Code without touching user-global config by default.
 - Profile-aware onboarding: `doctor`, `mcp-config`, `session-summary`, and `chrome_bridge_tool_advisor` now recommend safer next steps and compact MCP profiles per client.
 - Compact IDE profile: Cursor/Windsurf snippets set `CHROME_BRIDGE_MCP_TOOL_PROFILE=core`, exposing 39 high-value tools instead of the full surface for better IDE-agent ergonomics.
 - MCP guidance surfaces: built-in prompts and resources expose quickstart, safety, compatibility, profile, and workflow guidance without forcing agents to rediscover the right tool chain.
@@ -203,10 +204,13 @@ node ./bin/chrome-bridge.mjs mcp-config
 node ./bin/chrome-bridge.mjs mcp-config --client claude-code
 node ./bin/chrome-bridge.mjs mcp-config --client cursor
 node ./bin/chrome-bridge.mjs mcp-config --client hermes
+node ./bin/chrome-bridge.mjs mcp-write --client cursor
+node ./bin/chrome-bridge.mjs mcp-write --client codex
 ```
 
 Use the generated snippet in Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, or any stdio MCP client. Cursor and Windsurf snippets use the compact `core` tool profile by default; set `CHROME_BRIDGE_MCP_TOOL_PROFILE=full` if you want every tool in clients that handle larger tool lists well.
 Generic stdio snippets now default to the conservative `read` profile first; switch them to `full` only when the host really needs private browser-data tools or broader mutation coverage.
+`mcp-write` is the safe installer path for project-local configs: it writes `.mcp.json`, `.cursor/mcp.json`, `.codex/config.toml`, or `.vscode/mcp.json` under the current project root, merging JSON/TOML where appropriate. For clients without a stable project-local path, pass `--out <file>` to render an explicit file instead of touching any global config.
 
 Codex TOML example:
 

@@ -73,6 +73,7 @@ Version: 0.4.1
 | command-catalog | diagnostic | read | 5000 ms | command-catalog | chrome_bridge_command_catalog | no | Print this shared command registry as JSON or Markdown. |
 | advise | diagnostic | read | 5000 ms | advise | chrome_bridge_tool_advisor | no | Recommend the safest next CLI and MCP tools for a task without contacting Chrome. |
 | mcp-config | diagnostic | read | 5000 ms | mcp-config | chrome_bridge_mcp_config | no | Print MCP client configuration snippets for Claude Code, Cursor, Codex, VS Code, Windsurf, Hermes, or generic stdio clients. |
+| mcp-write | diagnostic | read | 5000 ms | mcp-write | - | no | Write or merge a project-local MCP client config file, or render one to an explicit path without touching user-global config by default. |
 | self-test | verification | read | 10000 ms | self-test | chrome_bridge_self_test | no | Run static project parity checks without touching Chrome. |
 | runtime-smoke | verification | interaction | 180000 ms | runtime-smoke | chrome_bridge_runtime_smoke | yes | Run the real-browser fixture smoke test against the live bridge. |
 | doctor | diagnostic | read | 10000 ms | doctor | chrome_bridge_doctor | optional | Inspect local installation paths offline; pass --live-checks to probe bridge health and Chrome settings. |
@@ -145,6 +146,7 @@ chrome-bridge read-artifact --path <file> [--head <n>] [--grep <regex>] [--max-m
 chrome-bridge command-catalog [--markdown]
 chrome-bridge advise --task <text> [--surface cli|mcp|both] [--risk read-only|confirmed-interaction|private-read] [--client claude-code|cursor|codex|vscode|windsurf|hermes|generic] [--live-bridge|--offline]
 chrome-bridge mcp-config [--client all|claude-code|cursor|codex|vscode|windsurf|hermes|generic]
+chrome-bridge mcp-write --client claude-code|cursor|codex|vscode|windsurf|hermes|generic [--root <dir>] [--out <file>] [--force]
 chrome-bridge reload-extension --confirm
 chrome-bridge self-test
 chrome-bridge runtime-smoke [--keep-tab] [--coverage-plan] [--summary-only] [--out <file>]

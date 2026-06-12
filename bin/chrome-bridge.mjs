@@ -856,6 +856,217 @@ function mcpConfigText(args = {}) {
   ].join('\n');
 }
 
+function mcpClientFileTemplate(client) {
+  switch (client) {
+    case 'claude-code':
+      return {
+        format: 'json',
+        content: `${JSON.stringify(mcpServersJsonConfig(), null, 2)}\n`,
+      };
+    case 'cursor':
+      return {
+        format: 'json',
+        content: `${JSON.stringify(mcpServersJsonConfig({ toolProfile: 'core' }), null, 2)}\n`,
+      };
+    case 'codex':
+      return {
+        format: 'toml',
+        content: codexTomlConfig(),
+      };
+    case 'vscode':
+      return {
+        format: 'json',
+        content: `${JSON.stringify(vscodeMcpJsonConfig(), null, 2)}\n`,
+      };
+    case 'windsurf':
+      return {
+        format: 'json',
+        content: `${JSON.stringify(mcpServersJsonConfig({ toolProfile: 'core' }), null, 2)}\n`,
+      };
+    case 'hermes':
+      return {
+        format: 'yaml',
+        content: hermesYamlConfig(),
+      };
+    case 'generic':
+      return {
+        format: 'json',
+        content: `${JSON.stringify(mcpServersJsonConfig({ toolProfile: 'read' }), null, 2)}\n`,
+      };
+    default:
+      throw new Error(`Unsupported --client ${client}. Use claude-code, cursor, codex, vscode, windsurf, hermes, or generic.`);
+  }
+}
+
+function mcpClientDefaultInstallRelativePath(client) {
+  switch (client) {
+    case 'claude-code':
+      return '.mcp.json';
+    case 'cursor':
+      return '.cursor/mcp.json';
+    case 'codex':
+      return '.codex/config.toml';
+    case 'vscode':
+      return '.vscode/mcp.json';
+    default:
+      return null;
+  }
+}
+
+function resolveMcpWriteTarget(client, args = {}) {
+  if (args.out) {
+    return {
+      path: path.resolve(String(args.out)),
+      projectLocal: false,
+      root: null,
+    };
+  }
+  const relativePath = mcpClientDefaultInstallRelativePath(client);
+  if (!relativePath) {
+    throw new Error(`Client ${client} has no built-in project-local config path. Pass --out <file> to render a file explicitly.`);
+  }
+  const root = path.resolve(String(args.root || process.cwd()));
+  return {
+    path: path.join(root, relativePath),
+    projectLocal: true,
+    root,
+  };
+}
+
+async function readOptionalUtf8(filePath) {
+  try {
+    return await fs.readFile(filePath, 'utf8');
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+function upsertChromeBridgeJsonConfig(existingText, client) {
+  const parsed = existingText ? JSON.parse(existingText) : {};
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('existing config must be a JSON object');
+  }
+
+  if (client === 'vscode') {
+    const servers = (
+      parsed.servers && typeof parsed.servers === 'object' && !Array.isArray(parsed.servers)
+    ) ? { ...parsed.servers } : {};
+    servers.chromeBridge = {
+      type: 'stdio',
+      ...stdioJsonServerConfig(),
+    };
+    return {
+      merged: {
+        ...parsed,
+        servers,
+      },
+      serverKey: 'servers.chromeBridge',
+    };
+  }
+
+  const toolProfile = client === 'cursor' || client === 'windsurf'
+    ? 'core'
+    : client === 'generic'
+      ? 'read'
+      : null;
+  const mcpServers = (
+    parsed.mcpServers && typeof parsed.mcpServers === 'object' && !Array.isArray(parsed.mcpServers)
+  ) ? { ...parsed.mcpServers } : {};
+  mcpServers['chrome-bridge'] = stdioJsonServerConfig(toolProfile ? { toolProfile } : {});
+  return {
+    merged: {
+      ...parsed,
+      mcpServers,
+    },
+    serverKey: 'mcpServers.chrome-bridge',
+  };
+}
+
+function upsertCodexTomlConfig(existingText) {
+  const sectionName = 'mcp_servers.chrome-bridge';
+  const sectionText = codexTomlConfig().trimEnd();
+  const pattern = /^\[mcp_servers\.chrome-bridge\]\n[\s\S]*?(?=^\[[^\]]+\]\n?|$)/m;
+
+  if (!existingText || !existingText.trim()) {
+    return `${sectionText}\n`;
+  }
+
+  if (pattern.test(existingText)) {
+    return `${existingText.replace(pattern, `${sectionText}\n`).replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
+  }
+
+  const separator = existingText.endsWith('\n') ? '\n' : '\n\n';
+  return `${existingText}${separator}${sectionText}\n`;
+}
+
+async function writeMcpClientConfig(args = {}) {
+  const client = normalizeMcpClient(args.client);
+  if (!args.client) throw new Error('mcp-write requires --client <name>');
+  if (client === 'all') throw new Error('mcp-write requires one concrete client, not --client all');
+
+  const target = resolveMcpWriteTarget(client, args);
+  const template = mcpClientFileTemplate(client);
+  const existingText = await readOptionalUtf8(target.path);
+  const existed = existingText !== null;
+  let nextText = template.content;
+  let mergeStrategy = existed ? 'replace-on-force' : 'create';
+
+  if (template.format === 'json') {
+    const { merged, serverKey } = upsertChromeBridgeJsonConfig(existingText, client);
+    nextText = `${JSON.stringify(merged, null, 2)}\n`;
+    mergeStrategy = existed ? `merge:${serverKey}` : `create:${serverKey}`;
+  } else if (client === 'codex') {
+    nextText = upsertCodexTomlConfig(existingText);
+    mergeStrategy = existed ? 'merge:[mcp_servers.chrome-bridge]' : 'create:[mcp_servers.chrome-bridge]';
+  } else if (existed && existingText !== template.content && !args.force) {
+    throw new Error(`Refusing to overwrite existing ${client} config at ${target.path} without --force`);
+  }
+
+  if (existingText === nextText) {
+    return {
+      ok: true,
+      action: 'mcp-write',
+      client,
+      path: target.path,
+      projectLocal: target.projectLocal,
+      root: target.root,
+      existed,
+      changed: false,
+      unchanged: true,
+      mergeStrategy,
+      nextActions: [
+        'Run chrome-bridge doctor for offline setup guidance.',
+        'When the bridge is free, run chrome-bridge doctor --live-checks.',
+      ],
+    };
+  }
+
+  await fs.mkdir(path.dirname(target.path), { recursive: true });
+  await fs.writeFile(target.path, nextText, 'utf8');
+  return {
+    ok: true,
+    action: 'mcp-write',
+    client,
+    path: target.path,
+    projectLocal: target.projectLocal,
+    root: target.root,
+    existed,
+    changed: true,
+    created: !existed,
+    updated: existed,
+    mergeStrategy,
+    recommendedProfile: recommendedMcpProfile(client),
+    nextActions: [
+      target.projectLocal
+        ? `Open ${target.path} in your client or workspace settings if it does not auto-discover project-local MCP config.`
+        : `Import or copy ${target.path} into the target client config location.`,
+      'Run chrome-bridge doctor for offline setup guidance.',
+      'When the bridge is free, run chrome-bridge doctor --live-checks.',
+    ],
+  };
+}
+
 const EXPECTED_MANIFEST_PERMISSIONS = MANIFEST_PERMISSIONS;
 const EXPECTED_EXTENSION_ACTIONS = EXTENSION_ACTIONS;
 const EXPECTED_CLI_COMMANDS = CLI_COMMANDS;
@@ -2789,6 +3000,11 @@ async function main() {
 
   if (cmd === 'mcp-config') {
     process.stdout.write(mcpConfigText(args));
+    return;
+  }
+
+  if (cmd === 'mcp-write') {
+    printJson(await writeMcpClientConfig(args));
     return;
   }
 
