@@ -2,7 +2,7 @@
 
 Chrome MCP Bridge, formerly Codex Chrome Bridge, uses an unpacked Chrome extension from the `extension/` directory.
 
-For client-specific install shortcuts, see [INSTALL.md](INSTALL.md). For Chrome Web Store readiness and packaging, use `npm run extension:zip` and the privacy text in [PRIVACY-POLICY.md](PRIVACY-POLICY.md).
+For client-specific install shortcuts, see [INSTALL.md](INSTALL.md). For Chrome Web Store readiness and packaging, use `npm run extension:zip`, the privacy text in [PRIVACY-POLICY.md](PRIVACY-POLICY.md), and the submission packet in [CHROME-WEB-STORE.md](CHROME-WEB-STORE.md).
 
 ## Install
 

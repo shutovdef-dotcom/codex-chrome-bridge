@@ -16,6 +16,20 @@ node ./bin/chrome-bridge.mjs doctor --live-checks
 node ./bin/chrome-bridge.mjs runtime-smoke --summary-only --out /tmp/chrome-bridge-runtime-smoke.json
 ```
 
+## One-Command And One-Click Status
+
+Use this matrix when deciding how much setup UI to expose for a client.
+
+| Client | Best current path | Status |
+| --- | --- | --- |
+| Claude Code | `node ./bin/chrome-bridge.mjs mcp-write --client claude-code` | One command writes a project-local `.mcp.json`. |
+| Cursor | `node ./bin/chrome-bridge.mjs mcp-write --client cursor` | One command writes `.cursor/mcp.json`; Cursor Settings -> MCP remains the manual UI fallback. |
+| Codex | `node ./bin/chrome-bridge.mjs mcp-write --client codex` | One command writes `.codex/config.toml`. |
+| VS Code | `node ./bin/chrome-bridge.mjs mcp-write --client vscode` or `code --add-mcp '<json>'` from `mcp-config --client vscode` | One command writes `.vscode/mcp.json`; VS Code CLI can add an MCP server from generated JSON. |
+| Windsurf / Cascade | `node ./bin/chrome-bridge.mjs mcp-config --client windsurf` | Copy-paste config path; keep `core` profile by default. |
+| Hermes Agent | `node ./bin/chrome-bridge.mjs mcp-config --client hermes` | Copy-paste config path until Hermes exposes a stable project-local writer. |
+| Chrome Extension | `npm run extension:zip` plus [CHROME-WEB-STORE.md](CHROME-WEB-STORE.md) | Store packet is ready for maintainer review; actual Chrome Web Store submission is manual. |
+
 ## Claude Code
 
 - Fast path: `node ./bin/chrome-bridge.mjs mcp-write --client claude-code`

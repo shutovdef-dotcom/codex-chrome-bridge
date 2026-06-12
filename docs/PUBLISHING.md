@@ -74,7 +74,11 @@ The plan output reports `verification.status: "not-run"` and `verification.liveV
 
 `check:privacy` scans tracked and untracked repository files, excluding ignored dependencies, for local home paths, private-key headers, common provider tokens, and obvious secret assignments.
 
-For public distribution, also review [PRIVACY-POLICY.md](PRIVACY-POLICY.md) and [REGISTRY-SUBMISSIONS.md](REGISTRY-SUBMISSIONS.md).
+For public distribution, also review [PRIVACY-POLICY.md](PRIVACY-POLICY.md), [REGISTRY-SUBMISSIONS.md](REGISTRY-SUBMISSIONS.md), and [CHROME-WEB-STORE.md](CHROME-WEB-STORE.md).
+
+## Chrome Web Store
+
+Before submitting the extension, review [docs/CHROME-WEB-STORE.md](CHROME-WEB-STORE.md). It contains listing copy, permission justification, data-use answers, screenshot requirements, and the manual submission checklist. The repository can prepare the zip and packet, but the actual Chrome Web Store upload remains a maintainer action.
 
 ## GitHub
 

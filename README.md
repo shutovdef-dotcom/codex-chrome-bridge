@@ -316,6 +316,7 @@ codex/      optional Codex skill handoff
 | Detailed implementation plan | [docs/IMPLEMENTATION-PLAN-2026-06-12.md](docs/IMPLEMENTATION-PLAN-2026-06-12.md) |
 | Distribution and GitHub SEO | [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) |
 | Registry submission checklist | [docs/REGISTRY-SUBMISSIONS.md](docs/REGISTRY-SUBMISSIONS.md) |
+| Chrome Web Store submission packet | [docs/CHROME-WEB-STORE.md](docs/CHROME-WEB-STORE.md) |
 | UBS bug scan and fix plan | [docs/UBS-BUG-SCAN-2026-06-12.md](docs/UBS-BUG-SCAN-2026-06-12.md) |
 | Publishing checklist | [docs/PUBLISHING.md](docs/PUBLISHING.md) |
 | AI-readable project summary | [llms.txt](llms.txt) |
