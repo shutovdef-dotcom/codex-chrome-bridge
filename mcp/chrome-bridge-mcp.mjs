@@ -16,6 +16,10 @@ import {
 } from '../shared/command-registry.mjs';
 import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
 import { summarizeDiagnosticsOutput } from '../shared/diagnostics-output.mjs';
+import {
+  bridgeFetchTimeoutSignal,
+  isAbortError,
+} from '../shared/fetch-timeout.mjs';
 import { formatReadOutput } from '../shared/output-envelope.mjs';
 
 const BRIDGE_URL = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
@@ -63,8 +67,21 @@ const fullPageReadSchema = {
   scrollDelayMs: z.number().min(0).max(2000).optional(),
 };
 
-async function bridgeFetch(pathname, options = {}) {
-  const response = await fetch(`${BRIDGE_URL}${pathname}`, options);
+async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
+  let response;
+  try {
+    response = await fetch(`${BRIDGE_URL}${pathname}`, {
+      ...options,
+      signal: options.signal || bridgeFetchTimeoutSignal(timeoutMs),
+    });
+  } catch (error) {
+    if (isAbortError(error)) {
+      const timeoutError = new Error(`Bridge request timed out after ${timeoutMs} ms`);
+      timeoutError.code = 'BRIDGE_FETCH_TIMEOUT';
+      throw timeoutError;
+    }
+    throw error;
+  }
   const text = await response.text();
   let json;
   try {
@@ -87,7 +104,7 @@ async function bridgeCommand(action, payload = {}, timeoutMs) {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ action, payload, timeoutMs: effectiveTimeoutMs }),
-  });
+  }, effectiveTimeoutMs);
   return json.result;
 }
 
@@ -1169,6 +1186,7 @@ server.tool(
     body: z.string().optional(),
     credentials: z.enum(['omit', 'include']).optional(),
     maxChars: z.number().min(100).max(200000).optional(),
+    requestTimeoutMs: z.number().min(1000).max(60000).optional(),
     confirmed: z.boolean(),
     confirmSensitive: z.boolean().optional(),
   },

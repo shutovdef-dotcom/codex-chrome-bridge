@@ -250,7 +250,7 @@ chrome-bridge history [--query <text>] --confirm [--limit 25] [--start-time <ms>
 chrome-bridge bookmarks [--query <text>] --confirm [--limit 50]
 chrome-bridge cookies [--url <url> | --domain <domain>] --confirm [--include-values --confirm-sensitive] [--limit 50]
 chrome-bridge storage [--tab <id>] --confirm [--include-values --confirm-sensitive] [--allow-external]
-chrome-bridge request <url> --confirm [--method GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000]
+chrome-bridge request <url> --confirm [--method GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000] [--request-timeout-ms 60000]
 ```
 <!-- END GENERATED CLI USAGE: browser-data -->
 

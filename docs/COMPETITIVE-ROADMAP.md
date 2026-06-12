@@ -319,15 +319,16 @@ This repository iteration implements the merged Phase 0-4 roadmap:
   - add feature-detected saved-tab-group disablement so bridge-created groups are marked unsaved when Chrome exposes that API, while retaining ungroup-before-close mitigation on current Chrome and returning `savedClosedGroupChipPrevention` metadata for bridge-driven cleanup
   - remember session-scoped bridge-created group IDs in Chrome session storage so custom session group titles stay covered by managed-group lifecycle guards without persisting browser-session IDs across Chrome restarts
   - add a bounded diagnostics surface with page health, navigation timing, resource counts, trace event counts, artifact-backed full results, and a Lighthouse handoff path without dumping raw trace/event logs by default
+  - close the UBS bug-scan follow-up plan with abortable CLI/MCP/extension fetch boundaries, safe metadata stripping, rejection-safe offscreen listeners, prompt DOM hardening, corrupted run-state recovery, and dedicated `check:ubs-fixes` coverage
 
 ## Next Recommended Slice
 
 After this change set lands cleanly, the highest-value next implementation is:
 
-1. Close the P0 items from the [UBS bug scan and fix plan](UBS-BUG-SCAN-2026-06-12.md): abortable fetch boundaries and safe metadata merges.
-2. Add schema-backed structured extraction presets beyond `cpa-offer` only when they preserve metadata-first stdout and local artifact storage.
-3. Add download/offline-export discovery before attempting any heavier cloud-browser or crawler-style work.
-4. Add optional Lighthouse result ingestion after the handoff path is stable, keeping raw reports local and exposing only scores, failing audits, and artifact paths by default.
+1. Add schema-backed structured extraction presets beyond `cpa-offer` only when they preserve metadata-first stdout and local artifact storage.
+2. Add download/offline-export discovery before attempting any heavier cloud-browser or crawler-style work.
+3. Add optional Lighthouse result ingestion after the handoff path is stable, keeping raw reports local and exposing only scores, failing audits, and artifact paths by default.
+4. Revisit remaining UBS noise only when a concrete finding maps to reachable runtime behavior, not just broad pattern matches.
 
 That sequence keeps the product close to its strongest differentiator: safe local control of the user's real Chrome profile with small, agent-friendly outputs.
 

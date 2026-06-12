@@ -75,7 +75,7 @@ export const COMMAND_PAYLOAD_SCHEMAS = freezeSchemaMap({
   bookmarksSearch: ['query', 'limit', 'confirmed'],
   cookiesList: ['url', 'domain', 'name', 'limit', 'includeValues', 'confirmed', 'confirmSensitive'],
   storageSnapshot: [...sensitiveConfirmed, 'includeValues', 'maxValueChars'],
-  fetchUrl: ['url', 'method', 'headers', 'body', 'credentials', 'maxChars', 'confirmed', 'confirmSensitive'],
+  fetchUrl: ['url', 'method', 'headers', 'body', 'credentials', 'maxChars', 'requestTimeoutMs', 'confirmed', 'confirmSensitive'],
   askUser: ['question', 'choices', 'allowText', 'closeOnAnswer', 'timeoutMs'],
   reloadExtension: ['confirmed'],
 });
@@ -738,7 +738,7 @@ export const CLI_USAGE_LINES = Object.freeze([
   'chrome-bridge bookmarks [--query <text>] --confirm [--limit 50]',
   'chrome-bridge cookies [--url <url> | --domain <domain>] --confirm [--include-values --confirm-sensitive] [--limit 50]',
   'chrome-bridge storage [--tab <id>] --confirm [--include-values --confirm-sensitive] [--allow-external]',
-  'chrome-bridge request <url> --confirm [--method GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000]',
+  'chrome-bridge request <url> --confirm [--method GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000] [--request-timeout-ms 60000]',
   'chrome-bridge ask --question <text> [--choices-json <json>] [--no-text] [--timeout-ms 300000] [--keep-tab]',
   'chrome-bridge session-summary',
   'chrome-bridge debug-bundle --out <dir> [--tab <id>] [--allow-external] [--include-snapshot] [--include-observe] [--include-screenshot] [--include-trace-events]',
@@ -1447,7 +1447,7 @@ export function validateCommandPayload(action, payload = {}) {
   const normalizedPayload = payload === undefined ? {} : payload;
   rejectUnknownKeys(normalizedPayload, allowed, action);
 
-  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'maxPixels', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs']) {
+  for (const key of ['tabId', 'timeoutMs', 'limit', 'maxChars', 'maxTextChars', 'maxItems', 'maxValueChars', 'maxPixels', 'requestTimeoutMs', 'x', 'y', 'index', 'scale', 'startTime', 'endTime', 'maxEvents', 'scrollStepPx', 'maxScrollSteps', 'scrollDelayMs']) {
     ensureNumber(normalizedPayload, key, action);
   }
   ensureNonNegativeInteger(normalizedPayload, 'tabId', action);
@@ -1524,6 +1524,7 @@ export function validateCommandPayload(action, payload = {}) {
   }
   if (action === 'fetchUrl') {
     ensureNumberRange(normalizedPayload, 'maxChars', action, 100, 200_000);
+    ensureNumberRange(normalizedPayload, 'requestTimeoutMs', action, 1_000, 60_000);
   }
   if (action === 'askUser') {
     ensureNumberRange(normalizedPayload, 'timeoutMs', action, 5_000, 1_800_000);

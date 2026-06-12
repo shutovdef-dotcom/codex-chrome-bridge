@@ -1,10 +1,18 @@
 const params = new URLSearchParams(location.search);
 const requestId = params.get('id');
-const question = document.querySelector('#question');
-const choices = document.querySelector('#choices');
-const answer = document.querySelector('#answer');
-const submit = document.querySelector('#submit');
-const cancel = document.querySelector('#cancel');
+
+function requiredElement(selector) {
+  const element = document.querySelector(selector);
+  if (element) return element;
+  document.body.textContent = `Codex Bridge Prompt is missing required element: ${selector}`;
+  throw new Error(`Missing required prompt element: ${selector}`);
+}
+
+const question = requiredElement('#question');
+const choices = requiredElement('#choices');
+const answer = requiredElement('#answer');
+const submit = requiredElement('#submit');
+const cancel = requiredElement('#cancel');
 
 let selectedChoice = null;
 
@@ -90,4 +98,3 @@ cancel.addEventListener('click', () => {
 loadPrompt().catch((error) => {
   question.textContent = String(error?.message || error);
 });
-

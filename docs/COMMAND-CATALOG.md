@@ -48,7 +48,7 @@ Version: 0.4.1
 | bookmarksSearch | private-read | private-read | 30000 ms | bookmarks | chrome_bridge_bookmarks_search | yes | query, limit, confirmed | Search Chrome bookmarks with explicit confirmation. |
 | cookiesList | private-read | private-read | 30000 ms | cookies | chrome_bridge_cookies_list | sensitive | url, domain, name, limit, includeValues, confirmed, confirmSensitive | List Chrome cookie metadata; values require sensitive confirmation. |
 | storageSnapshot | private-read | private-read | 30000 ms | storage | chrome_bridge_storage_snapshot | sensitive | tabId, allowExternal, confirmed, confirmSensitive, includeValues, maxValueChars | Read page storage keys; values require sensitive confirmation. |
-| fetchUrl | private-read | private-read | 60000 ms | request | chrome_bridge_request | sensitive | url, method, headers, body, credentials, maxChars, confirmed, confirmSensitive | Run a bounded extension-context request; credentials require sensitive confirmation. |
+| fetchUrl | private-read | private-read | 60000 ms | request | chrome_bridge_request | sensitive | url, method, headers, body, credentials, maxChars, requestTimeoutMs, confirmed, confirmSensitive | Run a bounded extension-context request; credentials require sensitive confirmation. |
 | askUser | human | system | 305000 ms | ask | chrome_bridge_ask_user | no | question, choices, allowText, closeOnAnswer, timeoutMs | Open a local prompt tab and wait for a user answer. |
 | reloadExtension | system | system | 5000 ms | reload-extension | chrome_bridge_reload_extension | yes | confirmed | Ask the unpacked extension to reload itself after local file edits; requires confirmation. |
 
@@ -127,7 +127,7 @@ chrome-bridge history [--query <text>] --confirm [--limit 25] [--start-time <ms>
 chrome-bridge bookmarks [--query <text>] --confirm [--limit 50]
 chrome-bridge cookies [--url <url> | --domain <domain>] --confirm [--include-values --confirm-sensitive] [--limit 50]
 chrome-bridge storage [--tab <id>] --confirm [--include-values --confirm-sensitive] [--allow-external]
-chrome-bridge request <url> --confirm [--method GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000]
+chrome-bridge request <url> --confirm [--method GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS] [--headers-json <json>] [--body <text>] [--credentials include --confirm-sensitive] [--max-chars 20000] [--request-timeout-ms 60000]
 chrome-bridge ask --question <text> [--choices-json <json>] [--no-text] [--timeout-ms 300000] [--keep-tab]
 chrome-bridge session-summary
 chrome-bridge debug-bundle --out <dir> [--tab <id>] [--allow-external] [--include-snapshot] [--include-observe] [--include-screenshot] [--include-trace-events]

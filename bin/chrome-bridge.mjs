@@ -9,6 +9,10 @@ import { promisify } from 'node:util';
 import { parseBridgePort, startBridgeServer } from '../server/bridge-server.mjs';
 import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
 import {
+  bridgeFetchTimeoutSignal,
+  isAbortError,
+} from '../shared/fetch-timeout.mjs';
+import {
   formatReadOutput,
   lastArtifact,
   readArtifactPreview,
@@ -71,8 +75,21 @@ function parseArgs(argv) {
   return args;
 }
 
-async function bridgeFetch(pathname, options = {}) {
-  const response = await fetch(`${DEFAULT_ENDPOINT}${pathname}`, options);
+async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
+  let response;
+  try {
+    response = await fetch(`${DEFAULT_ENDPOINT}${pathname}`, {
+      ...options,
+      signal: options.signal || bridgeFetchTimeoutSignal(timeoutMs),
+    });
+  } catch (error) {
+    if (isAbortError(error)) {
+      const timeoutError = new Error(`Bridge request timed out after ${timeoutMs} ms`);
+      timeoutError.code = 'BRIDGE_FETCH_TIMEOUT';
+      throw timeoutError;
+    }
+    throw error;
+  }
   const text = await response.text();
   let json;
   try {
@@ -95,7 +112,7 @@ async function command(action, payload = {}, timeoutMs) {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ action, payload, timeoutMs: effectiveTimeoutMs }),
-  });
+  }, effectiveTimeoutMs);
   return json.result;
 }
 
@@ -789,6 +806,8 @@ async function selfTest() {
     registry: path.join(rootDir, 'shared/command-registry.mjs'),
     outputEnvelope: path.join(rootDir, 'shared/output-envelope.mjs'),
     runTabs: path.join(rootDir, 'shared/run-tabs.mjs'),
+    fetchTimeout: path.join(rootDir, 'shared/fetch-timeout.mjs'),
+    safeRecord: path.join(rootDir, 'shared/safe-record.mjs'),
     commandCatalogDoc: path.join(rootDir, 'docs/COMMAND-CATALOG.md'),
     commandCatalogGenerator: path.join(rootDir, 'scripts/generate-command-catalog.mjs'),
     bridgeContractChecker: path.join(rootDir, 'scripts/check-bridge-contract.mjs'),
@@ -829,6 +848,9 @@ async function selfTest() {
     cli,
     mcp,
     registry,
+    runTabs,
+    fetchTimeout,
+    safeRecord,
     commandCatalogDoc,
     bridgeContractChecker,
     packageJsonText,
@@ -863,6 +885,9 @@ async function selfTest() {
     fs.readFile(paths.cli, 'utf8'),
     fs.readFile(paths.mcp, 'utf8'),
     fs.readFile(paths.registry, 'utf8'),
+    fs.readFile(paths.runTabs, 'utf8'),
+    fs.readFile(paths.fetchTimeout, 'utf8'),
+    fs.readFile(paths.safeRecord, 'utf8'),
     fs.readFile(paths.commandCatalogDoc, 'utf8'),
     fs.readFile(paths.bridgeContractChecker, 'utf8'),
     fs.readFile(paths.packageJson, 'utf8'),
@@ -904,6 +929,8 @@ async function selfTest() {
     tryExec(process.execPath, ['--check', paths.registry]),
     tryExec(process.execPath, ['--check', paths.outputEnvelope]),
     tryExec(process.execPath, ['--check', paths.runTabs]),
+    tryExec(process.execPath, ['--check', paths.fetchTimeout]),
+    tryExec(process.execPath, ['--check', paths.safeRecord]),
     tryExec(process.execPath, ['--check', paths.commandCatalogGenerator]),
     tryExec(process.execPath, ['--check', paths.bridgeContractChecker]),
     tryExec(process.execPath, ['--check', paths.docsCoverageChecker]),
@@ -1060,6 +1087,21 @@ async function selfTest() {
         && mcp.includes('timeoutMs ?? commandDefaultTimeoutMs(action)'),
     },
     {
+      label: 'shared helper',
+      item: 'abortable bridge fetch helper',
+      ok: fetchTimeout.includes('bridgeFetchTimeoutSignal')
+        && fetchTimeout.includes('AbortSignal.timeout')
+        && cli.includes('bridgeFetchTimeoutSignal')
+        && mcp.includes('bridgeFetchTimeoutSignal'),
+    },
+    {
+      label: 'shared helper',
+      item: 'unsafe object key stripping',
+      ok: safeRecord.includes('stripUnsafeObjectKeys')
+        && server.includes('stripUnsafeObjectKeys(info')
+        && runTabs.includes('stripUnsafeObjectKeys(meta'),
+    },
+    {
       label: 'registry',
       item: 'CLI usage signatures',
       ok: registry.includes('CLI_USAGE_LINES')
@@ -1190,6 +1232,8 @@ async function selfTest() {
         paths.registry,
         paths.outputEnvelope,
         paths.runTabs,
+        paths.fetchTimeout,
+        paths.safeRecord,
         paths.commandCatalogGenerator,
         paths.bridgeContractChecker,
         paths.docsCoverageChecker,
@@ -3019,6 +3063,7 @@ tool_timeout_sec = 60
       body: args.body,
       credentials: args.credentials,
       maxChars: parseNumberRangeArg(args['max-chars'], '--max-chars', 100, 200_000),
+      requestTimeoutMs: parseNumberRangeArg(args['request-timeout-ms'], '--request-timeout-ms', 1_000, 60_000),
     }, 60_000));
     return;
   }

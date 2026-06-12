@@ -7,6 +7,7 @@ import {
   commandDefaultTimeoutMs,
   validateCommandPayload,
 } from '../shared/command-registry.mjs';
+import { stripUnsafeObjectKeys } from '../shared/safe-record.mjs';
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 17376;
@@ -20,6 +21,16 @@ const MAX_COMMAND_TIMEOUT_MS = 1_900_000;
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
 const ALLOWED_COMMAND_ACTIONS = new Set(EXTENSION_ACTIONS);
 const COMMAND_BODY_KEYS = new Set(['action', 'payload', 'timeoutMs']);
+const EXTENSION_INFO_KEYS = [
+  'clientId',
+  'extensionId',
+  'version',
+  'name',
+  'context',
+  'origin',
+  'userAgent',
+  'transport',
+];
 
 function bridgeError(code, message, details = undefined) {
   const error = new Error(message);
@@ -103,7 +114,7 @@ function requireExtensionOrigin(req) {
 }
 
 function requireExtensionIdentity(req, info = {}) {
-  const extensionId = info?.extensionId;
+  const extensionId = stripUnsafeObjectKeys(info, { allowedKeys: EXTENSION_INFO_KEYS }).extensionId;
   if (!extensionId) return null;
   const expectedOrigin = `chrome-extension://${extensionId}`;
   const origin = String(req.headers.origin || '');
@@ -263,12 +274,13 @@ export function createBridgeServer(options = {}) {
   };
 
   function markExtensionSeen(info = {}) {
+    const safeInfo = stripUnsafeObjectKeys(info, { allowedKeys: EXTENSION_INFO_KEYS });
     const now = new Date().toISOString();
     state.extensionConnectedAt ||= now;
     state.extensionLastSeenAt = now;
     state.extensionInfo = {
       ...state.extensionInfo,
-      ...info,
+      ...safeInfo,
     };
   }
 

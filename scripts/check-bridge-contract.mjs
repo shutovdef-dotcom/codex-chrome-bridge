@@ -5,6 +5,7 @@ import { createBridgeServer } from '../server/bridge-server.mjs';
 
 const results = [];
 const EXTENSION_ORIGIN = 'chrome-extension://contract-test';
+const CONTRACT_FETCH_TIMEOUT_MS = 5_000;
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -15,7 +16,7 @@ function delay(ms) {
 }
 
 async function requestJson(baseUrl, pathname, options = {}) {
-  const response = await fetch(`${baseUrl}${pathname}`, {
+  const response = await contractFetch(`${baseUrl}${pathname}`, {
     ...options,
     headers: {
       ...(options.body ? { 'content-type': 'application/json' } : {}),
@@ -30,6 +31,13 @@ async function requestJson(baseUrl, pathname, options = {}) {
     json = { ok: false, error: text };
   }
   return { response, json };
+}
+
+function contractFetch(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    signal: options.signal || AbortSignal.timeout(CONTRACT_FETCH_TIMEOUT_MS),
+  });
 }
 
 function extensionRequestOptions(options = {}) {
@@ -191,7 +199,7 @@ await check('rejects JSON POST bodies without application/json content type', as
 
 await check('only exposes CORS preflight on extension ingress paths', async () => {
   await withBridge({}, async ({ baseUrl }) => {
-    const commandPreflight = await fetch(`${baseUrl}/command`, {
+    const commandPreflight = await contractFetch(`${baseUrl}/command`, {
       method: 'OPTIONS',
       headers: { origin: EXTENSION_ORIGIN },
     });
@@ -201,7 +209,7 @@ await check('only exposes CORS preflight on extension ingress paths', async () =
       'expected /command preflight not to expose access-control-allow-origin',
     );
 
-    const extensionPreflight = await fetch(`${baseUrl}/extension/hello`, {
+    const extensionPreflight = await contractFetch(`${baseUrl}/extension/hello`, {
       method: 'OPTIONS',
       headers: { origin: EXTENSION_ORIGIN },
     });
@@ -427,6 +435,35 @@ await check('rejects long-poll extension requests without extension origin', asy
   });
 });
 
+await check('strips unsafe long-poll extension metadata before health exposure', async () => {
+  await withBridge({ enableLongPoll: true }, async ({ baseUrl }) => {
+    const unsafeInfo = JSON.parse(`{
+      "version": "${BRIDGE_VERSION}",
+      "extensionId": "contract-test",
+      "clientId": "safe-client",
+      "extra": "drop-me",
+      "__proto__": { "polluted": true },
+      "constructor": { "prototype": { "polluted": true } },
+      "prototype": { "polluted": true }
+    }`);
+    const hello = await requestJson(baseUrl, '/extension/hello', extensionRequestOptions({
+      method: 'POST',
+      body: JSON.stringify({ info: unsafeInfo }),
+    }));
+    assert(hello.response.status === 200, `expected hello 200, got ${hello.response.status}`);
+
+    const health = await requestJson(baseUrl, '/health');
+    const info = health.json.extension?.info || {};
+    assert(info.version === BRIDGE_VERSION, `expected safe version metadata, got ${JSON.stringify(info)}`);
+    assert(info.clientId === 'safe-client', `expected safe clientId metadata, got ${JSON.stringify(info)}`);
+    assert(!Object.prototype.hasOwnProperty.call(info, '__proto__'), 'expected __proto__ metadata to be stripped');
+    assert(!Object.prototype.hasOwnProperty.call(info, 'constructor'), 'expected constructor metadata to be stripped');
+    assert(!Object.prototype.hasOwnProperty.call(info, 'prototype'), 'expected prototype metadata to be stripped');
+    assert(!Object.prototype.hasOwnProperty.call(info, 'extra'), 'expected non-allowlisted metadata to be stripped');
+    assert({}.polluted === undefined, 'expected Object.prototype not to be polluted');
+  });
+});
+
 await check('rejects extension hello when origin and extension id mismatch', async () => {
   await withBridge({ enableLongPoll: true }, async ({ baseUrl }) => {
     const { response, json } = await requestJson(baseUrl, '/extension/hello', extensionRequestOptions({
@@ -493,6 +530,39 @@ await check('closes websocket extension hello when origin and extension id misma
       }));
       const closedByBridge = await waitForSocketClose(socket);
       assert(closedByBridge, 'expected mismatched websocket hello to close the socket');
+    } finally {
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        socket.terminate();
+      }
+    }
+  });
+});
+
+await check('strips unsafe websocket extension metadata before health exposure', async () => {
+  await withBridge({}, async ({ baseUrl }) => {
+    const socket = await openExtensionSocket(baseUrl);
+    try {
+      const unsafeInfo = JSON.parse(`{
+        "version": "${BRIDGE_VERSION}",
+        "extensionId": "contract-test",
+        "clientId": "safe-websocket-client",
+        "extra": "drop-me",
+        "__proto__": { "polluted": true },
+        "constructor": { "prototype": { "polluted": true } },
+        "prototype": { "polluted": true }
+      }`);
+      socket.send(JSON.stringify({ type: 'hello', info: unsafeInfo }));
+      await delay(50);
+
+      const health = await requestJson(baseUrl, '/health');
+      const info = health.json.extension?.info || {};
+      assert(info.version === BRIDGE_VERSION, `expected safe version metadata, got ${JSON.stringify(info)}`);
+      assert(info.clientId === 'safe-websocket-client', `expected safe clientId metadata, got ${JSON.stringify(info)}`);
+      assert(!Object.prototype.hasOwnProperty.call(info, '__proto__'), 'expected __proto__ metadata to be stripped');
+      assert(!Object.prototype.hasOwnProperty.call(info, 'constructor'), 'expected constructor metadata to be stripped');
+      assert(!Object.prototype.hasOwnProperty.call(info, 'prototype'), 'expected prototype metadata to be stripped');
+      assert(!Object.prototype.hasOwnProperty.call(info, 'extra'), 'expected non-allowlisted metadata to be stripped');
+      assert({}.polluted === undefined, 'expected Object.prototype not to be polluted');
     } finally {
       if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
         socket.terminate();

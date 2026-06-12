@@ -1,5 +1,19 @@
 import { requireConfirmed, requireSensitiveConfirmed } from './safety-gates.js';
 
+const DEFAULT_FETCH_URL_TIMEOUT_MS = 60_000;
+
+function fetchUrlTimeoutMs(value) {
+  const parsed = Number(value || DEFAULT_FETCH_URL_TIMEOUT_MS);
+  if (!Number.isFinite(parsed)) return DEFAULT_FETCH_URL_TIMEOUT_MS;
+  return Math.min(Math.max(parsed, 1_000), 60_000);
+}
+
+function fetchUrlTimeoutError(timeoutMs) {
+  const error = new Error(`fetchUrl timed out after ${timeoutMs} ms`);
+  error.code = 'FETCH_URL_TIMEOUT';
+  return error;
+}
+
 export async function historySearch(payload) {
   requireConfirmed(payload, 'historySearch');
   if (!chrome.history) throw new Error('chrome.history API is unavailable; reload after granting the history permission');
@@ -80,13 +94,26 @@ export async function fetchUrl(payload) {
   requireConfirmed(payload, 'fetchUrl');
   if (!payload.url) throw new Error('fetchUrl requires url');
   if (payload.credentials === 'include') requireSensitiveConfirmed(payload, 'fetchUrl credentials=include');
-  const response = await fetch(payload.url, {
-    method: String(payload.method || 'GET').toUpperCase(),
-    headers: payload.headers && typeof payload.headers === 'object' ? payload.headers : undefined,
-    body: payload.body === undefined ? undefined : String(payload.body),
-    credentials: payload.credentials === 'include' ? 'include' : 'omit',
-  });
-  const text = await response.text();
+  const requestTimeoutMs = fetchUrlTimeoutMs(payload.requestTimeoutMs);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+  let response;
+  let text;
+  try {
+    response = await fetch(payload.url, {
+      method: String(payload.method || 'GET').toUpperCase(),
+      headers: payload.headers && typeof payload.headers === 'object' ? payload.headers : undefined,
+      body: payload.body === undefined ? undefined : String(payload.body),
+      credentials: payload.credentials === 'include' ? 'include' : 'omit',
+      signal: controller.signal,
+    });
+    text = await response.text();
+  } catch (error) {
+    if (error?.name === 'AbortError') throw fetchUrlTimeoutError(requestTimeoutMs);
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
   const maxChars = Math.min(Math.max(Number(payload.maxChars || 20_000), 100), 200_000);
   return {
     url: response.url,

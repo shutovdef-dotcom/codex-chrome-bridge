@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { stripUnsafeObjectKeys } from './safe-record.mjs';
 
 export const DEFAULT_RUN_STATE_DIR = path.join(os.tmpdir(), 'chrome-bridge-run-tabs');
 
@@ -29,6 +30,49 @@ function uniqueSortedTabIds(values = []) {
   return [...new Set(values.map(normalizeTabId))].sort((a, b) => a - b);
 }
 
+function storedTabIds(values = []) {
+  if (!Array.isArray(values)) return [];
+  const tabIds = [];
+  for (const value of values) {
+    try {
+      tabIds.push(normalizeTabId(value));
+    } catch {
+      // Persisted run state is best-effort; malformed entries must not block cleanup.
+    }
+  }
+  return [...new Set(tabIds)].sort((a, b) => a - b);
+}
+
+function emptyRunState({ runId, path: filePath, parseError = undefined } = {}) {
+  return {
+    runId,
+    createdAt: null,
+    updatedAt: null,
+    ownedTabIds: [],
+    tabs: {},
+    path: filePath,
+    ...(parseError ? { parseError } : {}),
+  };
+}
+
+function sanitizeTabs(tabs = {}) {
+  if (!tabs || typeof tabs !== 'object' || Array.isArray(tabs)) return {};
+  const safeTabs = stripUnsafeObjectKeys(tabs);
+  const sanitized = {};
+  for (const [tabId, meta] of Object.entries(safeTabs)) {
+    try {
+      sanitized[String(normalizeTabId(tabId))] = stripUnsafeObjectKeys(meta);
+    } catch {
+      // Ignore malformed persisted tab ids so cleanup can proceed for valid entries.
+    }
+  }
+  return sanitized;
+}
+
+function corruptStatePath(filePath) {
+  return `${filePath}.corrupt.${Date.now().toString(36)}`;
+}
+
 export function createRunId(prefix = 'run') {
   const safePrefix = String(prefix || 'run').replace(/[^A-Za-z0-9._:-]/g, '-').slice(0, 24) || 'run';
   return `${safePrefix}-${Date.now().toString(36)}-${crypto.randomUUID()}`;
@@ -41,27 +85,53 @@ export function runStatePath({ runId, stateDir } = {}) {
 export async function readRunState({ runId, stateDir } = {}) {
   const normalizedRunId = normalizeRunId(runId);
   const filePath = runStatePath({ runId: normalizedRunId, stateDir });
+  let text;
   try {
-    const parsed = JSON.parse(await fs.readFile(filePath, 'utf8'));
-    return {
-      runId: normalizedRunId,
-      createdAt: parsed.createdAt || null,
-      updatedAt: parsed.updatedAt || null,
-      ownedTabIds: uniqueSortedTabIds(parsed.ownedTabIds || []),
-      tabs: parsed.tabs && typeof parsed.tabs === 'object' ? { ...parsed.tabs } : {},
-      path: filePath,
-    };
+    text = await fs.readFile(filePath, 'utf8');
   } catch (error) {
     if (error?.code !== 'ENOENT') throw error;
-    return {
+    return emptyRunState({
       runId: normalizedRunId,
-      createdAt: null,
-      updatedAt: null,
-      ownedTabIds: [],
-      tabs: {},
       path: filePath,
-    };
+    });
   }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    const corruptPath = corruptStatePath(filePath);
+    await fs.rename(filePath, corruptPath).catch(() => {});
+    return emptyRunState({
+      runId: normalizedRunId,
+      path: filePath,
+      parseError: {
+        message: String(error?.message || error),
+        corruptPath,
+      },
+    });
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    const corruptPath = corruptStatePath(filePath);
+    await fs.rename(filePath, corruptPath).catch(() => {});
+    return emptyRunState({
+      runId: normalizedRunId,
+      path: filePath,
+      parseError: {
+        message: 'Run state JSON must be an object',
+        corruptPath,
+      },
+    });
+  }
+
+  return {
+    runId: normalizedRunId,
+    createdAt: parsed.createdAt || null,
+    updatedAt: parsed.updatedAt || null,
+    ownedTabIds: storedTabIds(parsed.ownedTabIds),
+    tabs: sanitizeTabs(parsed.tabs),
+    path: filePath,
+  };
 }
 
 export async function writeRunState({ runId, stateDir, ownedTabIds = [], tabs = {}, createdAt, now } = {}) {
@@ -73,7 +143,7 @@ export async function writeRunState({ runId, stateDir, ownedTabIds = [], tabs = 
     createdAt: createdAt || timestamp,
     updatedAt: timestamp,
     ownedTabIds: uniqueSortedTabIds(ownedTabIds),
-    tabs: { ...tabs },
+    tabs: sanitizeTabs(tabs),
   };
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`);
@@ -91,7 +161,7 @@ export async function recordOwnedTab({ runId, tabId, stateDir, meta = {}, now } 
     ...current.tabs,
     [String(normalizedTabId)]: {
       ...(current.tabs[String(normalizedTabId)] || {}),
-      ...meta,
+      ...stripUnsafeObjectKeys(meta),
       tabId: normalizedTabId,
       recordedAt: current.tabs[String(normalizedTabId)]?.recordedAt || timestamp,
       updatedAt: timestamp,

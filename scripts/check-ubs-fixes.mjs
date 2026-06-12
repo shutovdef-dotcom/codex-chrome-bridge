@@ -51,18 +51,18 @@ async function checkSourceSurface() {
 
   check(registryText.includes("fetchUrl: ['url', 'method', 'headers', 'body', 'credentials', 'maxChars', 'requestTimeoutMs', 'confirmed', 'confirmSensitive']"), 'fetchUrl payload schema must allow requestTimeoutMs');
   check(registryText.includes("ensureNumberRange(normalizedPayload, 'requestTimeoutMs', action"), 'registry must bound fetchUrl requestTimeoutMs');
-  check(() => {
-    try {
-      validateCommandPayload('fetchUrl', {
-        url: 'https://example.com',
-        confirmed: true,
-        requestTimeoutMs: 1_000,
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }, 'validateCommandPayload must accept bounded fetchUrl requestTimeoutMs');
+  let acceptsRequestTimeoutMs = false;
+  try {
+    validateCommandPayload('fetchUrl', {
+      url: 'https://example.com',
+      confirmed: true,
+      requestTimeoutMs: 1_000,
+    });
+    acceptsRequestTimeoutMs = true;
+  } catch {
+    acceptsRequestTimeoutMs = false;
+  }
+  check(acceptsRequestTimeoutMs, 'validateCommandPayload must accept bounded fetchUrl requestTimeoutMs');
 
   check(cliText.includes('bridgeFetchTimeoutSignal'), 'CLI bridgeFetch must use an AbortSignal timeout helper');
   check(cliText.includes('requestTimeoutMs: parseNumberRangeArg(args'), 'CLI request command must forward requestTimeoutMs');

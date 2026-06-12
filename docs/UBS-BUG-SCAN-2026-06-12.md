@@ -27,6 +27,47 @@ Notes:
 }
 ```
 
+## Implementation Status
+
+Status: implemented in the UBS follow-up change set.
+
+Completed fixes:
+
+- CLI and MCP bridge fetches now use abortable timeout signals and return stable timeout errors instead of relying only on the command payload timeout.
+- Extension `fetchUrl` now creates an `AbortController`, passes `signal` to `fetch`, clears timers, and maps aborts to stable `FETCH_URL_TIMEOUT` failures.
+- `fetchUrl` accepts bounded `requestTimeoutMs` through the shared command registry, CLI `request`, and MCP `chrome_bridge_request`.
+- Extension health metadata and run-tab metadata are shallow-sanitized before object spread/persistence, stripping `__proto__`, `constructor`, `prototype`, and non-allowlisted extension info keys.
+- Offscreen WebSocket `open` and `message` listeners now route async work through non-async wrappers with centralized rejection handling.
+- `ask.js` now uses a required-element helper so prompt-page DOM drift fails visibly instead of dereferencing nullable query results.
+- Corrupted run-state JSON is quarantined to a `.corrupt.<timestamp>` sibling and cleanup reads continue with empty state plus `parseError` metadata.
+
+Verification added:
+
+- `npm run check:ubs-fixes` covers the UBS fix-plan source surfaces and focused behavior checks.
+- `npm run check:bridge-contract` covers unsafe extension metadata over long-poll and websocket ingress.
+- `npm run check:run-tab-ownership` covers unsafe tab metadata and corrupted run-state recovery.
+- `npm run self-test` now syntax-checks and verifies wiring for the new shared timeout and safe-record helpers.
+- `npm run check:pack` now requires the new helpers and UBS checker in the npm tarball.
+
+Post-implementation UBS rescan:
+
+```json
+{
+  "critical": 96,
+  "warning": 234,
+  "info": 4165,
+  "files": 55
+}
+```
+
+Rescan notes:
+
+- Command: `/opt/homebrew/bin/bash /opt/homebrew/bin/ubs --format=json --ci --only=js --report-json /tmp/codex-chrome-bridge-ubs-after.json .`
+- Exit code remained `1` because UBS still reports pattern findings; the scan itself completed successfully.
+- The high-signal `fetch() without AbortSignal cancellation` bucket is no longer present in the non-good finding list after adding timeout signals to CLI, MCP, extension `fetchUrl`, and the bridge contract checker.
+- The two remaining `Request-derived object merge may allow prototype pollution` hits are pattern-level matches around safe metadata merges; runtime behavior is now covered by `stripUnsafeObjectKeys`, long-poll/websocket health tests, and run-tab metadata tests.
+- The critical count increased because the repository now includes additional docs/checker code for the UBS plan, and UBS still treats safety text and assertion fixtures as `Secret, signature, or token compared with ==/!=` / hardcoded-secret patterns. `npm run check:privacy` remains clean.
+
 High-signal UBS buckets:
 
 - `fetch() without AbortSignal cancellation`: 5.

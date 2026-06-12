@@ -29,6 +29,81 @@ async function helloPayload() {
   };
 }
 
+function safeSocketSend(value) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+  try {
+    socket.send(JSON.stringify(value));
+    return true;
+  } catch {
+    scheduleReconnect();
+    return false;
+  }
+}
+
+function handleSocketError() {
+  scheduleReconnect();
+}
+
+async function sendHello() {
+  safeSocketSend({
+    type: 'hello',
+    info: await helloPayload(),
+  });
+}
+
+async function handleSocketMessage(event) {
+  let command;
+  try {
+    command = JSON.parse(event.data);
+  } catch {
+    return;
+  }
+
+  if (!command.id || !command.action) return;
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'codex-bridge-command',
+      action: command.action,
+      payload: command.payload || {},
+    });
+
+    if (response?.ok) {
+      safeSocketSend({
+        id: command.id,
+        ok: true,
+        result: response.result,
+        info: await helloPayload(),
+      });
+    } else {
+      safeSocketSend({
+        id: command.id,
+        ok: false,
+        code: response?.code || 'BACKGROUND_COMMAND_FAILED',
+        error: response?.error || 'Background command failed',
+        details: response?.details,
+        info: await helloPayload(),
+      });
+    }
+  } catch (error) {
+    safeSocketSend({
+      id: command.id,
+      ok: false,
+      code: 'BACKGROUND_UNAVAILABLE',
+      error: String(error?.message || error),
+      info: await helloPayload(),
+    });
+  }
+}
+
+function handleSocketOpen() {
+  sendHello().catch(handleSocketError);
+}
+
+function handleSocketMessageEvent(event) {
+  handleSocketMessage(event).catch(handleSocketError);
+}
+
 function connect() {
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
     return;
@@ -36,57 +111,8 @@ function connect() {
 
   socket = new WebSocket(BRIDGE_WS);
 
-  socket.addEventListener('open', async () => {
-    socket.send(JSON.stringify({
-      type: 'hello',
-      info: await helloPayload(),
-    }));
-  });
-
-  socket.addEventListener('message', async (event) => {
-    let command;
-    try {
-      command = JSON.parse(event.data);
-    } catch {
-      return;
-    }
-
-    if (!command.id || !command.action) return;
-
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'codex-bridge-command',
-        action: command.action,
-        payload: command.payload || {},
-      });
-
-      if (response?.ok) {
-        socket.send(JSON.stringify({
-          id: command.id,
-          ok: true,
-          result: response.result,
-          info: await helloPayload(),
-        }));
-      } else {
-        socket.send(JSON.stringify({
-          id: command.id,
-          ok: false,
-          code: response?.code || 'BACKGROUND_COMMAND_FAILED',
-          error: response?.error || 'Background command failed',
-          details: response?.details,
-          info: await helloPayload(),
-        }));
-      }
-    } catch (error) {
-      socket.send(JSON.stringify({
-        id: command.id,
-        ok: false,
-        code: 'BACKGROUND_UNAVAILABLE',
-        error: String(error?.message || error),
-        info: await helloPayload(),
-      }));
-    }
-  });
+  socket.addEventListener('open', handleSocketOpen);
+  socket.addEventListener('message', handleSocketMessageEvent);
 
   socket.addEventListener('close', scheduleReconnect);
   socket.addEventListener('error', scheduleReconnect);

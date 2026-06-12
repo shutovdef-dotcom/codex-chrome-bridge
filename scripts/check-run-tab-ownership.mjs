@@ -10,6 +10,7 @@ import {
   createRunId,
   readRunState,
   recordOwnedTab,
+  runStatePath,
 } from '../shared/run-tabs.mjs';
 import { validateCommandPayload } from '../shared/command-registry.mjs';
 
@@ -182,6 +183,50 @@ try {
   await recordOwnedTab({ runId: seededRunId, tabId: 42, stateDir });
   const seededState = await readRunState({ runId: seededRunId, stateDir });
   check(seededState.ownedTabIds.includes(42), 'run state must record owned tab ids');
+
+  const unsafeRunId = createRunId('unsafe');
+  const unsafeMeta = JSON.parse('{"title":"safe","__proto__":{"polluted":true},"constructor":{"prototype":{"polluted":true}},"prototype":{"polluted":true}}');
+  await recordOwnedTab({ runId: unsafeRunId, tabId: 43, stateDir, meta: unsafeMeta });
+  const unsafeState = await readRunState({ runId: unsafeRunId, stateDir });
+  const unsafeTabMeta = unsafeState.tabs?.['43'] || {};
+  check(unsafeTabMeta.title === 'safe', 'run state must preserve safe tab metadata keys');
+  check(!Object.prototype.hasOwnProperty.call(unsafeTabMeta, '__proto__'), 'run state must strip __proto__ metadata keys');
+  check(!Object.prototype.hasOwnProperty.call(unsafeTabMeta, 'constructor'), 'run state must strip constructor metadata keys');
+  check(!Object.prototype.hasOwnProperty.call(unsafeTabMeta, 'prototype'), 'run state must strip prototype metadata keys');
+  check({}.polluted === undefined, 'run state metadata must not pollute Object.prototype');
+
+  const corruptRunId = createRunId('corrupt');
+  const corruptPath = runStatePath({ runId: corruptRunId, stateDir });
+  await fs.mkdir(path.dirname(corruptPath), { recursive: true });
+  await fs.writeFile(corruptPath, '{not valid json');
+  const corruptState = await readRunState({ runId: corruptRunId, stateDir });
+  check(corruptState.ownedTabIds.length === 0, 'corrupt run state must recover with zero owned tabs');
+  check(Boolean(corruptState.parseError?.corruptPath), 'corrupt run state must report quarantined corruptPath');
+  const stateEntries = await fs.readdir(stateDir);
+  check(stateEntries.some((entry) => entry.includes('.corrupt.')), 'corrupt run state must quarantine malformed JSON files');
+
+  const invalidShapeRunId = createRunId('invalid-shape');
+  const invalidShapePath = runStatePath({ runId: invalidShapeRunId, stateDir });
+  await fs.writeFile(invalidShapePath, 'null');
+  const invalidShapeState = await readRunState({ runId: invalidShapeRunId, stateDir });
+  check(invalidShapeState.ownedTabIds.length === 0, 'non-object run state JSON must recover with zero owned tabs');
+  check(Boolean(invalidShapeState.parseError?.corruptPath), 'non-object run state JSON must be quarantined');
+
+  const partialRunId = createRunId('partial');
+  const partialPath = runStatePath({ runId: partialRunId, stateDir });
+  await fs.writeFile(partialPath, JSON.stringify({
+    createdAt: '2026-06-12T00:00:00.000Z',
+    updatedAt: '2026-06-12T00:00:01.000Z',
+    ownedTabIds: [44, 'bad-tab-id', -1],
+    tabs: {
+      44: { title: 'valid' },
+      'bad-tab-id': { title: 'skip' },
+    },
+  }));
+  const partialState = await readRunState({ runId: partialRunId, stateDir });
+  check(partialState.ownedTabIds.length === 1 && partialState.ownedTabIds[0] === 44, 'run state must preserve valid owned tab ids and skip malformed ids');
+  check(partialState.tabs['44']?.title === 'valid', 'run state must preserve valid tab metadata while skipping malformed tab keys');
+  check(!Object.prototype.hasOwnProperty.call(partialState.tabs, 'bad-tab-id'), 'run state must skip malformed tab metadata keys');
 
   await withFakeBridge(async ({ bridgeUrl, receivedCommands, failReadOnce }) => {
     const env = inheritedEnv({
