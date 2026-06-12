@@ -139,6 +139,7 @@ Navigation tools accept `http:`, `https:`, and `about:blank` URLs. Extension-con
 | `chrome_bridge_debug_bundle` | `debug-bundle` | read | 60000 ms | no | yes | Write a redacted local debug bundle with page artifacts and full trace events omitted unless requested. |
 | `chrome_bridge_lighthouse_ingest` | `lighthouse-ingest` | read | 5000 ms | no | no | Summarize a local Lighthouse JSON report into scores and failing audits. |
 | `chrome_bridge_command_catalog` | `command-catalog` | read | 5000 ms | no | no | Print this shared command registry as JSON or Markdown. |
+| `chrome_bridge_tool_advisor` | `advise` | read | 5000 ms | no | no | Recommend the safest next CLI and MCP tools for a task without contacting Chrome. |
 <!-- END GENERATED MCP TOOLS -->
 
 ## Confirmation Arguments

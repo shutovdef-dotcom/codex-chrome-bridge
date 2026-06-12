@@ -643,6 +643,15 @@ const LOCAL_COMMAND_DOCS = Object.freeze({
     mcp: ['chrome_bridge_command_catalog'],
     usesLiveBridge: false,
   },
+  advise: {
+    category: 'diagnostic',
+    riskTier: 'read',
+    defaultTimeoutMs: 5_000,
+    summary: 'Recommend the safest next CLI and MCP tools for a task without contacting Chrome.',
+    cli: ['advise'],
+    mcp: ['chrome_bridge_tool_advisor'],
+    usesLiveBridge: false,
+  },
   'mcp-config': {
     category: 'diagnostic',
     riskTier: 'read',
@@ -778,6 +787,7 @@ export const CLI_USAGE_LINES = Object.freeze([
   'chrome-bridge last-artifact [--artifact-dir <dir>]',
   'chrome-bridge read-artifact --path <file> [--head <n>] [--grep <regex>] [--max-matches <n>]',
   'chrome-bridge command-catalog [--markdown]',
+  'chrome-bridge advise --task <text> [--surface cli|mcp|both] [--risk read-only|confirmed-interaction|private-read] [--client claude-code|cursor|codex|vscode|windsurf|hermes|generic] [--live-bridge|--offline]',
   'chrome-bridge mcp-config [--client all|claude-code|cursor|codex|vscode|windsurf|hermes|generic]',
   'chrome-bridge reload-extension --confirm',
   'chrome-bridge self-test',
@@ -798,6 +808,7 @@ export const CLI_USAGE_GROUPS = Object.freeze([
       'windows',
       'doctor',
       'extension-path',
+      'advise',
       'mcp-config',
       'codex-config',
       'command-catalog',
@@ -1083,6 +1094,7 @@ export const CLI_COMMANDS = Object.freeze([
   'last-artifact',
   'read-artifact',
   'command-catalog',
+  'advise',
   'mcp-config',
   'reload-extension',
   'self-test',
@@ -1152,6 +1164,7 @@ export const MCP_TOOLS = Object.freeze([
   'chrome_bridge_debug_bundle',
   'chrome_bridge_lighthouse_ingest',
   'chrome_bridge_command_catalog',
+  'chrome_bridge_tool_advisor',
 ]);
 
 export const GENERATED_MCP_TOOLS_BEGIN = '<!-- BEGIN GENERATED MCP TOOLS -->';

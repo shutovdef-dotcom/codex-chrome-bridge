@@ -11,6 +11,7 @@ import { buildCpaOfferExtraction } from '../shared/cpa-offer-extract.mjs';
 import { buildStructuredPresetExtraction } from '../shared/structured-extract.mjs';
 import { buildDownloadDiscovery } from '../shared/download-discovery.mjs';
 import { ingestLighthouseReportFile } from '../shared/lighthouse-ingest.mjs';
+import { buildToolAdvisor } from '../shared/tool-advisor.mjs';
 import {
   bridgeFetchTimeoutSignal,
   isAbortError,
@@ -78,6 +79,19 @@ function parseArgs(argv) {
     }
   }
   return args;
+}
+
+function toolAdvisorInput(args) {
+  const task = typeof args.task === 'string' ? args.task : args._.slice(1).join(' ').trim();
+  return {
+    task,
+    surface: args.surface,
+    riskTolerance: args.risk,
+    client: args.client,
+    hasLiveBridge: args['live-bridge'] ? true : (args.offline ? false : undefined),
+    mcpProfile: process.env.CHROME_BRIDGE_MCP_TOOL_PROFILE || 'full',
+    availableMcpTools: MCP_TOOLS,
+  };
 }
 
 async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
@@ -3380,6 +3394,11 @@ async function main() {
       return;
     }
     printJson(commandCatalog());
+    return;
+  }
+
+  if (cmd === 'advise') {
+    printJson(buildToolAdvisor(toolAdvisorInput(args)));
     return;
   }
 

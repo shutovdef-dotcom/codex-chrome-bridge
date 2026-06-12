@@ -80,6 +80,7 @@ The command metadata table below is generated from the shared registry by `npm r
 | `last-artifact` | `last-artifact` | read | 5000 ms | no | no | Print metadata for the latest artifact recorded by metadata-first read outputs. |
 | `read-artifact` | `read-artifact` | read | 5000 ms | no | no | Read a small head and grep slice from a local artifact without dumping the full file. |
 | `command-catalog` | `command-catalog` | read | 5000 ms | no | no | Print this shared command registry as JSON or Markdown. |
+| `advise` | `advise` | read | 5000 ms | no | no | Recommend the safest next CLI and MCP tools for a task without contacting Chrome. |
 | `mcp-config` | `mcp-config` | read | 5000 ms | no | no | Print MCP client configuration snippets for Claude Code, Cursor, Codex, VS Code, Windsurf, Hermes, or generic stdio clients. |
 | `reload-extension` | `reloadExtension` | system | 5000 ms | yes | yes | Ask the unpacked extension to reload itself after local file edits; requires confirmation. |
 | `self-test` | `self-test` | read | 10000 ms | no | no | Run static project parity checks without touching Chrome. |
@@ -112,6 +113,7 @@ chrome-bridge status [--token-budget]
 chrome-bridge windows [--all --confirm] [--group-title <title>] [--group-color <color>]
 chrome-bridge doctor [--live-checks] [--copy-path] [--open-extensions]
 chrome-bridge extension-path
+chrome-bridge advise --task <text> [--surface cli|mcp|both] [--risk read-only|confirmed-interaction|private-read] [--client claude-code|cursor|codex|vscode|windsurf|hermes|generic] [--live-bridge|--offline]
 chrome-bridge mcp-config [--client all|claude-code|cursor|codex|vscode|windsurf|hermes|generic]
 chrome-bridge codex-config
 chrome-bridge command-catalog [--markdown]

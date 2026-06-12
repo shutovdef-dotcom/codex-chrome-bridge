@@ -20,6 +20,7 @@ import { buildStructuredPresetExtraction } from '../shared/structured-extract.mj
 import { buildDownloadDiscovery } from '../shared/download-discovery.mjs';
 import { ingestLighthouseReportFile } from '../shared/lighthouse-ingest.mjs';
 import { summarizeDiagnosticsOutput } from '../shared/diagnostics-output.mjs';
+import { buildToolAdvisor } from '../shared/tool-advisor.mjs';
 import {
   bridgeFetchTimeoutSignal,
   isAbortError,
@@ -445,6 +446,7 @@ const MCP_TOOL_PROFILES = Object.freeze({
     'chrome_bridge_extension_path',
     'chrome_bridge_mcp_config',
     'chrome_bridge_command_catalog',
+    'chrome_bridge_tool_advisor',
     'chrome_bridge_windows',
     'chrome_bridge_tabs',
     'chrome_bridge_group',
@@ -485,6 +487,7 @@ const MCP_TOOL_PROFILES = Object.freeze({
     'chrome_bridge_extension_path',
     'chrome_bridge_mcp_config',
     'chrome_bridge_command_catalog',
+    'chrome_bridge_tool_advisor',
     'chrome_bridge_windows',
     'chrome_bridge_tabs',
     'chrome_bridge_group',
@@ -1772,6 +1775,23 @@ server.tool(
     ...commandCatalog(),
     mcpProfile: currentMcpProfileSummary(),
   }),
+);
+
+server.tool(
+  'chrome_bridge_tool_advisor',
+  'Recommend the safest next Chrome Bridge tools for a task without contacting Chrome. Uses deterministic local rules, active MCP profile metadata, and no LLM calls.',
+  {
+    task: z.string(),
+    surface: z.enum(['cli', 'mcp', 'both']).optional(),
+    riskTolerance: z.enum(['read-only', 'confirmed-interaction', 'private-read']).optional(),
+    client: z.enum(['all', 'claude-code', 'cursor', 'codex', 'vscode', 'windsurf', 'hermes', 'generic']).optional(),
+    hasLiveBridge: z.boolean().optional(),
+  },
+  async (args) => textResult(buildToolAdvisor({
+    ...args,
+    mcpProfile: mcpToolProfile,
+    availableMcpTools: currentMcpProfileSummary().enabledTools,
+  })),
 );
 
 await server.connect(new StdioServerTransport());

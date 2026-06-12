@@ -232,10 +232,12 @@ check(packageJson.scripts?.['check:privacy'] === 'node ./scripts/check-privacy-s
 check(packageJson.scripts?.['check:roadmap'] === 'node ./scripts/check-roadmap-coverage.mjs', 'check:roadmap must verify merged roadmap coverage');
 check(packageJson.scripts?.['check:mcp-prompts'] === 'node ./scripts/check-mcp-prompts.mjs', 'check:mcp-prompts must verify MCP prompts');
 check(packageJson.scripts?.['check:mcp-resources'] === 'node ./scripts/check-mcp-resources.mjs', 'check:mcp-resources must verify MCP resources');
+check(packageJson.scripts?.['check:tool-advisor'] === 'node ./scripts/check-tool-advisor.mjs', 'check:tool-advisor must verify deterministic advisor surfaces');
 check(packageJson.scripts?.check?.includes('npm run check:privacy'), 'npm run check must include check:privacy');
 check(packageJson.scripts?.check?.includes('npm run check:roadmap'), 'npm run check must include check:roadmap');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-prompts'), 'npm run check must include check:mcp-prompts');
 check(packageJson.scripts?.check?.includes('npm run check:mcp-resources'), 'npm run check must include check:mcp-resources');
+check(packageJson.scripts?.check?.includes('npm run check:tool-advisor'), 'npm run check must include check:tool-advisor');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-cleanup.js'), 'npm run check must syntax-check extension/tab-cleanup.js');
 check(packageJson.scripts?.check?.includes('node --check ./extension/tab-group-persistence.js'), 'npm run check must syntax-check extension/tab-group-persistence.js');
 if (isRepositoryCheckout || checkWorkflowText) {
@@ -824,6 +826,9 @@ check(mcpText.includes('chrome_bridge_cookies_list') && mcpText.includes('MCP_TO
 check(mcpText.includes("server.prompt(\n  'chrome_bridge_read_first'"), 'MCP server must register the read-first prompt');
 check(mcpText.includes("server.resource(\n  'current-profile'"), 'MCP server must register the current-profile resource');
 check(mcpText.includes('chrome-bridge://profiles/current'), 'MCP server must expose the current-profile resource URI');
+check(mcpText.includes('chrome_bridge_tool_advisor'), 'MCP server must register the tool advisor tool');
+check(cliText.includes("if (cmd === 'advise')"), 'CLI must implement the advise command');
+check(cliText.includes('buildToolAdvisor(toolAdvisorInput(args))'), 'CLI advise command must use the shared tool advisor');
 check(LOCAL_COMMAND_METADATA.doctor?.mcp?.includes('chrome_bridge_doctor'), 'registry local doctor command must expose an MCP tool');
 check(LOCAL_COMMAND_METADATA['extension-path']?.mcp?.includes('chrome_bridge_extension_path'), 'registry local extension-path command must expose an MCP tool');
 check(LOCAL_COMMAND_METADATA['mcp-config']?.mcp?.includes('chrome_bridge_mcp_config'), 'registry local mcp-config command must expose an MCP tool');
