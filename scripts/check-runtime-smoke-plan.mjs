@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { execFile } from 'node:child_process';
+import fs from 'node:fs/promises';
 import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -183,6 +185,35 @@ if (parsed) {
   check(Array.isArray(parsed.coverage?.missing), 'coverage plan must include missing coverage names');
   check(parsed.coverage?.required?.length === parsed.coverage?.requiredCount, 'required coverage names must match requiredCount');
   check(parsed.coverage?.missing?.length === parsed.coverage?.missingCount, 'missing coverage names must match missingCount');
+}
+
+const summaryTmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-runtime-smoke-summary-check-'));
+try {
+  const out = path.join(summaryTmpDir, 'runtime-smoke-full.json');
+  const result = await runCli(['runtime-smoke', '--coverage-plan', '--summary-only', '--out', out], { CHROME_BRIDGE_URL: deadBridgeUrl });
+  let summaryParsed = null;
+  try {
+    summaryParsed = JSON.parse(result.stdout);
+  } catch (error) {
+    fail(`runtime-smoke --summary-only output was not JSON: ${String(error?.message || error)}`);
+  }
+
+  check(result.ok === true, 'runtime-smoke --summary-only coverage plan must succeed');
+  check(summaryParsed?.summaryOnly === true, 'runtime-smoke --summary-only must mark summaryOnly=true');
+  check(summaryParsed?.artifactPath === out, 'runtime-smoke --summary-only must expose the full JSON artifact path');
+  check(!Object.prototype.hasOwnProperty.call(summaryParsed || {}, 'steps'), 'runtime-smoke --summary-only must omit step details from stdout');
+  check(!Array.isArray(summaryParsed?.coverage?.required), 'runtime-smoke --summary-only must omit full required coverage names from stdout');
+  check(!Array.isArray(summaryParsed?.coverage?.covered), 'runtime-smoke --summary-only must omit full covered coverage names from stdout');
+  check(summaryParsed?.coverage?.requiredCount === parsed?.coverage?.requiredCount, 'runtime-smoke --summary-only must preserve required coverage count');
+  check(JSON.stringify(summaryParsed || {}).length < 6_000, 'runtime-smoke --summary-only stdout JSON must stay token-budget friendly');
+
+  const fullText = await fs.readFile(out, 'utf8').catch(() => null);
+  check(Boolean(fullText), 'runtime-smoke --summary-only must write the full JSON artifact');
+  const full = fullText ? JSON.parse(fullText) : null;
+  check(Array.isArray(full?.coverage?.required), 'runtime-smoke --summary-only artifact must preserve full coverage details');
+  check(full?.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'), 'runtime-smoke --summary-only artifact must preserve full verification metadata');
+} finally {
+  await fs.rm(summaryTmpDir, { recursive: true, force: true });
 }
 
 let staleParsed;

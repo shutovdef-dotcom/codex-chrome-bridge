@@ -1,5 +1,7 @@
 #!/usr/bin/env node
+import fs from 'node:fs/promises';
 import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -211,6 +213,29 @@ if (coveragePlanParsed) {
     coveragePlanParsed.verification?.successCriteria?.extensionVersion === BRIDGE_VERSION,
     'MCP coverage-plan success criteria must require current extension version',
   );
+}
+
+const summaryTmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-mcp-runtime-smoke-summary-check-'));
+try {
+  const out = path.join(summaryTmpDir, 'runtime-smoke-full.json');
+  const summaryPlanParsed = await withMcpClient({ CHROME_BRIDGE_URL: 'http://127.0.0.1:9' }, async (client) => (
+    parseToolJson(await callRuntimeSmoke(client, { coveragePlan: true, summaryOnly: true, out }), 'MCP summary coverage-plan runtime smoke')
+  ));
+
+  check(summaryPlanParsed?.summaryOnly === true, 'MCP runtime smoke summary must mark summaryOnly=true');
+  check(summaryPlanParsed?.artifactPath === out, 'MCP runtime smoke summary must expose the full JSON artifact path');
+  check(!Object.prototype.hasOwnProperty.call(summaryPlanParsed || {}, 'steps'), 'MCP runtime smoke summary must omit step details from stdout');
+  check(!Array.isArray(summaryPlanParsed?.coverage?.required), 'MCP runtime smoke summary must omit full required coverage names from stdout');
+  check(summaryPlanParsed?.coverage?.requiredCount === coveragePlanParsed?.coverage?.requiredCount, 'MCP runtime smoke summary must preserve required coverage count');
+  check(JSON.stringify(summaryPlanParsed || {}).length < 6_000, 'MCP runtime smoke summary JSON must stay token-budget friendly');
+
+  const fullText = await fs.readFile(out, 'utf8').catch(() => null);
+  check(Boolean(fullText), 'MCP runtime smoke summary must write the full JSON artifact');
+  const full = fullText ? JSON.parse(fullText) : null;
+  check(Array.isArray(full?.coverage?.required), 'MCP runtime smoke summary artifact must preserve full coverage details');
+  check(full?.verification?.finalCommands?.includes('chrome-bridge runtime-smoke'), 'MCP runtime smoke summary artifact must preserve full verification metadata');
+} finally {
+  await fs.rm(summaryTmpDir, { recursive: true, force: true });
 }
 
 let staleParsed;
