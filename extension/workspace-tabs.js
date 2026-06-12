@@ -1,4 +1,5 @@
 import { groupInfo } from './tab-info.js';
+import { withUserFocusPreserved } from './focus-context.js';
 import { disableSavedTabGroupIfSupported } from './tab-group-persistence.js';
 import { groupOptions } from './workspace-policy.js';
 
@@ -113,7 +114,7 @@ export async function getTargetTab(payload = {}, options = {}) {
     throw new Error('No tabId supplied and no Codex tab has been created yet');
   }
 
-  const created = await chrome.windows.create({
+  const createWindow = () => chrome.windows.create({
     url: options.url || payload.url || 'about:blank',
     focused: Boolean(payload.active),
     width: 1280,
@@ -122,6 +123,10 @@ export async function getTargetTab(payload = {}, options = {}) {
     top: 80,
     type: 'normal',
   });
+
+  const created = payload.active
+    ? await createWindow()
+    : await withUserFocusPreserved(createWindow);
 
   const tab = created.tabs?.[0];
   if (chromeId(tab?.id) === null) throw new Error('Failed to create a Codex tab');

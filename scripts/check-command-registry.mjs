@@ -47,6 +47,7 @@ const [
   debuggerSessionText,
   emulationActionsText,
   extensionErrorsText,
+  focusContextText,
   keyboardEventsText,
   navigationActionsText,
   offscreenLifecycleText,
@@ -89,6 +90,7 @@ const [
   fs.readFile(path.join(rootDir, 'extension/debugger-session.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/emulation-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/extension-errors.js'), 'utf8'),
+  fs.readFile(path.join(rootDir, 'extension/focus-context.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/keyboard-events.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/navigation-actions.js'), 'utf8').catch(() => ''),
   fs.readFile(path.join(rootDir, 'extension/offscreen-lifecycle.js'), 'utf8'),
@@ -1179,6 +1181,7 @@ for (const helperName of ['listTabs', 'listWindows', 'ensureCodexTab', 'adoptTab
   check(navigationActionsText.includes(`export async function ${helperName}`), `extension navigation actions module must export ${helperName}`);
 }
 check(functionBlock(navigationActionsText, 'openTab').includes('createGroupedTab(payload)'), 'extension navigation actions module must keep grouped new-tab creation path');
+check(functionBlock(navigationActionsText, 'createGroupedTab').includes('withUserFocusPreserved'), 'extension navigation actions module must preserve user focus when creating the first grouped workspace window');
 check(functionBlock(navigationActionsText, 'setWorkspace').includes("requireConfirmed(payload, 'setWorkspace')"), 'extension setWorkspace must require confirmation');
 check(functionBlock(navigationActionsText, 'activateTab').includes('waitForActivatedTab(tab.id'), 'extension activateTab must wait for Chrome to report the tab as active');
 check(functionBlock(navigationActionsText, 'waitForActivatedTab').includes('chrome.tabs.get(tabId)') && functionBlock(navigationActionsText, 'waitForActivatedTab').includes('candidate.active'), 'extension activateTab active-state wait helper must poll Chrome tab state');
@@ -1229,6 +1232,7 @@ check(workspaceTabsText.includes('export async function getTargetTab'), 'extensi
 check(workspaceTabsText.includes('export async function ensureCodexGroupForTab'), 'extension workspace tabs module must export ensureCodexGroupForTab');
 check(functionBlock(workspaceTabsText, 'chromeId').includes("typeof value === 'number'"), 'extension Chrome id helper must not coerce null or empty strings into id 0');
 check(functionBlock(workspaceTabsText, 'getTargetTab').includes("policyMode === 'strict'"), 'extension workspace tabs module must enforce strict outside-tab policy');
+check(functionBlock(workspaceTabsText, 'getTargetTab').includes('withUserFocusPreserved'), 'extension workspace tabs module must preserve user focus when creating background workspace windows');
 check(functionBlock(workspaceTabsText, 'ensureCodexGroupForTab').includes('chrome.tabs.group'), 'extension workspace tabs module must own tab grouping');
 check(functionBlock(workspaceTabsText, 'storageSet').includes('chrome.storage.local.set'), 'extension workspace tabs module must own workspace storage writes');
 check(backgroundText.includes("import { extensionErrorCode, extensionErrorDetails } from './extension-errors.js';"), 'extension background must import error classification helpers from extension/extension-errors.js');
@@ -1236,6 +1240,9 @@ check(!backgroundText.includes('function extensionErrorCode'), 'extension backgr
 check(!backgroundText.includes('function extensionErrorDetails'), 'extension background must not own extension error helper internals');
 check(functionBlock(extensionErrorsText, 'extensionErrorCode').includes('TAB_SCOPE_VIOLATION'), 'extension error module must classify tab-scope violations');
 check(functionBlock(extensionErrorsText, 'extensionErrorDetails').includes('details.name'), 'extension error module must preserve safe error details');
+check(focusContextText.includes('export async function withUserFocusPreserved'), 'extension focus context module must export shared focus preservation helper');
+check(functionBlock(focusContextText, 'withUserFocusPreserved').includes('captureUserFocusContext'), 'extension focus context helper must capture current user focus before background work');
+check(functionBlock(focusContextText, 'restoreUserFocusContext').includes('chrome.windows.update'), 'extension focus context helper must restore the previously focused window when possible');
 check(backgroundText.includes("import { startBridge } from './offscreen-lifecycle.js';"), 'extension background must import offscreen lifecycle helper from extension/offscreen-lifecycle.js');
 check(!backgroundText.includes('function ensureOffscreen'), 'extension background must not own offscreen lifecycle internals');
 check(!backgroundText.includes('async function startBridge'), 'extension background must not own offscreen lifecycle internals');
@@ -1254,6 +1261,7 @@ for (const helperName of ['screenshot', 'printPdf']) {
 check(functionBlock(pageArtifactsText, 'screenshot').includes('chrome.tabs.captureVisibleTab'), 'extension page artifacts module must own viewport screenshot capture');
 check(functionBlock(pageArtifactsText, 'screenshot').includes('Page.captureScreenshot'), 'extension page artifacts module must own debugger screenshot capture');
 check(functionBlock(pageArtifactsText, 'screenshot').includes('setTimeout'), 'extension page artifacts module must own viewport capture delay');
+check(functionBlock(pageArtifactsText, 'screenshot').includes('withUserFocusPreserved'), 'extension page artifacts module must preserve user focus during viewport capture');
 check(functionBlock(pageArtifactsText, 'printPdf').includes('Page.printToPDF'), 'extension page artifacts module must own PDF printing');
 check(backgroundText.includes("from './emulation-actions.js';"), 'extension background must import emulation actions from extension/emulation-actions.js');
 for (const helperName of ['setViewport', 'emulateNetwork', 'clearEmulation']) {

@@ -1,6 +1,7 @@
 import { elementClipForSelector } from './page-scripts.js';
 import { execute } from './page-execution.js';
 import { sendDebuggerCommand, withDebugger } from './debugger-session.js';
+import { withUserFocusPreserved } from './focus-context.js';
 import { tabInfo } from './tab-info.js';
 import { getTargetTab } from './workspace-tabs.js';
 
@@ -119,9 +120,15 @@ export async function screenshot(payload) {
     };
   }
 
-  await chrome.tabs.update(tab.id, { active: true });
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+  const captureViewportScreenshot = async () => {
+    await chrome.tabs.update(tab.id, { active: true });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+  };
+
+  const dataUrl = payload.active
+    ? await captureViewportScreenshot()
+    : await withUserFocusPreserved(captureViewportScreenshot);
   const latest = await chrome.tabs.get(tab.id);
   return {
     tab: tabInfo(latest),

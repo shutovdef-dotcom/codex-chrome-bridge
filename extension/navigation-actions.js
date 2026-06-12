@@ -1,4 +1,5 @@
 import { closeTabsWithGroupPersistenceMitigation } from './tab-cleanup.js';
+import { withUserFocusPreserved } from './focus-context.js';
 import { groupInfo, tabInfo } from './tab-info.js';
 import { waitForTabComplete } from './tab-loading.js';
 import { requireConfirmed } from './safety-gates.js';
@@ -161,7 +162,7 @@ async function createGroupedTab(payload) {
       active: Boolean(payload.active),
     });
   } else {
-    const created = await chrome.windows.create({
+    const createWindow = () => chrome.windows.create({
       url: payload.url,
       focused: Boolean(payload.active),
       width: 1280,
@@ -170,6 +171,9 @@ async function createGroupedTab(payload) {
       top: 80,
       type: 'normal',
     });
+    const created = payload.active
+      ? await createWindow()
+      : await withUserFocusPreserved(createWindow);
     tab = created.tabs?.[0];
   }
 

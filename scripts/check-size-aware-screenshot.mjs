@@ -203,6 +203,8 @@ async function checkSurface() {
   check(pageArtifacts.includes('Page.getLayoutMetrics'), 'extension screenshot path must estimate page metrics before full-page capture');
   check(pageArtifacts.includes('estimatedPixels') && pageArtifacts.includes('maxPixels'), 'extension screenshot path must return pixel estimate diagnostics');
   check(pageArtifacts.includes("fallback === 'viewport'"), 'extension screenshot path must support viewport fallback');
+  check(pageArtifacts.includes("from './focus-context.js'"), 'extension screenshot path must import shared focus preservation helpers');
+  check(pageArtifacts.includes('withUserFocusPreserved'), 'extension screenshot path must preserve the user focus around viewport capture');
 }
 
 const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'chrome-bridge-size-aware-screenshot-check-'));

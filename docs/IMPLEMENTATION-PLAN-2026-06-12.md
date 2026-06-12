@@ -1163,6 +1163,30 @@ Do not start before prerequisites:
 - Do not add a Lighthouse runner in this cycle; keep Lighthouse handoff-only.
 - Do not add network body export without sensitive confirmation and redaction design.
 
+## Deferred Follow-Up: Prompt And Resource Polish
+
+This is intentionally deferred and should not expand the current implementation scope.
+
+Why it still matters:
+
+- The MCP prompts/resources are already useful, but they are still first-pass workflow surfaces rather than heavily iterated agent UX.
+- As more clients use `prompts/list`, `prompts/get`, `resources/list`, and `resources/read` directly, wording quality, consistency, and token discipline will matter more.
+- Prompt/resource polish can improve agent success rate and reduce token burn without changing the underlying browser capabilities.
+
+Future polish track:
+
+1. Audit every prompt and compact resource for duplication, drift, and inconsistent terminology.
+2. Tighten wording for shorter, more action-oriented instructions with less overlap across prompts.
+3. Standardize references to CLI commands, MCP tools, confirmation rules, and live-vs-offline guidance.
+4. Re-test prompt/resource behavior against Claude Code, Cursor, Codex, Windsurf, and Hermes style clients to see where wording still causes tool-selection mistakes.
+5. Add a lightweight regression check for prompt/resource length and phrase consistency if the surface grows further.
+
+Exit criteria for that future track:
+
+- Prompts are more concise and less repetitive.
+- Resources stay compact while still pointing agents to the correct next tool.
+- Prompt/resource wording is intentionally tuned rather than only functionally present.
+
 ## Default Verification Matrix
 
 Run for docs-only changes:
