@@ -161,7 +161,7 @@ const packageJson = JSON.parse(packageText);
 check(serverText.includes('ALLOWED_COMMAND_ACTIONS = new Set(EXTENSION_ACTIONS)'), 'Phase 0 must derive server action allowlist from registry');
 check(serverText.includes('UNSUPPORTED_ACTION'), 'Phase 0 must reject unsupported bridge actions');
 check(serverText.includes('VERSION_UNKNOWN') && serverText.includes('VERSION_MISMATCH'), 'Phase 0 must fail closed on missing or mismatched extension versions');
-check(serverText.includes('validateCommandEnvelope(body)') && serverText.includes('validateCommandPayload(action, payload)'), 'Phase 0 must validate direct command envelopes and payloads');
+check(serverText.includes('validateCommandEnvelope(body)') && serverText.includes('validateCommandPayload(action, extensionPayload)'), 'Phase 0 must validate direct command envelopes and payloads');
 check(serverText.includes('CHROME_BRIDGE_ENABLE_LONG_POLL') && serverText.includes('TRANSPORT_DISABLED'), 'Phase 0 must keep long-poll extension ingress disabled by default');
 check(serverText.includes('LOOPBACK_HOSTS') && serverText.includes('CHROME_BRIDGE_UNSAFE_HOST'), 'Phase 0 must preserve loopback-only binding by default');
 check(serverText.includes('body.code') && serverText.includes('body.details'), 'Phase 0 must preserve extension error codes/details');

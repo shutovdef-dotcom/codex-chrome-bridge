@@ -6,6 +6,21 @@ const EXTENSION_VERSION = '0.4.1';
 let socket = null;
 let reconnectTimer = null;
 let clientIdPromise = null;
+let profileIdPromise = null;
+
+function storageLocalGet(keys) {
+  if (!chrome?.storage?.local) return Promise.resolve({});
+  return new Promise((resolve) => {
+    chrome.storage.local.get(keys, (value) => resolve(value || {}));
+  });
+}
+
+function storageLocalSet(value) {
+  if (!chrome?.storage?.local) return Promise.resolve();
+  return new Promise((resolve) => {
+    chrome.storage.local.set(value, () => resolve());
+  });
+}
 
 function getClientId() {
   if (clientIdPromise) return clientIdPromise;
@@ -19,9 +34,24 @@ function getClientId() {
   return clientIdPromise;
 }
 
+function getProfileId() {
+  if (profileIdPromise) return profileIdPromise;
+  profileIdPromise = Promise.resolve().then(async () => {
+    const stored = await storageLocalGet(['codexBridgeProfileId']);
+    if (typeof stored.codexBridgeProfileId === 'string' && stored.codexBridgeProfileId) {
+      return stored.codexBridgeProfileId;
+    }
+    const generated = await getClientId();
+    await storageLocalSet({ codexBridgeProfileId: generated });
+    return generated;
+  }).catch(() => getClientId());
+  return profileIdPromise;
+}
+
 async function helloPayload() {
   return {
     clientId: await getClientId(),
+    profileId: await getProfileId(),
     extensionId: chrome.runtime.id,
     version: EXTENSION_VERSION,
     name: EXTENSION_NAME,

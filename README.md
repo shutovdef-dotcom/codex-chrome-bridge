@@ -74,6 +74,7 @@ The default posture is intentionally conservative:
 - Mutating actions require `confirmed=true` or `--confirm`.
 - Cookie values, whole-cookie-jar access, storage values, and credentialed requests require `confirmSensitive=true` or `--confirm-sensitive`.
 - The bridge server binds to `127.0.0.1`.
+- If two Chrome profiles run the extension at the same time, `/health` reports every connected profile. Commands fail closed until the CLI or MCP process sets `CHROME_BRIDGE_PROFILE_ID` to the intended `profileId` or `clientId`.
 - Automatic CAPTCHA bypass is out of scope; use the human prompt for manual coordination.
 
 Read [Safety and Privacy](docs/SAFETY.md) before using this with sensitive accounts.
@@ -235,6 +236,8 @@ Use the generated snippet in Claude Code, Cursor, Codex, VS Code, Windsurf/Casca
 Generic stdio snippets now default to the conservative `read` profile first; switch them to `full` only when the host really needs private browser-data tools or broader mutation coverage.
 `mcp-write` is the safe installer path for project-local configs: it writes `.mcp.json`, `.cursor/mcp.json`, `.codex/config.toml`, or `.vscode/mcp.json` under the current project root, merging JSON/TOML where appropriate. For clients without a stable project-local path, pass `--out <file>` to render an explicit file instead of touching any global config.
 
+When the extension is enabled in more than one Chrome profile, run `node ./bin/chrome-bridge.mjs health` and copy the desired value from `extensions[].info.profileId` or `extensions[].info.clientId`. Set `CHROME_BRIDGE_PROFILE_ID=<that value>` in the CLI/MCP process that should control that profile. Without it, commands intentionally return `AMBIGUOUS_EXTENSION_PROFILE` instead of guessing.
+
 Codex TOML example:
 
 ```toml
@@ -294,12 +297,12 @@ npm run uninstall:launch-agent
 ## Project Layout
 
 ```text
-bin/        CLI entrypoint
+bin/        CLI binary wrapper and CLI implementation modules
 extension/  Chrome Manifest V3 extension
-mcp/        MCP stdio server
+mcp/        MCP stdio binary wrapper and server implementation modules
 server/     local HTTP/WebSocket bridge server
-shared/     command registry and payload contract metadata
-scripts/    macOS LaunchAgent helpers
+shared/     command registry, payload contracts, and cross-surface helpers
+scripts/    verification, packaging, docs, and macOS LaunchAgent helpers
 docs/       user and developer docs
 examples/   fixture-backed command examples and MCP client config templates
 codex/      optional Codex skill handoff

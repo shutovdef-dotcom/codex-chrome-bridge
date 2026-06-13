@@ -194,8 +194,9 @@ async function withFakeCommandBridge(fn) {
       return;
     }
 
+    const { profileId: _profileId, ...validationPayload } = parsed.payload || {};
     try {
-      validateCommandPayload(parsed.action, parsed.payload || {});
+      validateCommandPayload(parsed.action, validationPayload);
     } catch (error) {
       res.writeHead(400, { 'content-type': 'application/json' });
       res.end(JSON.stringify({
@@ -402,9 +403,25 @@ let timeoutBoundsChecks = 0;
 let historyTimeChecks = 0;
 let groupScopePayloadChecks = 0;
 let mcpArtifactDirChecks = 0;
+let profileRoutingChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands }) => {
   const groupTitle = 'Codex Bridge MCP Group Scope';
   const groupColor = 'cyan';
+  await withMcpClient(async (client) => {
+    const beforeProfileRoute = receivedCommands.length;
+    const profileRouteParsed = parseToolJson(await client.callTool({
+      name: 'chrome_bridge_tabs',
+      arguments: {},
+    }), 'MCP CHROME_BRIDGE_PROFILE_ID fake command bridge');
+    const profileRoutePayload = receivedCommands[beforeProfileRoute]?.payload || profileRouteParsed?.payload;
+    check(receivedCommands[beforeProfileRoute]?.action === 'tabs', 'MCP profile routing check must dispatch tabs');
+    check(profileRoutePayload?.profileId === 'profile-mcp-check', 'MCP must forward CHROME_BRIDGE_PROFILE_ID as payload.profileId');
+    profileRoutingChecks += 1;
+  }, {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    CHROME_BRIDGE_PROFILE_ID: 'profile-mcp-check',
+  });
+
   const includeAllCases = [
     { action: 'windows', tool: 'chrome_bridge_windows' },
     { action: 'tabs', tool: 'chrome_bridge_tabs' },
@@ -783,4 +800,5 @@ process.stdout.write(`${JSON.stringify({
   historyTimeChecks,
   groupScopePayloadChecks,
   mcpArtifactDirChecks,
+  profileRoutingChecks,
 }, null, 2)}\n`);

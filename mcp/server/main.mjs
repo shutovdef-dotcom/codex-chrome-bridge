@@ -36,6 +36,17 @@ const BRIDGE_URL = process.env.CHROME_BRIDGE_URL || 'http://127.0.0.1:17376';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const execFileAsync = promisify(execFile);
 
+function configuredChromeProfileId() {
+  const value = process.env.CHROME_BRIDGE_PROFILE_ID;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function withConfiguredChromeProfile(payload = {}) {
+  const profileId = configuredChromeProfileId();
+  if (!profileId || payload.profileId !== undefined) return payload;
+  return { ...payload, profileId };
+}
+
 function hasAllowedUrlProtocol(value, allowedProtocols) {
   try {
     const parsed = new URL(value);
@@ -111,17 +122,18 @@ async function bridgeFetch(pathname, options = {}, timeoutMs = 30_000) {
 async function bridgeCommand(action, payload = {}, timeoutMs) {
   const effectiveTimeoutMs = timeoutMs ?? commandDefaultTimeoutMs(action);
   const scopedPayload = withSessionGroupTitle(action, payload);
+  const routedPayload = withConfiguredChromeProfile(scopedPayload);
   try {
     const json = await bridgeFetch('/command', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs }),
+      body: JSON.stringify({ action, payload: routedPayload, timeoutMs: effectiveTimeoutMs }),
     }, effectiveTimeoutMs);
-    await appendActionRecording({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs, ok: true, result: json.result })
+    await appendActionRecording({ action, payload: routedPayload, timeoutMs: effectiveTimeoutMs, ok: true, result: json.result })
       .catch(() => {});
     return json.result;
   } catch (error) {
-    await appendActionRecording({ action, payload: scopedPayload, timeoutMs: effectiveTimeoutMs, ok: false, error })
+    await appendActionRecording({ action, payload: routedPayload, timeoutMs: effectiveTimeoutMs, ok: false, error })
       .catch(() => {});
     throw error;
   }

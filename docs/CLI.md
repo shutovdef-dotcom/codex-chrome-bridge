@@ -165,6 +165,8 @@ chrome-bridge reload [--tab <id>] [--bypass-cache] [--allow-external]
 
 By default, tab operations stay inside the configured workspace tab group, initially `Codex Bridge`. When the CLI runs inside a Codex session, it derives a per-session default group title from `CHROME_BRIDGE_SESSION_TITLE`, `CODEX_SESSION_TITLE`, `CODEX_THREAD_TITLE`, or a short `CODEX_THREAD_ID`, for example `Codex Bridge - Kurerok Research`. Pass `--group-title` to override this automatic session scope.
 
+If the extension is enabled in multiple Chrome profiles, `chrome-bridge health` includes `extensions[]` entries for each connected profile. Set `CHROME_BRIDGE_PROFILE_ID` to the target `extensions[].info.profileId` or `extensions[].info.clientId` before running commands from a given shell. When multiple profiles are connected and no target is configured, direct commands fail with `AMBIGUOUS_EXTENSION_PROFILE` rather than controlling a random profile.
+
 `workspace` reports the local workspace defaults, policy mode, group counts, and optionally scoped tabs. `set-workspace` stores local defaults for the group title/color and explicit policy mode. It requires `--confirm`. `scoped` keeps outside tabs explicit-only through `--allow-external`; `strict` blocks outside tabs even when `--allow-external` is passed.
 
 `close-tab` and `close-group` first try to mark scoped groups unsaved when the running Chrome exposes that API, then remove scoped tabs from their Chrome tab group before closing them. This helps prevent Chrome from leaving new saved closed `Codex Bridge` group chips under the URL bar after bridge cleanup. If Chrome cannot ungroup a grouped bridge tab, the close command fails closed instead of closing it in-place.

@@ -23,6 +23,8 @@ const ALLOWED_COMMAND_ACTIONS = new Set(EXTENSION_ACTIONS);
 const COMMAND_BODY_KEYS = new Set(['action', 'payload', 'timeoutMs']);
 const EXTENSION_INFO_KEYS = [
   'clientId',
+  'profileId',
+  'profileLabel',
   'extensionId',
   'version',
   'name',
@@ -63,6 +65,8 @@ function httpStatusForError(error) {
   if (error?.code === 'INVALID_EXTENSION_ORIGIN') return 403;
   if (error?.code === 'BRIDGE_SHUTTING_DOWN') return 503;
   if (error?.code === 'EXTENSION_NOT_CONNECTED') return 503;
+  if (error?.code === 'EXTENSION_PROFILE_NOT_CONNECTED') return 503;
+  if (error?.code === 'AMBIGUOUS_EXTENSION_PROFILE') return 409;
   if ([
     'INVALID_ACTION',
     'UNSUPPORTED_ACTION',
@@ -229,6 +233,32 @@ function validateCommandEnvelope(body) {
   }
 }
 
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function extensionProfileKey(info = {}, fallbackKey = null) {
+  return nonEmptyString(info.profileId)
+    || nonEmptyString(info.clientId)
+    || nonEmptyString(info.extensionId)
+    || fallbackKey
+    || `anonymous:${randomUUID()}`;
+}
+
+function commandRoutingProfileId(payload = {}) {
+  const profileId = nonEmptyString(payload?.profileId);
+  if (!profileId && payload?.profileId !== undefined) {
+    throw bridgeError('INVALID_PAYLOAD', 'payload.profileId must be a non-empty string when provided');
+  }
+  return profileId;
+}
+
+function stripCommandRoutingPayload(payload = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload;
+  const { profileId: _profileId, ...extensionPayload } = payload;
+  return extensionPayload;
+}
+
 export function parseBridgePort(value, name = 'port') {
   const rawValue = value === undefined || value === null || value === ''
     ? DEFAULT_PORT
@@ -258,72 +288,215 @@ export function createBridgeServer(options = {}) {
     ? process.env.CHROME_BRIDGE_ENABLE_LONG_POLL === '1'
     : Boolean(options.enableLongPoll);
 
-  const commandQueue = [];
   const pendingResults = new Map();
-  const pollWaiters = new Set();
   let shuttingDown = false;
   let closePromise = null;
 
   const state = {
     startedAt: new Date().toISOString(),
-    extensionConnectedAt: null,
-    extensionLastSeenAt: null,
-    extensionInfo: null,
-    extensionSocket: null,
+    extensionClients: new Map(),
+    lastExtensionProfileKey: null,
     lastError: null,
   };
 
-  function markExtensionSeen(info = {}) {
-    const safeInfo = stripUnsafeObjectKeys(info, { allowedKeys: EXTENSION_INFO_KEYS });
-    const now = new Date().toISOString();
-    state.extensionConnectedAt ||= now;
-    state.extensionLastSeenAt = now;
-    state.extensionInfo = {
-      ...state.extensionInfo,
-      ...safeInfo,
+  function createExtensionClient(profileKey) {
+    return {
+      profileKey,
+      connectedAt: null,
+      lastSeenAt: null,
+      info: {},
+      socket: null,
+      commandQueue: [],
+      pollWaiters: new Set(),
     };
   }
 
+  function rejectClientPendingCommands(client, error) {
+    if (!client) return;
+    client.commandQueue.splice(0, client.commandQueue.length);
+    for (const [id, entry] of pendingResults.entries()) {
+      if (entry.client !== client) continue;
+      clearTimeout(entry.timeout);
+      pendingResults.delete(id);
+      entry.reject(error);
+    }
+    for (const waiter of client.pollWaiters) {
+      clearTimeout(waiter.timeout);
+      writeJson(waiter.req, waiter.res, 503, errorPayload(error));
+    }
+    client.pollWaiters.clear();
+  }
+
+  function markExtensionSeen(info = {}, options = {}) {
+    const safeInfo = stripUnsafeObjectKeys(info, { allowedKeys: EXTENSION_INFO_KEYS });
+    const profileKey = extensionProfileKey(safeInfo, options.client?.profileKey || options.profileKey);
+    let client = options.client || state.extensionClients.get(profileKey);
+
+    if (!client) {
+      client = createExtensionClient(profileKey);
+    }
+
+    if (client.profileKey !== profileKey) {
+      state.extensionClients.delete(client.profileKey);
+      const existingClient = state.extensionClients.get(profileKey);
+      if (existingClient && existingClient !== client) {
+        const replacedError = bridgeError(
+          'EXTENSION_CONNECTION_REPLACED',
+          'Extension profile connection was replaced by a newer connection',
+          { profileId: profileKey },
+        );
+        rejectClientPendingCommands(existingClient, replacedError);
+        if (existingClient.socket && existingClient.socket !== options.socket) {
+          existingClient.socket.close(1000, 'Replaced by newer extension profile connection');
+        }
+      }
+      client.profileKey = profileKey;
+    }
+
+    if (options.socket && client.socket !== options.socket) {
+      if (client.socket && client.socket.readyState === WebSocket.OPEN) {
+        client.socket.close(1000, 'Replaced by newer extension profile connection');
+      }
+      client.socket = options.socket;
+    }
+
+    const now = new Date().toISOString();
+    client.connectedAt ||= now;
+    client.lastSeenAt = now;
+    client.info = {
+      ...client.info,
+      ...safeInfo,
+    };
+    state.extensionClients.set(client.profileKey, client);
+    state.lastExtensionProfileKey = client.profileKey;
+    return client;
+  }
+
+  function extensionClientConnected(client) {
+    if (!client) return false;
+    if (client.socket && client.socket.readyState === WebSocket.OPEN) return true;
+    if (!client.lastSeenAt) return false;
+    return Date.now() - Date.parse(client.lastSeenAt) < EXTENSION_TTL_MS;
+  }
+
+  function connectedExtensionClients() {
+    return [...state.extensionClients.values()].filter((client) => extensionClientConnected(client));
+  }
+
   function extensionConnected() {
-    if (state.extensionSocket && state.extensionSocket.readyState === WebSocket.OPEN) return true;
-    if (!state.extensionLastSeenAt) return false;
-    return Date.now() - Date.parse(state.extensionLastSeenAt) < EXTENSION_TTL_MS;
+    return connectedExtensionClients().length > 0;
   }
 
-  function extensionVersionMatches() {
-    return state.extensionInfo?.version === EXTENSION_VERSION;
+  function extensionVersionMatches(client) {
+    return client?.info?.version === EXTENSION_VERSION;
   }
 
-  function extensionVersionKnown() {
-    return typeof state.extensionInfo?.version === 'string' && state.extensionInfo.version.length > 0;
+  function extensionVersionKnown(client) {
+    return typeof client?.info?.version === 'string' && client.info.version.length > 0;
   }
 
-  function extensionVersionStatusError(action) {
+  function extensionVersionStatusError(client, action) {
     if (action === 'reloadExtension') return null;
-    if (!extensionVersionKnown()) {
+    if (!extensionVersionKnown(client)) {
       return bridgeError(
         'VERSION_UNKNOWN',
         `Extension version is unknown; wait for extension hello or reload the unpacked extension so bridge can verify ${EXTENSION_VERSION}.`,
       );
     }
-    if (!extensionVersionMatches()) {
+    if (!extensionVersionMatches(client)) {
       return bridgeError(
         'VERSION_MISMATCH',
-        `Extension version mismatch: bridge expects ${EXTENSION_VERSION}, but connected extension is ${state.extensionInfo.version}. Reload the unpacked extension first.`,
+        `Extension version mismatch: bridge expects ${EXTENSION_VERSION}, but connected extension is ${client.info.version}. Reload the unpacked extension first.`,
       );
     }
     return null;
   }
 
-  function requireKnownExtensionOrigin(req) {
+  function requireKnownExtensionOrigin(req, client) {
     return requireExtensionIdentity(req, {
-      extensionId: state.extensionInfo?.extensionId,
+      extensionId: client?.info?.extensionId,
     });
   }
 
-  function settleResult(body) {
+  function extensionClientMatchesProfile(client, profileId) {
+    return client?.profileKey === profileId
+      || client?.info?.profileId === profileId
+      || client?.info?.clientId === profileId
+      || client?.info?.extensionId === profileId;
+  }
+
+  function anonymousLongPollClientForAdoption() {
+    const candidates = [...state.extensionClients.values()].filter((client) => (
+      !client.socket
+      && extensionClientConnected(client)
+      && !nonEmptyString(client.info?.profileId)
+      && !nonEmptyString(client.info?.clientId)
+    ));
+    return candidates.length === 1 ? candidates[0] : null;
+  }
+
+  function extensionClientSummary(client) {
+    return {
+      connected: extensionClientConnected(client),
+      profileKey: client.profileKey,
+      connectedAt: client.connectedAt,
+      lastSeenAt: client.lastSeenAt,
+      info: client.info,
+      queue: {
+        commands: client.commandQueue.length,
+        pollWaiters: client.pollWaiters.size,
+      },
+    };
+  }
+
+  function defaultExtensionClient() {
+    const connected = connectedExtensionClients();
+    if (connected.length === 1) return connected[0];
+    const lastClient = state.lastExtensionProfileKey
+      ? state.extensionClients.get(state.lastExtensionProfileKey)
+      : null;
+    if (lastClient && extensionClientConnected(lastClient)) return lastClient;
+    return connected[0] || null;
+  }
+
+  function selectExtensionClient(profileId = null) {
+    const connected = connectedExtensionClients();
+    if (!connected.length) {
+      throw bridgeError(
+        'EXTENSION_NOT_CONNECTED',
+        'Chrome extension is not connected to the bridge',
+      );
+    }
+
+    if (profileId) {
+      const matches = connected.filter((client) => extensionClientMatchesProfile(client, profileId));
+      if (matches.length === 1) return matches[0];
+      if (matches.length > 1) {
+        throw bridgeError(
+          'AMBIGUOUS_EXTENSION_PROFILE',
+          `Multiple connected extension profiles match ${profileId}`,
+          { profileId, profiles: connected.map(extensionClientSummary) },
+        );
+      }
+      throw bridgeError(
+        'EXTENSION_PROFILE_NOT_CONNECTED',
+        `No connected Chrome extension profile matches ${profileId}`,
+        { profileId, profiles: connected.map(extensionClientSummary) },
+      );
+    }
+
+    if (connected.length === 1) return connected[0];
+    throw bridgeError(
+      'AMBIGUOUS_EXTENSION_PROFILE',
+      'Multiple Chrome extension profiles are connected; set CHROME_BRIDGE_PROFILE_ID to the target profileId/clientId.',
+      { profiles: connected.map(extensionClientSummary) },
+    );
+  }
+
+  function settleResult(body, client = null) {
     const entry = pendingResults.get(body.id);
     if (!entry) return false;
+    if (client && entry.client !== client) return false;
 
     pendingResults.delete(body.id);
     clearTimeout(entry.timeout);
@@ -338,36 +511,39 @@ export function createBridgeServer(options = {}) {
   }
 
   function rejectPendingCommands(error) {
-    commandQueue.splice(0, commandQueue.length);
     for (const entry of pendingResults.values()) {
       clearTimeout(entry.timeout);
       entry.reject(error);
     }
     pendingResults.clear();
-    for (const waiter of pollWaiters) {
-      clearTimeout(waiter.timeout);
-      writeJson(waiter.req, waiter.res, 503, errorPayload(error));
+    for (const client of state.extensionClients.values()) {
+      client.commandQueue.splice(0, client.commandQueue.length);
+      for (const waiter of client.pollWaiters) {
+        clearTimeout(waiter.timeout);
+        writeJson(waiter.req, waiter.res, 503, errorPayload(error));
+      }
+      client.pollWaiters.clear();
     }
-    pollWaiters.clear();
   }
 
-  function flushPollWaiters() {
-    if (!commandQueue.length || !pollWaiters.size) return;
-    const [waiter] = pollWaiters;
-    pollWaiters.delete(waiter);
+  function flushPollWaiters(client) {
+    if (!client?.commandQueue.length || !client.pollWaiters.size) return;
+    const [waiter] = client.pollWaiters;
+    client.pollWaiters.delete(waiter);
     clearTimeout(waiter.timeout);
-    const commands = commandQueue.splice(0, commandQueue.length);
+    const commands = client.commandQueue.splice(0, client.commandQueue.length);
     writeJson(waiter.req, waiter.res, 200, { ok: true, commands });
   }
 
-  function enqueueCommand(action, payload = {}, timeoutMs = 20_000) {
+  function enqueueCommand(client, action, payload = {}, timeoutMs = 20_000) {
     if (shuttingDown) {
       throw bridgeError('BRIDGE_SHUTTING_DOWN', 'Chrome Bridge is shutting down');
     }
-    if (!extensionConnected()) {
+    if (!extensionClientConnected(client)) {
       throw bridgeError(
-        'EXTENSION_NOT_CONNECTED',
-        'Chrome extension is not connected to the bridge',
+        'EXTENSION_PROFILE_NOT_CONNECTED',
+        'Selected Chrome extension profile is not connected to the bridge',
+        { profileId: client?.profileKey || null },
       );
     }
 
@@ -376,23 +552,23 @@ export function createBridgeServer(options = {}) {
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        const index = commandQueue.findIndex((queued) => queued.id === id);
-        if (index >= 0) commandQueue.splice(index, 1);
+        const index = client.commandQueue.findIndex((queued) => queued.id === id);
+        if (index >= 0) client.commandQueue.splice(index, 1);
         pendingResults.delete(id);
         reject(new Error(`Timed out waiting for extension response to ${action}`));
       }, timeoutMs);
 
-      pendingResults.set(id, { resolve, reject, timeout });
-      if (state.extensionSocket && state.extensionSocket.readyState === WebSocket.OPEN) {
-        state.extensionSocket.send(JSON.stringify(command), (error) => {
+      pendingResults.set(id, { client, resolve, reject, timeout });
+      if (client.socket && client.socket.readyState === WebSocket.OPEN) {
+        client.socket.send(JSON.stringify(command), (error) => {
           if (!error) return;
           pendingResults.delete(id);
           clearTimeout(timeout);
           reject(error);
         });
       } else {
-        commandQueue.push(command);
-        flushPollWaiters();
+        client.commandQueue.push(command);
+        flushPollWaiters(client);
       }
     });
   }
@@ -408,6 +584,10 @@ export function createBridgeServer(options = {}) {
       }
 
       if (req.method === 'GET' && url.pathname === '/health') {
+        const defaultClient = defaultExtensionClient();
+        const extensions = [...state.extensionClients.values()].map(extensionClientSummary);
+        const queuedCommands = extensions.reduce((total, extension) => total + extension.queue.commands, 0);
+        const queuedPollWaiters = extensions.reduce((total, extension) => total + extension.queue.pollWaiters, 0);
         writeJson(req, res, 200, {
           ok: true,
           bridge: {
@@ -419,14 +599,17 @@ export function createBridgeServer(options = {}) {
           },
           extension: {
             connected: extensionConnected(),
-            connectedAt: state.extensionConnectedAt,
-            lastSeenAt: state.extensionLastSeenAt,
-            info: state.extensionInfo,
+            ambiguous: connectedExtensionClients().length > 1,
+            connectedAt: defaultClient?.connectedAt || null,
+            lastSeenAt: defaultClient?.lastSeenAt || null,
+            profileKey: defaultClient?.profileKey || null,
+            info: defaultClient?.info || null,
           },
+          extensions,
           queue: {
-            commands: commandQueue.length,
+            commands: queuedCommands,
             pendingResults: pendingResults.size,
-            pollWaiters: pollWaiters.size,
+            pollWaiters: queuedPollWaiters,
           },
           transports: {
             websocket: true,
@@ -463,16 +646,18 @@ export function createBridgeServer(options = {}) {
           writeJson(req, res, 400, errorPayload(bridgeError('UNSUPPORTED_ACTION', `Unsupported action: ${action}`)));
           return;
         }
-        validateCommandPayload(action, payload);
-        if (extensionConnected()) {
-          const versionError = extensionVersionStatusError(action);
-          if (versionError) {
-            writeJson(req, res, 409, errorPayload(versionError));
-            return;
-          }
+        const profileId = commandRoutingProfileId(payload);
+        const extensionPayload = stripCommandRoutingPayload(payload);
+        validateCommandPayload(action, extensionPayload);
+        const effectiveTimeoutMs = commandTimeoutMs(action, timeoutMs);
+        const client = selectExtensionClient(profileId);
+        const versionError = extensionVersionStatusError(client, action);
+        if (versionError) {
+          writeJson(req, res, 409, errorPayload(versionError));
+          return;
         }
 
-        const result = await enqueueCommand(action, payload, commandTimeoutMs(action, timeoutMs));
+        const result = await enqueueCommand(client, action, extensionPayload, effectiveTimeoutMs);
         writeJson(req, res, 200, { ok: true, result });
         return;
       }
@@ -521,19 +706,23 @@ export function createBridgeServer(options = {}) {
           writeJson(req, res, 403, errorPayload(originError));
           return;
         }
-        const identityError = requireKnownExtensionOrigin(req);
+        const pollInfo = {
+          clientId: url.searchParams.get('client') || undefined,
+          origin: req.headers.origin || undefined,
+          userAgent: req.headers['user-agent'] || undefined,
+        };
+        const pollProfileKey = extensionProfileKey(pollInfo);
+        const client = markExtensionSeen(pollInfo, {
+          client: state.extensionClients.get(pollProfileKey) || anonymousLongPollClientForAdoption(),
+        });
+        const identityError = requireKnownExtensionOrigin(req, client);
         if (identityError) {
           writeJson(req, res, 403, errorPayload(identityError));
           return;
         }
-        markExtensionSeen({
-          clientId: url.searchParams.get('client') || undefined,
-          origin: req.headers.origin || undefined,
-          userAgent: req.headers['user-agent'] || undefined,
-        });
 
-        if (commandQueue.length) {
-          const commands = commandQueue.splice(0, commandQueue.length);
+        if (client.commandQueue.length) {
+          const commands = client.commandQueue.splice(0, client.commandQueue.length);
           writeJson(req, res, 200, { ok: true, commands });
           return;
         }
@@ -542,13 +731,13 @@ export function createBridgeServer(options = {}) {
           req,
           res,
           timeout: setTimeout(() => {
-            pollWaiters.delete(waiter);
+            client.pollWaiters.delete(waiter);
             writeJson(req, res, 200, { ok: true, commands: [] });
           }, LONG_POLL_MS),
         };
-        pollWaiters.add(waiter);
+        client.pollWaiters.add(waiter);
         req.on('close', () => {
-          pollWaiters.delete(waiter);
+          client.pollWaiters.delete(waiter);
           clearTimeout(waiter.timeout);
         });
         return;
@@ -579,9 +768,10 @@ export function createBridgeServer(options = {}) {
           writeJson(req, res, 403, errorPayload(identityError));
           return;
         }
-        markExtensionSeen(body.info || {});
+        const pendingEntry = pendingResults.get(body.id);
+        const client = markExtensionSeen(body.info || {}, { client: pendingEntry?.client });
 
-        if (!settleResult(body)) {
+        if (!settleResult(body, client)) {
           writeJson(req, res, 404, errorPayload(bridgeError('UNKNOWN_COMMAND_ID', 'Unknown command id')));
           return;
         }
@@ -620,16 +810,14 @@ export function createBridgeServer(options = {}) {
       ws.close(1001, 'Bridge shutting down');
       return;
     }
-    if (state.extensionSocket && state.extensionSocket.readyState === WebSocket.OPEN) {
-      state.extensionSocket.close(1000, 'Replaced by newer extension connection');
-    }
 
-    state.extensionSocket = ws;
-    state.extensionInfo = null;
-    markExtensionSeen({
+    let client = markExtensionSeen({
       origin: req.headers.origin || undefined,
       userAgent: req.headers['user-agent'] || undefined,
       transport: 'websocket',
+    }, {
+      profileKey: `socket:${randomUUID()}`,
+      socket: ws,
     });
 
     ws.on('message', (raw) => {
@@ -648,18 +836,30 @@ export function createBridgeServer(options = {}) {
           ws.close(1008, 'Extension id mismatch');
           return;
         }
-        markExtensionSeen({ ...(body.info || {}), transport: 'websocket' });
+        client = markExtensionSeen({ ...(body.info || {}), transport: 'websocket' }, { client, socket: ws });
         return;
       }
 
       if (body.id) {
-        markExtensionSeen(body.info || {});
-        settleResult(body);
+        client = markExtensionSeen(body.info || {}, { client, socket: ws });
+        settleResult(body, client);
       }
     });
 
     ws.on('close', () => {
-      if (state.extensionSocket === ws) state.extensionSocket = null;
+      if (client?.socket !== ws) return;
+      client.socket = null;
+      rejectClientPendingCommands(
+        client,
+        bridgeError(
+          'EXTENSION_NOT_CONNECTED',
+          'Chrome extension profile disconnected before returning a command result',
+          { profileId: client.profileKey },
+        ),
+      );
+      if (state.extensionClients.get(client.profileKey) === client) {
+        state.extensionClients.delete(client.profileKey);
+      }
     });
 
     ws.on('error', (error) => {
@@ -691,7 +891,9 @@ export function createBridgeServer(options = {}) {
         closeWebSocketServer(wss, state),
         closeHttpServer(server),
       ]).then(() => {
-        state.extensionSocket = null;
+        for (const client of state.extensionClients.values()) {
+          client.socket = null;
+        }
       });
       return closePromise;
     },
@@ -710,7 +912,9 @@ function closeHttpServer(server) {
 
 function closeWebSocketServer(wss, state) {
   const clients = new Set(wss.clients || []);
-  if (state.extensionSocket) clients.add(state.extensionSocket);
+  for (const client of state.extensionClients.values()) {
+    if (client.socket) clients.add(client.socket);
+  }
   const closeClients = [...clients].map((socket) => closeWebSocket(socket));
   return Promise.all(closeClients)
     .then(() => new Promise((resolve, reject) => {

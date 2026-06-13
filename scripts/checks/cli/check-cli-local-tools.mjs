@@ -171,8 +171,9 @@ async function withFakeCommandBridge(fn) {
       return;
     }
 
+    const { profileId: _profileId, ...validationPayload } = parsed.payload || {};
     try {
-      validateCommandPayload(parsed.action, parsed.payload || {});
+      validateCommandPayload(parsed.action, validationPayload);
     } catch (error) {
       invalidPayloadRequests.push(parsed);
       res.writeHead(400, { 'content-type': 'application/json' });
@@ -317,7 +318,20 @@ let traceMaxEventsChecks = 0;
 let privateLimitChecks = 0;
 let readLimitChecks = 0;
 let utilityNumberChecks = 0;
+let profileRoutingChecks = 0;
 await withFakeCommandBridge(async ({ bridgeUrl, receivedCommands, invalidPayloadRequests }) => {
+  const beforeProfileRoute = receivedCommands.length;
+  const profileRouteResult = await runCli(['tabs'], {
+    CHROME_BRIDGE_URL: bridgeUrl,
+    CHROME_BRIDGE_PROFILE_ID: 'profile-cli-check',
+  });
+  check(profileRouteResult.ok, 'CLI must succeed when CHROME_BRIDGE_PROFILE_ID is configured');
+  const profileRouteParsed = parseJsonOutput(profileRouteResult, 'CLI CHROME_BRIDGE_PROFILE_ID fake command bridge');
+  const profileRoutePayload = receivedCommands[beforeProfileRoute]?.payload || profileRouteParsed?.payload;
+  check(receivedCommands[beforeProfileRoute]?.action === 'tabs', 'CLI profile routing check must dispatch tabs');
+  check(profileRoutePayload?.profileId === 'profile-cli-check', 'CLI must forward CHROME_BRIDGE_PROFILE_ID as payload.profileId');
+  profileRoutingChecks += 1;
+
   const includeAllCases = [
     { action: 'tabs', args: ['tabs', '--all'], confirmedArgs: ['tabs', '--all', '--confirm'] },
     { action: 'windows', args: ['windows', '--all'], confirmedArgs: ['windows', '--all', '--confirm'] },
@@ -1133,6 +1147,7 @@ process.stdout.write(`${JSON.stringify({
   privateLimitChecks,
   readLimitChecks,
   utilityNumberChecks,
+  profileRoutingChecks,
   groupScopePayloadChecks,
   catalogCommandCount: CLI_COMMANDS.length,
   catalogToolCount: MCP_TOOLS.length,

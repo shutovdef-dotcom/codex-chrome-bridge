@@ -1,6 +1,6 @@
 # Architecture
 
-Chrome MCP Bridge, formerly Codex Chrome Bridge, has four runtime pieces.
+Chrome MCP Bridge, formerly Codex Chrome Bridge, has four runtime pieces plus shared command contracts and verification tooling.
 
 ## Chrome Extension
 
@@ -18,7 +18,7 @@ The `extension/` directory contains a Manifest V3 extension:
 - `page-execution.js` owns the `chrome.scripting.executeScript` execution boundary for injected page helpers.
 - `page-interactions.js` owns page mutation, trusted input, dialog, and file-upload actions.
 - `page-read-actions.js` owns page inspection and read actions such as observe, extract, text, HTML, select-option discovery, and storage snapshots.
-- `page-scripts.js` contains self-contained functions injected into web pages through `chrome.scripting.executeScript`.
+- `page-scripts.js` is the stable wrapper for injected page helpers; `page-scripts/main.js` contains the self-contained functions injected into web pages through `chrome.scripting.executeScript`.
 - `runtime-actions.js` owns extension runtime actions such as confirmed extension reload.
 - `safety-gates.js` owns confirmation and sensitive-confirmation runtime guards.
 - `tab-cleanup.js` owns tab close cleanup, including ungroup-before-close mitigation for saved closed tab groups.
@@ -47,11 +47,13 @@ It exposes:
 
 The bridge server does not persist browser data.
 
+The server keeps a per-profile extension client map instead of a single global extension socket. The extension hello includes a stable per-Chrome-profile `profileId` stored in `chrome.storage.local`, plus the older `clientId` fallback. `/health` preserves the legacy `extension` summary and also exposes `extensions[]` with each connected profile. When more than one profile is connected, `/command` fails closed with `AMBIGUOUS_EXTENSION_PROFILE` unless the caller supplies routing-only `payload.profileId`; CLI and MCP wrappers add that field automatically from `CHROME_BRIDGE_PROFILE_ID`. The routing field is stripped before extension dispatch, so extension action handlers only see their normal action payload.
+
 It also rejects unsupported actions, rejects browser and extension origins on direct command ingress, exposes CORS only on extension ingress paths, requires `application/json` for JSON POST endpoints, validates direct JSON bodies and explicit command envelope fields, validates command payloads including required fields, nested form/header/prompt shapes, enum fields, numeric bounds, confirmation gates, top-level timeouts, and URL schemes before extension dispatch, refuses non-loopback binds by default, requires extension-origin ingress with origin/id parity when reported, returns stable disconnected-extension errors, preserves extension error codes/details for CLI/MCP diagnostics, and refuses most commands when the connected extension version is missing or does not match the bridge version, so unverified or stale unpacked extensions fail closed instead of drifting silently. The confirmed `reloadExtension` action is the deliberate recovery exception, allowing a stale unpacked extension to reload itself during upgrade verification.
 
 ## Shared Command Registry
 
-`shared/command-registry.mjs` is the Node-side command contract source of truth.
+`shared/command-registry.mjs` is the stable wrapper for the Node-side command contract source of truth in `shared/registry/`.
 `shared/session-group-title.mjs` derives CLI/MCP per-session group titles from `CHROME_BRIDGE_SESSION_TITLE`, Codex session title env vars, or a short `CODEX_THREAD_ID`, while preserving explicit `groupTitle` overrides.
 
 It defines:
@@ -78,7 +80,7 @@ The extension still owns Chrome API execution, but the server allowlist, runtime
 
 ## CLI
 
-`bin/chrome-bridge.mjs` is the user-facing command-line interface. It sends commands to the local bridge server and prints JSON results.
+`bin/chrome-bridge.mjs` is the stable user-facing command-line binary. It delegates to `bin/cli/main.mjs`, which sends commands to the local bridge server and prints JSON results.
 
 It also contains:
 
@@ -89,7 +91,7 @@ It also contains:
 
 ## MCP Server
 
-`mcp/chrome-bridge-mcp.mjs` exposes the same browser surface as MCP tools over stdio for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic MCP clients.
+`mcp/chrome-bridge-mcp.mjs` is the stable MCP stdio binary. It delegates to `mcp/server/main.mjs`, which exposes the same browser surface as MCP tools over stdio for Claude Code, Cursor, Codex, VS Code, Windsurf/Cascade, Hermes Agent, and generic MCP clients.
 
 The MCP server supports `CHROME_BRIDGE_MCP_TOOL_PROFILE=full|core|read`. The default `full` profile exposes every tool. The `core` profile keeps the active tool list compact for IDE clients and omits sensitive private-browser tools by default, while `read` favors conservative read-mostly inspection.
 

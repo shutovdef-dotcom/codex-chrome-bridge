@@ -660,12 +660,13 @@ check(serverText.includes('commandDefaultTimeoutMs'), 'server must import/use co
 check(serverText.includes('return commandDefaultTimeoutMs(action)'), 'server command timeout default must derive from registry action metadata');
 check(serverText.includes('commandTimeoutMs(action, timeoutMs)'), 'server /command path must pass action to timeout resolver');
 check(serverText.includes('VERSION_UNKNOWN'), 'server must fail closed when a connected extension has not reported its version');
-check(serverText.includes('state.extensionInfo = null'), 'server websocket reconnect must not inherit a previously verified extension version');
+check(serverText.includes('extensionClients: new Map()'), 'server must keep per-profile extension clients instead of one global socket');
+check(serverText.includes("profileKey: `socket:${randomUUID()}`"), 'server websocket reconnect must start as an anonymous profile before hello');
 check(serverText.includes('function requireExtensionOrigin(req)'), 'server must centralize extension-origin ingress checks');
 check(serverText.includes('INVALID_EXTENSION_ORIGIN'), 'server extension ingress must return a stable invalid-origin error code');
 check(serverText.includes('function requireExtensionIdentity(req, info = {})'), 'server must verify extension origin/id parity when the extension reports an id');
 check(serverText.includes('EXTENSION_ID_MISMATCH'), 'server extension ingress must return a stable extension-id mismatch code');
-check(serverText.includes('function requireKnownExtensionOrigin(req)'), 'server long-poll fallback must verify known extension id on poll requests');
+check(serverText.includes('function requireKnownExtensionOrigin(req, client)'), 'server long-poll fallback must verify known extension id on poll requests');
 check(serverText.includes('!isExtensionOrigin(req)'), 'server websocket ingress must require a chrome-extension origin');
 check(serverText.includes('function requireCommandOrigin(req)'), 'server must reject web origins on direct command ingress');
 check(serverText.includes('INVALID_COMMAND_ORIGIN'), 'server command ingress must return a stable invalid-origin error code');

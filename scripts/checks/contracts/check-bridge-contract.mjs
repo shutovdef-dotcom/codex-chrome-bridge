@@ -94,6 +94,21 @@ async function waitForSocketClose(socket, timeoutMs = 500) {
   ]);
 }
 
+async function nextSocketJson(socket, timeoutMs = 1_000) {
+  return Promise.race([
+    new Promise((resolve, reject) => {
+      socket.once('message', (raw) => {
+        try {
+          resolve(JSON.parse(String(raw)));
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }),
+    delay(timeoutMs).then(() => null),
+  ]);
+}
+
 async function withExtensionSocket(baseUrl, fn) {
   const socket = await openExtensionSocket(baseUrl);
   try {
@@ -566,6 +581,87 @@ await check('strips unsafe websocket extension metadata before health exposure',
     } finally {
       if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
         socket.terminate();
+      }
+    }
+  });
+});
+
+await check('routes websocket commands to the selected extension profile', async () => {
+  await withBridge({}, async ({ baseUrl }) => {
+    const socketA = await openExtensionSocket(baseUrl);
+    const socketB = await openExtensionSocket(baseUrl);
+    try {
+      const profileA = {
+        version: BRIDGE_VERSION,
+        extensionId: 'contract-test',
+        clientId: 'client-a',
+        profileId: 'profile-a',
+      };
+      const profileB = {
+        version: BRIDGE_VERSION,
+        extensionId: 'contract-test',
+        clientId: 'client-b',
+        profileId: 'profile-b',
+      };
+      socketA.send(JSON.stringify({ type: 'hello', info: profileA }));
+      socketB.send(JSON.stringify({ type: 'hello', info: profileB }));
+      await delay(50);
+
+      const health = await requestJson(baseUrl, '/health');
+      assert(health.json.extension?.ambiguous === true, 'expected health.extension.ambiguous=true with two connected profiles');
+      assert(
+        (health.json.extensions || []).some((extension) => extension.info?.profileId === 'profile-a'),
+        'expected health.extensions to expose profile-a metadata',
+      );
+      assert(
+        (health.json.extensions || []).some((extension) => extension.info?.profileId === 'profile-b'),
+        'expected health.extensions to expose profile-b metadata',
+      );
+
+      const ambiguous = await requestJson(baseUrl, '/command', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'text', payload: {}, timeoutMs: 5_000 }),
+      });
+      assert(ambiguous.response.status === 409, `expected ambiguous 409, got ${ambiguous.response.status}`);
+      assert(
+        ambiguous.json.code === 'AMBIGUOUS_EXTENSION_PROFILE',
+        `expected AMBIGUOUS_EXTENSION_PROFILE, got ${ambiguous.json.code}`,
+      );
+
+      const commandForA = nextSocketJson(socketA, 200);
+      const commandForB = nextSocketJson(socketB, 1_000);
+      const commandPromise = requestJson(baseUrl, '/command', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'text',
+          payload: { profileId: 'profile-b' },
+          timeoutMs: 5_000,
+        }),
+      });
+
+      const receivedByB = await commandForB;
+      const receivedByA = await commandForA;
+      assert(receivedByA === null, `expected profile-a not to receive command, got ${JSON.stringify(receivedByA)}`);
+      assert(receivedByB?.action === 'text', `expected profile-b text command, got ${JSON.stringify(receivedByB)}`);
+      assert(
+        receivedByB.payload?.profileId === undefined,
+        `expected routing-only profileId to be stripped before extension dispatch, got ${JSON.stringify(receivedByB.payload)}`,
+      );
+
+      socketB.send(JSON.stringify({
+        id: receivedByB.id,
+        ok: true,
+        result: { routedProfile: 'profile-b' },
+        info: profileB,
+      }));
+      const { response, json } = await commandPromise;
+      assert(response.status === 200, `expected routed command 200, got ${response.status}`);
+      assert(json.result?.routedProfile === 'profile-b', `expected routed profile result, got ${JSON.stringify(json.result)}`);
+    } finally {
+      for (const socket of [socketA, socketB]) {
+        if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+          socket.terminate();
+        }
       }
     }
   });
