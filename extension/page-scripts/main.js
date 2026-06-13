@@ -727,52 +727,51 @@ export function collectStorageSnapshot(options = {}) {
   };
 }
 
-function collectDomCapabilityDiagnostics() {
-  const frames = Array.from(document.querySelectorAll('iframe,frame'));
-  const visibleFrames = frames.filter((frame) => {
-    const rect = frame.getBoundingClientRect();
-    const style = getComputedStyle(frame);
-    return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
-  });
-  const sameOriginAccessible = frames.filter((frame) => {
-    try {
-      return Boolean(frame.contentDocument);
-    } catch {
-      return false;
-    }
-  }).length;
-  const openShadowHosts = Array.from(document.querySelectorAll('*')).filter((element) => element.shadowRoot);
-  const warnings = [];
-  if (frames.length > 0) {
-    warnings.push('observe/find-elements inspect the main-frame light DOM; iframe contents require adopting or opening the target frame as its own tab when possible.');
-  }
-  if (openShadowHosts.length > 0) {
-    warnings.push('observe/find-elements report shadow host presence but do not traverse shadow DOM for elementRef targets.');
-  }
-
-  return {
-    frameDiagnostics: {
-      scope: 'main-frame-light-dom',
-      totalFrames: frames.length,
-      visibleFrames: visibleFrames.length,
-      sameOriginAccessibleFrames: sameOriginAccessible,
-      crossOriginOrBlockedFrames: Math.max(0, frames.length - sameOriginAccessible),
-      includesFrameContent: false,
-    },
-    shadowDiagnostics: {
-      scope: 'main-frame-light-dom',
-      openShadowHosts: openShadowHosts.length,
-      includesShadowDom: false,
-      closedShadowRootsDetectable: false,
-    },
-    capabilityWarnings: warnings,
-  };
-}
-
 export function collectObserve(options = {}) {
   const limit = Math.min(Math.max(Number(options.limit || 80), 1), 300);
   const maxTextChars = Math.min(Math.max(Number(options.maxTextChars || 160), 20), 1000);
   const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+  function collectDomCapabilityDiagnostics() {
+    const frames = Array.from(document.querySelectorAll('iframe,frame'));
+    const visibleFrames = frames.filter((frame) => {
+      const rect = frame.getBoundingClientRect();
+      const style = getComputedStyle(frame);
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+    });
+    const sameOriginAccessible = frames.filter((frame) => {
+      try {
+        return Boolean(frame.contentDocument);
+      } catch {
+        return false;
+      }
+    }).length;
+    const openShadowHosts = Array.from(document.querySelectorAll('*')).filter((element) => element.shadowRoot);
+    const warnings = [];
+    if (frames.length > 0) {
+      warnings.push('observe/find-elements inspect the main-frame light DOM; iframe contents require adopting or opening the target frame as its own tab when possible.');
+    }
+    if (openShadowHosts.length > 0) {
+      warnings.push('observe/find-elements report shadow host presence but do not traverse shadow DOM for elementRef targets.');
+    }
+
+    return {
+      frameDiagnostics: {
+        scope: 'main-frame-light-dom',
+        totalFrames: frames.length,
+        visibleFrames: visibleFrames.length,
+        sameOriginAccessibleFrames: sameOriginAccessible,
+        crossOriginOrBlockedFrames: Math.max(0, frames.length - sameOriginAccessible),
+        includesFrameContent: false,
+      },
+      shadowDiagnostics: {
+        scope: 'main-frame-light-dom',
+        openShadowHosts: openShadowHosts.length,
+        includesShadowDom: false,
+        closedShadowRootsDetectable: false,
+      },
+      capabilityWarnings: warnings,
+    };
+  }
   const cssEscapeInjected = (value) => {
     if (globalThis.CSS?.escape) return CSS.escape(String(value));
     return String(value).replace(/["\\]/g, '\\$&');
